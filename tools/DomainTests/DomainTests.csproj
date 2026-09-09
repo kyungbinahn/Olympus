@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+
+    <!-- ⚠️ Unity 6000.3은 C# 9까지만 받는다. 여기를 올리면 이 하네스에서는 통과하는데
+         Unity 쪽 컴파일이 깨지는 코드를 쓰게 된다 (파일 스코프 namespace·record struct 등). -->
+    <LangVersion>9.0</LangVersion>
+
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>Olympus.DomainTests</AssemblyName>
+    <RootNamespace>Olympus.DomainTests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Unity 프로젝트 안의 파일을 그대로 컴파일한다. 사본을 만들지 않는 것이 요점 —
+         사본이 있으면 "한쪽만 고쳐 놓고 조용히 어긋나는" 일이 생긴다.
+         Olympus.Core는 asmdef에 noEngineReferences: true 라서 UnityEngine을 참조할 수 없고,
+         그래서 Unity 밖에서 그냥 컴파일된다. -->
+    <Compile Include="..\..\Assets\Core\**\*.cs" />
+    <Compile Include="..\..\Assets\Tests\Core\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Unity Test Framework가 NUnit 3.x라 여기도 3.x로 맞춘다.
+         NUnit 4는 Assert.AreEqual 등을 ClassicAssert로 옮겼으므로, 버전이 어긋나면
+         같은 시험 파일이 한쪽에서만 컴파일된다.
+
+         ⚠️ 버전을 맞춰도 이 하네스가 Unity보다 관대한 경우가 있다. 실제로 밟았다(2026-09-09):
+         `Does.Not.Contain(GridPos)` 가 여기서는 컬렉션 오버로드로 잡혀 통과했는데,
+         Unity가 물고 있는 NUnit에서는 문자열 부분일치 오버로드만 보여
+         "GridPos를 string으로 변환할 수 없다"로 컴파일이 깨졌다.
+         → 컬렉션 단정은 Has.Member / Has.No.Member 처럼 컬렉션 전용 형태를 쓴다.
+         그리고 이 하네스가 통과했다고 Unity 컴파일까지 보장되지는 않는다는 점을 기억할 것. -->
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+  </ItemGroup>
+
+</Project>

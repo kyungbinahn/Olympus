@@ -35,10 +35,14 @@
 *_BackUpThisFolder_ButDontShipItWithYourGame/
 *_BurstDebugInformation_DoNotShip/
 
-# Unity가 재생성하는 솔루션·프로젝트 파일
-*.csproj
-*.csproj.user
-*.sln
+# Unity가 재생성하는 솔루션·프로젝트 파일 — 전부 프로젝트 루트에 생긴다.
+# ⚠️ 루트 앵커(/) 필수. 앵커 없이 `*.csproj` 로 뒀다가 손으로 쓴
+# tools/DomainTests/DomainTests.csproj 가 통째로 미추적이 된 실사고가 있었다(2026-09-09).
+# 새로 clone하면 1_CoreTest.bat 은 있는데 물어야 할 csproj가 없어 시험이 안 돌아간다.
+# 이 파일 맨 위 경고가 말하는 바로 그 유형이다.
+/*.csproj
+/*.csproj.user
+/*.sln
 *.suo
 *.user
 *.userprefs
