@@ -58,6 +58,11 @@ mono_crash.*.json
 sysinfo.txt
 crashlytics-build.properties
 
+# 도메인 시험 하네스(Unity 밖 dotnet test)의 .NET 빌드 결과물 — 1_CoreTest.bat이 재생성한다.
+# 루트 앵커 규칙 밖이라 경로를 그대로 적는다.
+tools/DomainTests/bin/
+tools/DomainTests/obj/
+
 # IDE / 에디터
 .vs/
 .vscode/

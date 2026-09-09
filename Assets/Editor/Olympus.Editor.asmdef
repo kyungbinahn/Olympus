@@ -1,0 +1,20 @@
+{
+    "name": "Olympus.Editor",
+    "rootNamespace": "Olympus.Editor",
+    "references": [
+        "Olympus.Core",
+        "Olympus.Game",
+        "Olympus.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
