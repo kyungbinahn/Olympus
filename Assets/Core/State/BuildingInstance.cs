@@ -4,15 +4,23 @@ namespace Olympus.Core.State
 {
     public enum BuildingPhase
     {
+        /// <summary>
+        /// 반파된 채 서 있다. 그릭로만의 시작 상태 — 세계가 황폐하고 플레이어가 복구한다.
+        /// 자리와 모델은 이미 있고, 복구를 시작하면 Constructing으로 넘어간다.
+        /// (뉴포리아는 같은 자리에 "빈 터"를 두는데, 우리는 폐허 모델을 세워 둔다.)
+        /// </summary>
+        Ruined = 0,
+
         /// <summary>공사 중. 완료 시각이 지나면 Complete가 된다.</summary>
-        Constructing = 0,
+        Constructing = 1,
 
         /// <summary>완성. 생산·기능이 돌아간다.</summary>
-        Complete = 1,
+        Complete = 2,
     }
 
     /// <summary>
-    /// 기지에 놓인 건물 하나.
+    /// 기지의 건물 자리 하나의 런타임 상태. 자리 자체는 저작 데이터(<c>BaseSlot</c>)이고,
+    /// 이것은 그 자리가 지금 폐허인지·공사 중인지·완성인지를 든다.
     ///
     /// setter가 <c>internal</c>인 것은 의도적이다 — Game·UI 조립체에서는 읽기만 되고,
     /// 값을 바꾸는 길은 <see cref="StateStore.Apply"/> 하나뿐이다. 그 규약이
@@ -21,7 +29,7 @@ namespace Olympus.Core.State
     /// </summary>
     public sealed class BuildingInstance
     {
-        /// <summary>이 기지 안에서 유일한 인스턴스 번호. 격자 점유의 주인 키로도 쓴다.</summary>
+        /// <summary>자리 번호(<c>BaseSlot.SlotId</c>)와 같다. 격자 점유의 주인 키로도 쓴다.</summary>
         public int Id { get; }
 
         /// <summary>어떤 건물인지 — 정의 테이블의 키.</summary>
@@ -60,10 +68,15 @@ namespace Olympus.Core.State
             ConstructionEndsAtUnixMs = constructionEndsAtUnixMs;
         }
 
-        /// <summary>지정 시각 기준 남은 공사 시간(밀리초). 다 됐으면 0.</summary>
+        public bool IsRuined => Phase == BuildingPhase.Ruined;
+
+        /// <summary>
+        /// 지정 시각 기준 남은 공사 시간(밀리초). 공사 중이 아니면 0
+        /// (폐허는 아직 시작하지 않았고, 완성은 이미 끝났다).
+        /// </summary>
         public long RemainingConstructionMs(long nowUnixMs)
         {
-            if (Phase == BuildingPhase.Complete)
+            if (Phase != BuildingPhase.Constructing)
                 return 0L;
 
             long remaining = ConstructionEndsAtUnixMs - nowUnixMs;
