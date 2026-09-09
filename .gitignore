@@ -1,0 +1,86 @@
+# ─────────────────────────────────────────────────────────────
+# Olympus — Unity 프로젝트가 레포 루트에 있는 구성
+#
+# ⚠️ 빌드 산출물 패턴에는 루트 앵커(/)를 꼭 붙인다.
+#    앵커가 없으면 어느 깊이에서든 걸려서 Assets/ 아래 같은 이름의 폴더까지 삼킨다.
+#    (CatClient 실사고: 앵커 없는 규칙이 Assets 하위 Build/ 폴더의 실코드를 통째로
+#     미추적으로 만들어, 새로 쓴 코드가 조용히 커밋에서 빠졌다)
+#
+# ⚠️ Packages/ 와 ProjectSettings/ 는 추적한다. 여기 넣지 말 것.
+#    Cat은 이 둘을 무시하는데, Cat은 Unity가 CatUnity/ 하위라 루트의 동명 폴더가
+#    "루트에서 Unity를 잘못 열었을 때 생긴 쓰레기"였다. 우리는 Unity가 루트다.
+#    특히 ProjectSettings/EditorBuildSettings.asset(씬 목록)이 빠지면 어느 씬도 안 열린다.
+# ─────────────────────────────────────────────────────────────
+
+# Unity 생성 폴더 (전부 재생성 가능)
+/Library/
+/Temp/
+/Obj/
+/obj/
+/Logs/
+/UserSettings/
+/MemoryCaptures/
+/Recordings/
+
+# 빌드 산출물
+/Build/
+/Builds/
+/[Bb]uild[Ss]/
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# IL2CPP / Burst 부산물 — 배포하면 안 되고 재생성된다
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+*_BurstDebugInformation_DoNotShip/
+
+# Unity가 재생성하는 솔루션·프로젝트 파일
+*.csproj
+*.csproj.user
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.vsconfig
+
+# Unity 크래시 잔여물
+# (CatClient 전례: 추적 해제만 하고 규칙을 안 넣어 다음 크래시 때 재발했다)
+/Assets/_Recovery/
+mono_crash.*.json
+sysinfo.txt
+crashlytics-build.properties
+
+# IDE / 에디터
+.vs/
+.vscode/
+.idea/
+.consulo/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# MCP 로컬 설정 — 머신마다 Unity 브릿지 포트가 다르다.
+# 추적하면 체크아웃할 때마다 남의 포트로 되돌아가 옆 사람 에디터를 조작하는 사고가 난다.
+.mcp.json
+
+# Claude 로컬 설정. 팀이 함께 쓰는 정의만 예외로 공유한다.
+# (폴더째 막으면 git이 안으로 들어가지 않아 예외가 안 먹으므로 `.claude/*`)
+.claude/*
+!.claude/agents/
+!.claude/commands/
+!.claude/skills/
+
+# 로컬 전용 문서 자리 — 문서는 공유가 기본이다.
+# (CatClient 전례: 제외가 기본이던 시절 팀에 주려던 문서가 체크아웃 하나에 갇힌 사고가 3건)
+docs/_local/
+dev-docs/_local/
