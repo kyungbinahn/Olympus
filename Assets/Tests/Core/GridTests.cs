@@ -181,8 +181,12 @@ namespace Olympus.Core.Tests
             Assert.That(cells.Count, Is.EqualTo(6));
             Assert.That(cells, Contains.Item(new GridPos(5, 10)));
             Assert.That(cells, Contains.Item(new GridPos(6, 12)));
-            Assert.That(cells, Does.Not.Contain(new GridPos(7, 10)));
-            Assert.That(cells, Does.Not.Contain(new GridPos(5, 13)));
+            // Does.Not.Contain 이 아니라 Has.No.Member 를 쓴다 — Unity가 물고 있는 NUnit에서는
+            // Does.Not.Contain 의 오버로드가 문자열 부분일치 쪽으로만 잡혀서
+            // "GridPos를 string으로 변환할 수 없다"로 컴파일이 깨진다.
+            // (NUnit 3.14 하네스에서는 통과하는데 Unity에서만 깨졌다 — 두 곳에서 다 되는 형태를 쓴다.)
+            Assert.That(cells, Has.No.Member(new GridPos(7, 10)));
+            Assert.That(cells, Has.No.Member(new GridPos(5, 13)));
         }
 
         [Test]
