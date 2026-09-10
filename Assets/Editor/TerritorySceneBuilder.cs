@@ -46,6 +46,10 @@ namespace Olympus.Editor
                     return;
             }
 
+            // 데이터 JSON을 Unity 밖에서 만들었을 수 있다 — 임포트되기 전이면
+            // LoadAssetAtPath가 null을 주고, 기지가 조용히 비어 있게 뜬다.
+            AssetDatabase.Refresh();
+
             EnsureFolder("Assets/Scenes");
             EnsureFolder("Assets/Settings");
 
@@ -63,6 +67,7 @@ namespace Olympus.Editor
             CreateLight();
             TerritoryGround ground = CreateGround(devastated, restored);
             CreateCamera(ground);
+            CreatePresenter(ground);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             AddSceneToBuildSettings(ScenePath);
@@ -132,6 +137,88 @@ namespace Olympus.Editor
             SerializedObject so = new SerializedObject(rig);
             so.FindProperty("_ground").objectReferenceValue = ground;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void CreatePresenter(TerritoryGround ground)
+        {
+            var go = new GameObject("TerritoryPresenter");
+            TerritoryPresenter presenter = go.AddComponent<TerritoryPresenter>();
+
+            var so = new SerializedObject(presenter);
+
+            Wire(so, "_ground", ground);
+            Wire(so, "_buildingDefs", LoadRequired<TextAsset>("Assets/Data/building-defs.json"));
+            Wire(so, "_baseLayout", LoadRequired<TextAsset>("Assets/Data/base-layout.json"));
+
+            // 그레이박스 색 — 폐허는 어둡고 칙칙하게, 완성은 대리석처럼 밝게.
+            // 복구가 진행되면 화면이 어두운 데서 밝은 쪽으로 옮겨가는 것이 눈에 보인다.
+            Wire(so, "_ruinedMaterial",
+                CreateOrLoadFlatMaterial("Assets/Settings/BuildingRuined.mat", "BuildingRuined",
+                    new Color(0.34f, 0.31f, 0.28f)));
+
+            Wire(so, "_constructingMaterial",
+                CreateOrLoadFlatMaterial("Assets/Settings/BuildingConstructing.mat", "BuildingConstructing",
+                    new Color(0.78f, 0.66f, 0.32f)));
+
+            Wire(so, "_completeMaterial",
+                CreateOrLoadFlatMaterial("Assets/Settings/BuildingComplete.mat", "BuildingComplete",
+                    new Color(0.88f, 0.86f, 0.80f)));
+
+            Wire(so, "_selectionMaterial",
+                CreateOrLoadFlatMaterial("Assets/Settings/CellSelection.mat", "CellSelection",
+                    new Color(0.30f, 0.85f, 0.95f)));
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void Wire(SerializedObject so, string propertyName, Object value)
+        {
+            SerializedProperty prop = so.FindProperty(propertyName);
+
+            if (prop == null)
+            {
+                Debug.LogError("직렬화 필드를 못 찾았습니다: " + propertyName +
+                               " — 필드 이름이 바뀌었으면 이 배선도 함께 고쳐야 합니다.");
+                return;
+            }
+
+            prop.objectReferenceValue = value;
+        }
+
+        private static T LoadRequired<T>(string path) where T : Object
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+
+            if (asset == null)
+            {
+                Debug.LogError(
+                    "필요한 에셋이 없습니다: " + path +
+                    " — 없으면 기지가 비어 있게 뜹니다. 파일을 확인하세요.");
+            }
+
+            return asset;
+        }
+
+        /// <summary>단색 무광 머티리얼. 그레이박스 전용이고, 실제 아트가 들어오면 교체된다.</summary>
+        private static Material CreateOrLoadFlatMaterial(string path, string name, Color color)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (existing != null)
+            {
+                existing.color = color;
+                return existing;
+            }
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            var material = new Material(shader) { name = name, color = color };
+
+            if (material.HasProperty("_Smoothness"))
+                material.SetFloat("_Smoothness", 0f);
+            if (material.HasProperty("_Metallic"))
+                material.SetFloat("_Metallic", 0f);
+
+            AssetDatabase.CreateAsset(material, path);
+            return material;
         }
 
         private static Material CreateOrLoadGroundMaterial(
