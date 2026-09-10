@@ -2,6 +2,7 @@
     "defs":  [
                  {
                      "defId":  "main_hall",
+                     "artCode":  "B01",
                      "displayNameKey":  "building.main_hall",
                      "width":  6,
                      "height":  6,
@@ -11,41 +12,150 @@
                                ]
                  },
                  {
-                     "defId":  "arena",
-                     "displayNameKey":  "building.arena",
-                     "width":  6,
-                     "height":  6,
-                     "buildDurationMs":  600000,
+                     "defId":  "timber_store",
+                     "artCode":  "B03",
+                     "displayNameKey":  "building.timber_store",
+                     "width":  5,
+                     "height":  5,
+                     "buildDurationMs":  60000,
                      "costs":  [
                                    {
                                        "kind":  "Stone",
-                                       "amount":  800
-                                   },
+                                       "amount":  60
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "mason_yard",
+                     "artCode":  "B05",
+                     "displayNameKey":  "building.mason_yard",
+                     "width":  5,
+                     "height":  5,
+                     "buildDurationMs":  90000,
+                     "costs":  [
                                    {
                                        "kind":  "Wood",
+                                       "amount":  90
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "gatehouse",
+                     "artCode":  "B14",
+                     "displayNameKey":  "building.gatehouse",
+                     "width":  6,
+                     "height":  3,
+                     "buildDurationMs":  180000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Stone",
                                        "amount":  300
                                    }
                                ]
                  },
                  {
-                     "defId":  "grand_barracks",
-                     "displayNameKey":  "building.grand_barracks",
+                     "defId":  "war_engine_yard",
+                     "artCode":  "B16",
+                     "displayNameKey":  "building.war_engine_yard",
+                     "width":  6,
+                     "height":  6,
+                     "buildDurationMs":  600000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  500
+                                   },
+                                   {
+                                       "kind":  "Stone",
+                                       "amount":  200
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "ironworks",
+                     "artCode":  "N1",
+                     "displayNameKey":  "building.ironworks",
+                     "width":  3,
+                     "height":  3,
+                     "buildDurationMs":  120000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Stone",
+                                       "amount":  150
+                                   },
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  60
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "carpentry",
+                     "artCode":  "N2",
+                     "displayNameKey":  "building.carpentry",
+                     "width":  3,
+                     "height":  3,
+                     "buildDurationMs":  90000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  120
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "mine",
+                     "artCode":  "N3",
+                     "displayNameKey":  "building.mine",
+                     "width":  3,
+                     "height":  3,
+                     "buildDurationMs":  120000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  100
+                                   },
+                                   {
+                                       "kind":  "Stone",
+                                       "amount":  60
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "quarry",
+                     "artCode":  "N4",
+                     "displayNameKey":  "building.quarry",
+                     "width":  5,
+                     "height":  5,
+                     "buildDurationMs":  90000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  80
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "arena",
+                     "artCode":  "C01",
+                     "displayNameKey":  "building.arena",
                      "width":  6,
                      "height":  6,
                      "buildDurationMs":  480000,
                      "costs":  [
                                    {
                                        "kind":  "Stone",
-                                       "amount":  600
+                                       "amount":  700
                                    },
                                    {
                                        "kind":  "Wood",
-                                       "amount":  400
+                                       "amount":  200
                                    }
                                ]
                  },
                  {
                      "defId":  "barracks",
+                     "artCode":  "C02",
                      "displayNameKey":  "building.barracks",
                      "width":  5,
                      "height":  5,
@@ -62,29 +172,63 @@
                                ]
                  },
                  {
-                     "defId":  "infirmary",
-                     "displayNameKey":  "building.infirmary",
+                     "defId":  "farm",
+                     "artCode":  "C03",
+                     "displayNameKey":  "building.farm",
                      "width":  5,
                      "height":  5,
-                     "buildDurationMs":  150000,
+                     "buildDurationMs":  45000,
                      "costs":  [
                                    {
                                        "kind":  "Wood",
-                                       "amount":  180
-                                   },
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  80
+                                       "amount":  60
                                    }
                                ]
                  },
                  {
-                     "defId":  "granary",
-                     "displayNameKey":  "building.granary",
+                     "defId":  "fishing_hut",
+                     "artCode":  "C04",
+                     "displayNameKey":  "building.fishing_hut",
+                     "width":  3,
+                     "height":  3,
+                     "buildDurationMs":  45000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  70
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "silver_mine",
+                     "artCode":  "C05",
+                     "displayNameKey":  "building.silver_mine",
+                     "width":  3,
+                     "height":  3,
+                     "buildDurationMs":  240000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  150
+                                   },
+                                   {
+                                       "kind":  "Stone",
+                                       "amount":  150
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "council_hall",
+                     "artCode":  "C06",
+                     "displayNameKey":  "building.council_hall",
                      "width":  5,
                      "height":  5,
-                     "buildDurationMs":  120000,
+                     "buildDurationMs":  300000,
                      "costs":  [
+                                   {
+                                       "kind":  "Stone",
+                                       "amount":  400
+                                   },
                                    {
                                        "kind":  "Wood",
                                        "amount":  150
@@ -92,7 +236,86 @@
                                ]
                  },
                  {
+                     "defId":  "healing_house",
+                     "artCode":  "C07",
+                     "displayNameKey":  "building.healing_house",
+                     "width":  3,
+                     "height":  3,
+                     "buildDurationMs":  150000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Stone",
+                                       "amount":  200
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "notice_stele",
+                     "artCode":  "C08",
+                     "displayNameKey":  "building.notice_stele",
+                     "width":  1,
+                     "height":  1,
+                     "buildDurationMs":  15000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Stone",
+                                       "amount":  30
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "training_ground",
+                     "artCode":  "C09",
+                     "displayNameKey":  "building.training_ground",
+                     "width":  6,
+                     "height":  6,
+                     "buildDurationMs":  60000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  100
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "shipyard",
+                     "artCode":  "C10",
+                     "displayNameKey":  "building.shipyard",
+                     "width":  6,
+                     "height":  6,
+                     "buildDurationMs":  420000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  450
+                                   },
+                                   {
+                                       "kind":  "Stone",
+                                       "amount":  100
+                                   }
+                               ]
+                 },
+                 {
+                     "defId":  "hidden_cove",
+                     "artCode":  "C11",
+                     "displayNameKey":  "building.hidden_cove",
+                     "width":  3,
+                     "height":  3,
+                     "buildDurationMs":  210000,
+                     "costs":  [
+                                   {
+                                       "kind":  "Wood",
+                                       "amount":  120
+                                   },
+                                   {
+                                       "kind":  "Gold",
+                                       "amount":  50
+                                   }
+                               ]
+                 },
+                 {
                      "defId":  "warehouse",
+                     "artCode":  "C12",
                      "displayNameKey":  "building.warehouse",
                      "width":  5,
                      "height":  5,
@@ -105,221 +328,6 @@
                                    {
                                        "kind":  "Stone",
                                        "amount":  60
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "workshop",
-                     "displayNameKey":  "building.workshop",
-                     "width":  5,
-                     "height":  5,
-                     "buildDurationMs":  150000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  200
-                                   },
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  120
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "academy",
-                     "displayNameKey":  "building.academy",
-                     "width":  5,
-                     "height":  5,
-                     "buildDurationMs":  240000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  300
-                                   },
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  150
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "shrine",
-                     "displayNameKey":  "building.shrine",
-                     "width":  5,
-                     "height":  5,
-                     "buildDurationMs":  300000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  400
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "quarry",
-                     "displayNameKey":  "building.quarry",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  60000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  60
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "lumber_camp",
-                     "displayNameKey":  "building.lumber_camp",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  60000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  40
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "farm",
-                     "displayNameKey":  "building.farm",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  45000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  50
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "olive_press",
-                     "displayNameKey":  "building.olive_press",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  90000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  80
-                                   },
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  40
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "well",
-                     "displayNameKey":  "building.well",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  30000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  50
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "forge",
-                     "displayNameKey":  "building.forge",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  120000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  150
-                                   },
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  60
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "market",
-                     "displayNameKey":  "building.market",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  90000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  120
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "stable",
-                     "displayNameKey":  "building.stable",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  90000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  100
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "pottery",
-                     "displayNameKey":  "building.pottery",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  60000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  70
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "watchtower",
-                     "displayNameKey":  "building.watchtower",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  75000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  120
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "guard_post",
-                     "displayNameKey":  "building.guard_post",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  45000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Wood",
-                                       "amount":  60
-                                   },
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  40
-                                   }
-                               ]
-                 },
-                 {
-                     "defId":  "wall_segment",
-                     "displayNameKey":  "building.wall_segment",
-                     "width":  3,
-                     "height":  3,
-                     "buildDurationMs":  60000,
-                     "costs":  [
-                                   {
-                                       "kind":  "Stone",
-                                       "amount":  200
                                    }
                                ]
                  }

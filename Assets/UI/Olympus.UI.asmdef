@@ -4,7 +4,9 @@
     "references": [
         "Olympus.Core",
         "Olympus.Game",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

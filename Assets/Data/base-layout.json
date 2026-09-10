@@ -10,219 +10,142 @@
                   },
                   {
                       "slotId":  2,
-                      "defId":  "arena",
+                      "defId":  "war_engine_yard",
                       "x":  -3,
                       "y":  -10,
                       "zoneId":  0
                   },
                   {
                       "slotId":  3,
-                      "defId":  "grand_barracks",
+                      "defId":  "arena",
                       "x":  -10,
                       "y":  -3,
                       "zoneId":  0
                   },
                   {
                       "slotId":  4,
-                      "defId":  "academy",
+                      "defId":  "training_ground",
                       "x":  4,
-                      "y":  -2,
+                      "y":  -3,
                       "zoneId":  0
                   },
                   {
                       "slotId":  5,
-                      "defId":  "barracks",
+                      "defId":  "shipyard",
+                      "x":  -3,
+                      "y":  -24,
+                      "zoneId":  0
+                  },
+                  {
+                      "slotId":  6,
+                      "defId":  "timber_store",
                       "x":  -2,
                       "y":  4,
                       "zoneId":  0
                   },
                   {
-                      "slotId":  6,
-                      "defId":  "barracks",
-                      "x":  4,
-                      "y":  -8,
-                      "zoneId":  0
-                  },
-                  {
                       "slotId":  7,
-                      "defId":  "granary",
+                      "defId":  "mason_yard",
                       "x":  -8,
                       "y":  4,
                       "zoneId":  0
                   },
                   {
                       "slotId":  8,
-                      "defId":  "infirmary",
+                      "defId":  "barracks",
                       "x":  4,
                       "y":  4,
                       "zoneId":  0
                   },
                   {
                       "slotId":  9,
-                      "defId":  "shrine",
-                      "x":  -9,
+                      "defId":  "farm",
+                      "x":  4,
                       "y":  -9,
                       "zoneId":  0
                   },
                   {
                       "slotId":  10,
-                      "defId":  "warehouse",
-                      "x":  10,
-                      "y":  -2,
+                      "defId":  "council_hall",
+                      "x":  -9,
+                      "y":  -9,
                       "zoneId":  0
                   },
                   {
                       "slotId":  11,
-                      "defId":  "workshop",
+                      "defId":  "warehouse",
                       "x":  -2,
                       "y":  10,
                       "zoneId":  0
                   },
                   {
                       "slotId":  12,
-                      "defId":  "farm",
-                      "x":  4,
-                      "y":  -12,
+                      "defId":  "quarry",
+                      "x":  11,
+                      "y":  -2,
                       "zoneId":  0
                   },
                   {
                       "slotId":  13,
-                      "defId":  "farm",
-                      "x":  10,
-                      "y":  -6,
+                      "defId":  "gatehouse",
+                      "x":  -9,
+                      "y":  10,
                       "zoneId":  0
                   },
                   {
                       "slotId":  14,
-                      "defId":  "farm",
-                      "x":  -12,
-                      "y":  4,
+                      "defId":  "fishing_hut",
+                      "x":  4,
+                      "y":  -24,
                       "zoneId":  0
                   },
                   {
                       "slotId":  15,
-                      "defId":  "forge",
-                      "x":  10,
+                      "defId":  "silver_mine",
+                      "x":  -12,
                       "y":  4,
                       "zoneId":  0
                   },
                   {
                       "slotId":  16,
-                      "defId":  "guard_post",
-                      "x":  -6,
-                      "y":  10,
+                      "defId":  "healing_house",
+                      "x":  10,
+                      "y":  4,
                       "zoneId":  0
                   },
                   {
                       "slotId":  17,
-                      "defId":  "guard_post",
+                      "defId":  "hidden_cove",
+                      "x":  -7,
+                      "y":  -24,
+                      "zoneId":  0
+                  },
+                  {
+                      "slotId":  18,
+                      "defId":  "ironworks",
                       "x":  4,
                       "y":  10,
                       "zoneId":  0
                   },
                   {
-                      "slotId":  18,
-                      "defId":  "lumber_camp",
+                      "slotId":  19,
+                      "defId":  "carpentry",
+                      "x":  10,
+                      "y":  -7,
+                      "zoneId":  0
+                  },
+                  {
+                      "slotId":  20,
+                      "defId":  "mine",
                       "x":  -1,
                       "y":  -14,
                       "zoneId":  0
                   },
                   {
-                      "slotId":  19,
-                      "defId":  "lumber_camp",
-                      "x":  -14,
-                      "y":  -1,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  20,
-                      "defId":  "lumber_camp",
-                      "x":  -7,
-                      "y":  -13,
-                      "zoneId":  0
-                  },
-                  {
                       "slotId":  21,
-                      "defId":  "market",
-                      "x":  -13,
-                      "y":  -7,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  22,
-                      "defId":  "olive_press",
-                      "x":  8,
-                      "y":  -12,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  23,
-                      "defId":  "pottery",
-                      "x":  -12,
-                      "y":  8,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  24,
-                      "defId":  "quarry",
-                      "x":  10,
-                      "y":  8,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  25,
-                      "defId":  "quarry",
-                      "x":  3,
-                      "y":  -16,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  26,
-                      "defId":  "quarry",
-                      "x":  -16,
-                      "y":  3,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  27,
-                      "defId":  "stable",
-                      "x":  -11,
-                      "y":  -13,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  28,
-                      "defId":  "wall_segment",
-                      "x":  12,
-                      "y":  -10,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  29,
-                      "defId":  "wall_segment",
-                      "x":  14,
-                      "y":  -6,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  30,
-                      "defId":  "watchtower",
-                      "x":  14,
-                      "y":  4,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  31,
-                      "defId":  "watchtower",
-                      "x":  -10,
-                      "y":  12,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  32,
-                      "defId":  "well",
-                      "x":  8,
-                      "y":  12,
+                      "defId":  "notice_stele",
+                      "x":  4,
+                      "y":  -11,
                       "zoneId":  0
                   }
               ]

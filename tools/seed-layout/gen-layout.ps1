@@ -1,108 +1,127 @@
-# Generate the starter base layout. ASCII only on purpose:
-# Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI (CP949 on Korean Windows),
-# which mangles Hangul and breaks parsing. The JSON output is pure ASCII anyway.
+# Seed the base layout from the ART roster.
+#
+# The roster below mirrors D:\OlympusArt\배경\gen-buildings.sh exactly (21 buildings,
+# codes B01/B03/B05/B14/B16 + N1-N4 + C01-C12). Footprints and roles are taken from the
+# design descriptions in that script, so the generated art maps onto base slots.
+# If the art roster changes, change it here too - the codes are the link.
+#
+# ASCII only on purpose: Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI (CP949 on
+# Korean Windows), which mangles Hangul and breaks parsing.
 
 $BaseSize = 48
 $Min = -[math]::Floor($BaseSize / 2)
 $MaxEx = $Min + $BaseSize
 
+# cells   : footprint (w x h). Non-square allowed.
+# water   : must sit on the southern coastal strip (art shows it at the water's edge).
+# Sizes quote the art script where it is explicit about scale.
 $roster = @(
-  @{ id='main_hall';      name='building.main_hall';      cells=6; count=1; ms=0;      costs=@() },
-  @{ id='arena';          name='building.arena';          cells=6; count=1; ms=600000; costs=@(@{k='Stone';a=800},@{k='Wood';a=300}) },
-  @{ id='grand_barracks'; name='building.grand_barracks'; cells=6; count=1; ms=480000; costs=@(@{k='Stone';a=600},@{k='Wood';a=400}) },
-  @{ id='barracks';       name='building.barracks';       cells=5; count=2; ms=180000; costs=@(@{k='Wood';a=200},@{k='Stone';a=100}) },
-  @{ id='infirmary';      name='building.infirmary';      cells=5; count=1; ms=150000; costs=@(@{k='Wood';a=180},@{k='Stone';a=80}) },
-  @{ id='granary';        name='building.granary';        cells=5; count=1; ms=120000; costs=@(@{k='Wood';a=150}) },
-  @{ id='warehouse';      name='building.warehouse';      cells=5; count=1; ms=120000; costs=@(@{k='Wood';a=150},@{k='Stone';a=60}) },
-  @{ id='workshop';       name='building.workshop';       cells=5; count=1; ms=150000; costs=@(@{k='Wood';a=200},@{k='Stone';a=120}) },
-  @{ id='academy';        name='building.academy';        cells=5; count=1; ms=240000; costs=@(@{k='Stone';a=300},@{k='Wood';a=150}) },
-  @{ id='shrine';         name='building.shrine';         cells=5; count=1; ms=300000; costs=@(@{k='Stone';a=400}) },
-  @{ id='quarry';         name='building.quarry';         cells=3; count=3; ms=60000;  costs=@(@{k='Wood';a=60}) },
-  @{ id='lumber_camp';    name='building.lumber_camp';    cells=3; count=3; ms=60000;  costs=@(@{k='Stone';a=40}) },
-  @{ id='farm';           name='building.farm';           cells=3; count=3; ms=45000;  costs=@(@{k='Wood';a=50}) },
-  @{ id='olive_press';    name='building.olive_press';    cells=3; count=1; ms=90000;  costs=@(@{k='Wood';a=80},@{k='Stone';a=40}) },
-  @{ id='well';           name='building.well';           cells=3; count=1; ms=30000;  costs=@(@{k='Stone';a=50}) },
-  @{ id='forge';          name='building.forge';          cells=3; count=1; ms=120000; costs=@(@{k='Stone';a=150},@{k='Wood';a=60}) },
-  @{ id='market';         name='building.market';         cells=3; count=1; ms=90000;  costs=@(@{k='Wood';a=120}) },
-  @{ id='stable';         name='building.stable';         cells=3; count=1; ms=90000;  costs=@(@{k='Wood';a=100}) },
-  @{ id='pottery';        name='building.pottery';        cells=3; count=1; ms=60000;  costs=@(@{k='Wood';a=70}) },
-  @{ id='watchtower';     name='building.watchtower';     cells=3; count=2; ms=75000;  costs=@(@{k='Stone';a=120}) },
-  @{ id='guard_post';     name='building.guard_post';     cells=3; count=2; ms=45000;  costs=@(@{k='Wood';a=60},@{k='Stone';a=40}) },
-  @{ id='wall_segment';   name='building.wall_segment';   cells=3; count=2; ms=60000;  costs=@(@{k='Stone';a=200}) }
+  # --- confirmed scope: S1/S2/S3 + resource chain + trojan horse ---
+  @{ code='B01'; id='main_hall';      cells=@(6,6); ms=0;       water=$false; costs=@() },                                              # "the largest asset in the set"
+  @{ code='B03'; id='timber_store';   cells=@(5,5); ms=60000;   water=$false; costs=@(@{k='Stone';a=60}) },                             # wood resource
+  @{ code='B05'; id='mason_yard';     cells=@(5,5); ms=90000;   water=$false; costs=@(@{k='Wood';a=90}) },                              # stone resource
+  @{ code='B14'; id='gatehouse';      cells=@(6,3); ms=180000;  water=$false; costs=@(@{k='Stone';a=300}) },                            # wall + gate tower, wide
+  @{ code='B16'; id='war_engine_yard';cells=@(6,6); ms=600000;  water=$false; costs=@(@{k='Wood';a=500},@{k='Stone';a=200}) },          # "enormous" trojan horse
+
+  # --- round 2: resource + village roster reinterpreted ---
+  @{ code='N1';  id='ironworks';      cells=@(3,3); ms=120000;  water=$false; costs=@(@{k='Stone';a=150},@{k='Wood';a=60}) },
+  @{ code='N2';  id='carpentry';      cells=@(3,3); ms=90000;   water=$false; costs=@(@{k='Wood';a=120}) },
+  @{ code='N3';  id='mine';           cells=@(3,3); ms=120000;  water=$false; costs=@(@{k='Wood';a=100},@{k='Stone';a=60}) },
+  @{ code='N4';  id='quarry';         cells=@(5,5); ms=90000;   water=$false; costs=@(@{k='Wood';a=80}) },                              # open rock-cutting site
+  @{ code='C01'; id='arena';          cells=@(6,6); ms=480000;  water=$false; costs=@(@{k='Stone';a=700},@{k='Wood';a=200}) },          # stone amphitheatre
+  @{ code='C02'; id='barracks';       cells=@(5,5); ms=180000;  water=$false; costs=@(@{k='Wood';a=200},@{k='Stone';a=100}) },
+  @{ code='C03'; id='farm';           cells=@(5,5); ms=45000;   water=$false; costs=@(@{k='Wood';a=60}) },                              # food
+  @{ code='C04'; id='fishing_hut';    cells=@(3,3); ms=45000;   water=$true;  costs=@(@{k='Wood';a=70}) },                              # on stilts at the water
+  @{ code='C05'; id='silver_mine';    cells=@(3,3); ms=240000;  water=$false; costs=@(@{k='Wood';a=150},@{k='Stone';a=150}) },
+  @{ code='C06'; id='council_hall';   cells=@(5,5); ms=300000;  water=$false; costs=@(@{k='Stone';a=400},@{k='Wood';a=150}) },
+  @{ code='C07'; id='healing_house';  cells=@(3,3); ms=150000;  water=$false; costs=@(@{k='Stone';a=200}) },
+  @{ code='C08'; id='notice_stele';   cells=@(1,1); ms=15000;   water=$false; costs=@(@{k='Stone';a=30}) },                             # "prop-scale, much smaller"
+  @{ code='C09'; id='training_ground';cells=@(6,6); ms=60000;   water=$false; costs=@(@{k='Wood';a=100}) },                             # "mostly open space rather than a building"
+  @{ code='C10'; id='shipyard';       cells=@(6,6); ms=420000;  water=$true;  costs=@(@{k='Wood';a=450},@{k='Stone';a=100}) },          # slipway down to the water
+  @{ code='C11'; id='hidden_cove';    cells=@(3,3); ms=210000;  water=$true;  costs=@(@{k='Wood';a=120},@{k='Gold';a=50}) },            # sea cave at the waterline
+  @{ code='C12'; id='warehouse';      cells=@(5,5); ms=120000;  water=$false; costs=@(@{k='Wood';a=150},@{k='Stone';a=60}) }
 )
-
-$toPlace = @()
-foreach ($r in $roster) { for ($i = 0; $i -lt $r.count; $i++) { $toPlace += $r } }
-
-# main_hall goes first so it lands dead centre - it is the core building the base grows around.
-# Then largest first (big buildings need contiguous room), then id for determinism.
-$toPlace = $toPlace | Sort-Object `
-  -Property @{Expression={ if ($_.id -eq 'main_hall') { 0 } else { 1 } }},
-            @{Expression={$_.cells}; Descending=$true},
-            @{Expression={$_.id}}
 
 $occ = @{}
 
-function Test-CanPlace([int]$x, [int]$y, [int]$cells, [int]$margin) {
+function Test-CanPlace([int]$x, [int]$y, [int]$w, [int]$h, [int]$margin) {
   if ($x -lt $Min -or $y -lt $Min) { return $false }
-  if (($x + $cells) -gt $MaxEx -or ($y + $cells) -gt $MaxEx) { return $false }
-  $lo = -$margin
-  $hi = $cells - 1 + $margin
-  for ($dy = $lo; $dy -le $hi; $dy++) {
-    for ($dx = $lo; $dx -le $hi; $dx++) {
+  if (($x + $w) -gt $MaxEx -or ($y + $h) -gt $MaxEx) { return $false }
+  for ($dy = -$margin; $dy -lt ($h + $margin); $dy++) {
+    for ($dx = -$margin; $dx -lt ($w + $margin); $dx++) {
       if ($occ.ContainsKey("$($x+$dx),$($y+$dy)")) { return $false }
     }
   }
   return $true
 }
 
-function Set-Occupied([int]$x, [int]$y, [int]$cells, [string]$id) {
-  for ($dy = 0; $dy -lt $cells; $dy++) {
-    for ($dx = 0; $dx -lt $cells; $dx++) { $occ["$($x+$dx),$($y+$dy)"] = $id }
+function Set-Occupied([int]$x, [int]$y, [int]$w, [int]$h, [string]$id) {
+  for ($dy = 0; $dy -lt $h; $dy++) {
+    for ($dx = 0; $dx -lt $w; $dx++) { $occ["$($x+$dx),$($y+$dy)"] = $id }
   }
 }
 
-# Candidate anchors ordered by distance from the centre. Deterministic.
-$candidates = New-Object System.Collections.ArrayList
+# Inland anchors: nearest the centre first. Deterministic.
+$inland = New-Object System.Collections.ArrayList
+# Coastal anchors: southern strip first (lowest y), then nearest the centre line.
+$coastal = New-Object System.Collections.ArrayList
 for ($y = $Min; $y -lt $MaxEx; $y++) {
   for ($x = $Min; $x -lt $MaxEx; $x++) {
-    [void]$candidates.Add([pscustomobject]@{ x=$x; y=$y; d=($x*$x + $y*$y) })
+    [void]$inland.Add([pscustomobject]@{ x=$x; y=$y; d=($x*$x + $y*$y) })
+    [void]$coastal.Add([pscustomobject]@{ x=$x; y=$y; d=($x*$x) })
   }
 }
-$candidates = $candidates | Sort-Object d, y, x
+$inland  = $inland  | Sort-Object d, y, x
+$coastal = $coastal | Sort-Object y, d, x
+
+# main_hall first so it lands dead centre, then largest first, then code for determinism.
+$order = $roster | Sort-Object `
+  -Property @{Expression={ if ($_.id -eq 'main_hall') { 0 } else { 1 } }},
+            @{Expression={ $_.cells[0] * $_.cells[1] }; Descending=$true},
+            @{Expression={$_.code}}
 
 $slots = New-Object System.Collections.ArrayList
 $slotId = 1
-foreach ($b in $toPlace) {
+foreach ($b in $order) {
+  $w = $b.cells[0]; $h = $b.cells[1]
+  $candidates = if ($b.water) { $coastal } else { $inland }
   $placed = $false
+
   foreach ($c in $candidates) {
-    $ax = $c.x - [math]::Floor($b.cells / 2)
-    $ay = $c.y - [math]::Floor($b.cells / 2)
-    if (Test-CanPlace $ax $ay $b.cells 1) {
-      Set-Occupied $ax $ay $b.cells $b.id
-      [void]$slots.Add([pscustomobject]@{ slotId=$slotId; defId=$b.id; x=$ax; y=$ay; zoneId=0 })
+    $ax = $c.x - [math]::Floor($w / 2)
+    $ay = if ($b.water) { $c.y } else { $c.y - [math]::Floor($h / 2) }
+    if (Test-CanPlace $ax $ay $w $h 1) {
+      Set-Occupied $ax $ay $w $h $b.id
+      [void]$slots.Add([pscustomobject]@{ slotId=$slotId; code=$b.code; defId=$b.id; x=$ax; y=$ay; zoneId=0 })
       $slotId++
       $placed = $true
       break
     }
   }
-  if (-not $placed) { Write-Output "FAILED to place: $($b.id) ($($b.cells)x$($b.cells))" }
+  if (-not $placed) { Write-Output "FAILED to place: $($b.id) ($w x $h)" }
 }
 
 Write-Output "=== placement ==="
-"slots        : $($slots.Count) / $($toPlace.Count)"
-"cells used   : $($occ.Count) / $($BaseSize*$BaseSize)  (density $([math]::Round(100*$occ.Count/($BaseSize*$BaseSize),1))%)"
-$xs = $slots | ForEach-Object { $_.x }
-$ys = $slots | ForEach-Object { $_.y }
+"slots        : $($slots.Count) / $($roster.Count)"
+$area = ($roster | ForEach-Object { $_.cells[0] * $_.cells[1] } | Measure-Object -Sum).Sum
+"footprint    : $area cells / $($BaseSize*$BaseSize)  (density $([math]::Round(100*$area/($BaseSize*$BaseSize),1))%)"
+$xs = $slots | ForEach-Object { $_.x }; $ys = $slots | ForEach-Object { $_.y }
 "anchor range : x $(($xs|Measure-Object -Min).Minimum)..$(($xs|Measure-Object -Max).Maximum)  y $(($ys|Measure-Object -Min).Minimum)..$(($ys|Measure-Object -Max).Maximum)   (base $Min..$($MaxEx-1))"
+Write-Output ""
+Write-Output "coastal (water=true) placements:"
+$slots | Where-Object { ($roster | Where-Object { $_.id -eq $_.defId }) } | Out-Null
+foreach ($s in $slots) {
+  $r = $roster | Where-Object { $_.id -eq $s.defId }
+  if ($r.water) { "  {0,-5} {1,-16} @({2},{3})" -f $s.code, $s.defId, $s.x, $s.y }
+}
 
 # Independent verification: rebuild occupancy from the emitted slots.
 $check = @{}
 $bad = 0
 foreach ($s in $slots) {
-  $cells = ($roster | Where-Object { $_.id -eq $s.defId })[0].cells
-  for ($dy=0; $dy -lt $cells; $dy++) {
-    for ($dx=0; $dx -lt $cells; $dx++) {
+  $r = $roster | Where-Object { $_.id -eq $s.defId }
+  for ($dy=0; $dy -lt $r.cells[1]; $dy++) {
+    for ($dx=0; $dx -lt $r.cells[0]; $dx++) {
       $k = "$($s.x+$dx),$($s.y+$dy)"
       if ($check.ContainsKey($k)) { Write-Output "OVERLAP: Slot#$($s.slotId) vs Slot#$($check[$k]) at $k"; $bad++ }
       $check[$k] = $s.slotId
@@ -112,14 +131,15 @@ foreach ($s in $slots) {
     }
   }
 }
-if ($bad -eq 0) { Write-Output "verify OK - 0 overlaps, 0 out of bounds" } else { Write-Output "verify FAILED: $bad problems" }
+if ($bad -eq 0) { Write-Output "`nverify OK - 0 overlaps, 0 out of bounds" } else { Write-Output "`nverify FAILED: $bad problems" }
 
 $defs = foreach ($r in $roster) {
   [ordered]@{
     defId = $r.id
-    displayNameKey = $r.name
-    width = $r.cells
-    height = $r.cells
+    artCode = $r.code
+    displayNameKey = "building.$($r.id)"
+    width = $r.cells[0]
+    height = $r.cells[1]
     buildDurationMs = $r.ms
     costs = @(foreach ($c in $r.costs) { [ordered]@{ kind = $c.k; amount = $c.a } })
   }
