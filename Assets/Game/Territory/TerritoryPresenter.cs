@@ -39,14 +39,16 @@ namespace Olympus.Game.Territory
         [Tooltip("칸 대비 건물이 차지하는 비율. 1보다 작게 두면 사이에 틈이 보인다.")]
         [SerializeField, Range(0.5f, 1f)] private float _footprintInset = 0.9f;
 
+        [Header("복구")]
+        [Tooltip("복구된 건물에서 녹지가 번지는 반경(칸).")]
+        [SerializeField] private float _restorationRadius = 2f;
+
         [Header("시작 자원")]
         [SerializeField] private long _startingWood = 2000;
         [SerializeField] private long _startingStone = 2000;
 
         private BuildingCatalog _catalog;
-        private StateStore _store;
-        private ConstructionService _construction;
-        private RestorationMap _restoration;
+        private TerritoryRuntime _runtime;
         private IClock _clock;
 
         private readonly Dictionary<int, Transform> _visuals = new Dictionary<int, Transform>();
@@ -58,8 +60,7 @@ namespace Olympus.Game.Territory
         private Mesh _selectionMesh;
         private int _selectedSlotId = -1;
 
-        public StateStore Store => _store;
-        public ConstructionService Construction => _construction;
+        public TerritoryRuntime Runtime => _runtime;
         public int SelectedSlotId => _selectedSlotId;
 
         private void Awake()
@@ -73,27 +74,27 @@ namespace Olympus.Game.Territory
             VerifyBaseSizeMatches(layoutFile);
 
             var state = new GameState(_ground.Grid, _ground.Bounds);
-            _store = new StateStore(state);
-            _construction = new ConstructionService(_store, _catalog, _clock);
-            _restoration = _ground.Restoration;
+            _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius);
 
-            _store.Apply(new StateDelta()
+            // 지면은 로직의 복구도 지도를 받아서 그리기만 한다 — 뷰가 자기 것을 따로
+            // 만들면 두 인스턴스가 갈라져 "로직은 복구했는데 화면은 황폐"가 된다.
+            _ground.Restoration = _runtime.Restoration;
+
+            _runtime.Store.Apply(new StateDelta()
                 .WithResource(ResourceChange.Absolute(ResourceKind.Wood, _startingWood))
                 .WithResource(ResourceChange.Absolute(ResourceKind.Stone, _startingStone)));
 
             BuildVisualRoot();
+            _runtime.Store.Changed += OnStateChanged;
 
             // 자리를 전부 폐허로 세운다. 레이아웃이 잘못되면 어느 자리가 문제인지
             // 말하며 여기서 터진다 — 화면에서 겹쳐 보이는 것으로 나중에 알게 되는 것보다 낫다.
-            _construction.InitializeFromLayout(
-                TerritoryDataLoader.ToLayout(layoutFile, _ground.Bounds));
+            _runtime.Initialize(TerritoryDataLoader.ToLayout(layoutFile, _ground.Bounds));
 
-            _store.Changed += OnStateChanged;
             RefreshAllVisuals();
-            RecomputeRestoration();
 
             Debug.Log(
-                "기지 준비 완료 — 자리 " + _store.State.BuildingCount + "개, " +
+                "기지 준비 완료 — 자리 " + _runtime.State.BuildingCount + "개, " +
                 "건물 정의 " + _catalog.Count + "종, 격자 " + _ground.Bounds +
                 "\n폐허를 클릭하면 정보가 뜨고, 자원이 충분하면 복구가 시작됩니다.");
         }
@@ -132,8 +133,8 @@ namespace Olympus.Game.Territory
         private void Update()
         {
             // 공사 완료 판정. "끝나는 시각 <= 지금" 비교라 프레임을 놓쳐도 결과가 같다.
-            if (_construction.CompleteFinished() > 0)
-                RecomputeRestoration();
+            // 녹지 재계산은 런타임이 상태 통지에 묶어 두었으므로 여기서 부르지 않는다.
+            _runtime.Tick();
 
             HandleTap();
         }
@@ -152,7 +153,7 @@ namespace Olympus.Game.Territory
                 return;
 
             BuildingInstance building;
-            if (!_store.State.TryGetBuildingAt(cell, out building))
+            if (!_runtime.State.TryGetBuildingAt(cell, out building))
             {
                 Select(-1);
                 Debug.Log("빈 땅 " + cell);
@@ -170,11 +171,11 @@ namespace Olympus.Game.Territory
 
             if (b.IsRuined)
             {
-                BuildResult can = _construction.CanStartRepair(b.Id);
+                BuildResult can = _runtime.Construction.CanStartRepair(b.Id);
 
                 if (can.Started)
                 {
-                    _construction.TryStartRepair(b.Id);
+                    _runtime.Construction.TryStartRepair(b.Id);
                     Debug.Log("복구 시작 — Slot#" + b.Id + " " + b.DefId +
                               " (" + (def.BuildDurationMs / 1000f) + "초)");
                 }
@@ -253,14 +254,14 @@ namespace Olympus.Game.Territory
                 }
 
                 BuildingInstance b;
-                if (_store.State.TryGetBuilding(c.Id, out b))
+                if (_runtime.State.TryGetBuilding(c.Id, out b))
                     RefreshVisual(b);
             }
         }
 
         private void RefreshAllVisuals()
         {
-            foreach (BuildingInstance b in _store.State.Buildings)
+            foreach (BuildingInstance b in _runtime.State.Buildings)
             {
                 RefreshVisual(b);
             }
@@ -337,11 +338,6 @@ namespace Olympus.Game.Territory
             _renderers.Remove(id);
         }
 
-        private void RecomputeRestoration()
-        {
-            _restoration.Recompute(_store.State.Buildings, _catalog);
-        }
-
         private void Select(int slotId)
         {
             if (_selectedSlotId == slotId)
@@ -359,7 +355,7 @@ namespace Olympus.Game.Territory
             BuildingDef def = null;
 
             if (slotId >= 0
-                && _store.State.TryGetBuilding(slotId, out b)
+                && _runtime.State.TryGetBuilding(slotId, out b)
                 && _catalog.TryGet(b.DefId, out def))
             {
                 var cells = new List<GridPos>(def.Footprint.CellsAt(b.Anchor));
@@ -371,8 +367,11 @@ namespace Olympus.Game.Territory
 
         private void OnDestroy()
         {
-            if (_store != null)
-                _store.Changed -= OnStateChanged;
+            if (_runtime != null)
+            {
+                _runtime.Store.Changed -= OnStateChanged;
+                _runtime.Dispose();
+            }
 
             if (_selectionMesh != null)
                 Destroy(_selectionMesh);

@@ -22,10 +22,6 @@ namespace Olympus.Game.Territory
                  "시작 규모 30~40채에 맞춰 48로 잡았다. 데이터 값이라 조정 자유롭다.")]
         [SerializeField] private int _baseSize = 48;
 
-        [Header("복구")]
-        [Tooltip("복구된 건물에서 녹지가 번지는 반경(칸).")]
-        [SerializeField] private float _restorationRadius = 2f;
-
         private SquareGrid _grid;
         private GridRect _bounds;
         private Mesh _mesh;
@@ -64,20 +60,24 @@ namespace Olympus.Game.Territory
         }
 
         /// <summary>
-        /// 어느 칸이 녹지인지 계산하는 지도. 황폐한 세계가 복구되며 초록으로 바뀐다.
-        /// 로직 쪽에서 <see cref="RestorationMap.Recompute"/>를 부르면 이 컴포넌트가
-        /// 버전 변화를 보고 지면을 다시 만든다.
+        /// 어느 칸이 녹지인지 알려주는 지도. 이 컴포넌트는 **받아서 그리기만** 한다.
+        ///
+        /// 여기서 직접 만들지 않는 이유 — 로직(<see cref="TerritoryRuntime"/>)이 자기
+        /// 지도를 갖고 뷰가 또 하나를 만들면 두 인스턴스가 갈라진다. 그러면 로직은
+        /// 복구했다고 알고 화면은 황폐한 상태로 남는다. 소유자를 로직 한쪽으로 못 박는다.
+        ///
+        /// 비워 두면(null) 전부 황폐로 그린다.
         /// </summary>
         public RestorationMap Restoration
         {
-            get
+            get { return _restoration; }
+            set
             {
-                EnsureGrid();
+                if (ReferenceEquals(_restoration, value))
+                    return;
 
-                if (_restoration == null)
-                    _restoration = new RestorationMap(_bounds, _restorationRadius);
-
-                return _restoration;
+                _restoration = value;
+                Rebuild();
             }
         }
 
