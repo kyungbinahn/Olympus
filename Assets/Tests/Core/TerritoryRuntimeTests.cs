@@ -130,6 +130,44 @@ namespace Olympus.Core.Tests
         }
 
         [Test]
+        public void 반경을_바꾸면_즉시_다시_센다()
+        {
+            // 플레이 중에 인스펙터로 값을 돌려 눈으로 정하는 경로다.
+            _rt.Construction.TryStartRepair(1);
+            Assert.That(_rt.Restoration.RestoredCellCount, Is.EqualTo(13), "반경 2");
+
+            int version = _rt.Restoration.Version;
+            _rt.SetRestorationRadius(4f);
+
+            Assert.That(_rt.Restoration.RestoredCellCount, Is.EqualTo(49), "반경 4");
+            Assert.That(_rt.Restoration.Version, Is.GreaterThan(version), "뷰가 다시 그려야 한다");
+        }
+
+        [Test]
+        public void 같은_반경으로_다시_세팅하면_아무_일도_없다()
+        {
+            // 매 프레임 부르는 경로다 — 여기서 버전이 오르면 메쉬를 매 프레임 재생성한다.
+            _rt.Construction.TryStartRepair(1);
+            int version = _rt.Restoration.Version;
+
+            for (int i = 0; i < 10; i++)
+            {
+                _rt.SetRestorationRadius(_rt.Restoration.Radius);
+            }
+
+            Assert.That(_rt.Restoration.Version, Is.EqualTo(version));
+        }
+
+        [Test]
+        public void 반경을_0으로_줄이면_풋프린트만_남는다()
+        {
+            _rt.Construction.TryStartRepair(1);
+            _rt.SetRestorationRadius(0f);
+
+            Assert.That(_rt.Restoration.RestoredCellCount, Is.EqualTo(1), "1x1 건물의 풋프린트");
+        }
+
+        [Test]
         public void Dispose_후에는_통지를_받지_않는다()
         {
             _rt.Dispose();

@@ -73,6 +73,73 @@ namespace Olympus.Core.Territory
             return Construction.CompleteFinished();
         }
 
+        /// <summary>
+        /// 녹지 확산 반경을 바꾸고 즉시 다시 센다.
+        /// 플레이 중에 인스펙터로 값을 돌려 보며 눈으로 정할 수 있게 하려고 둔 것이다.
+        /// </summary>
+        public void SetRestorationRadius(float radius)
+        {
+            if (Restoration.Radius == radius)
+                return;
+
+            Restoration.Radius = radius;
+            Restoration.Recompute(State.Buildings, Catalog);
+        }
+
+        /// <summary>
+        /// 진행 중인 공사를 전부 즉시 완료시킨다. 완료한 수를 돌려준다.
+        ///
+        /// 디버그용이다 — 화면이 어떻게 보이는지 판단하려면 건물마다 건설 시간을
+        /// 기다릴 수 없다. 게임 규칙이 아니므로 UI에 노출하지 않는다.
+        /// </summary>
+        public int DebugCompleteAllConstruction()
+        {
+            var delta = new StateDelta();
+            int count = 0;
+
+            foreach (BuildingInstance b in State.Buildings)
+            {
+                if (b.Phase != BuildingPhase.Constructing)
+                    continue;
+
+                delta.WithBuilding(BuildingChange.Update(
+                    b.Id, b.Anchor, BuildingPhase.Complete, b.Level + 1, 0L));
+                count++;
+            }
+
+            if (count > 0)
+                Store.Apply(delta);
+
+            return count;
+        }
+
+        /// <summary>
+        /// 모든 폐허를 비용·시간 없이 즉시 복구한다. 복구한 수를 돌려준다.
+        ///
+        /// 디버그용이다 — 전부 복구된 최종 화면(녹지가 어디까지 번지는지)을
+        /// 바로 보기 위한 것이다. 비용을 건너뛰므로 게임 규칙이 아니다.
+        /// </summary>
+        public int DebugRestoreAll()
+        {
+            var delta = new StateDelta();
+            int count = 0;
+
+            foreach (BuildingInstance b in State.Buildings)
+            {
+                if (b.Phase == BuildingPhase.Complete)
+                    continue;
+
+                delta.WithBuilding(BuildingChange.Update(
+                    b.Id, b.Anchor, BuildingPhase.Complete, 1, 0L));
+                count++;
+            }
+
+            if (count > 0)
+                Store.Apply(delta);
+
+            return count;
+        }
+
         public void Dispose()
         {
             Store.Changed -= OnStateChanged;

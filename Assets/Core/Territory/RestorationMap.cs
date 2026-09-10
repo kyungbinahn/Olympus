@@ -21,8 +21,33 @@ namespace Olympus.Core.Territory
         private readonly GridRect _bounds;
         private readonly HashSet<GridPos> _restored = new HashSet<GridPos>();
 
-        /// <summary>복구된 건물에서 녹지가 번지는 반경(칸). 조정용 값이다.</summary>
-        public float Radius { get; }
+        private float _radius;
+
+        /// <summary>
+        /// 복구된 건물에서 녹지가 번지는 반경(칸).
+        ///
+        /// 세팅 가능하게 둔 이유 — 이 값이 화면에서 어떻게 읽히는지는 실제로 돌려 보고
+        /// 눈으로 정해야 한다. 반경 2로 시작했더니 건물이 여백 1칸으로 붙어 있어서
+        /// 녹지가 전부 건물에 가려지고 틈만 초록으로 보였다. 값을 바꾸면 다음 계산에서
+        /// 반영되도록 무효화 표시만 남긴다.
+        /// </summary>
+        public float Radius
+        {
+            get { return _radius; }
+            set
+            {
+                if (value < 0f)
+                    throw new ArgumentOutOfRangeException(nameof(value), "반경은 음수일 수 없다.");
+
+                if (_radius == value)
+                    return;
+
+                _radius = value;
+                _radiusDirty = true;
+            }
+        }
+
+        private bool _radiusDirty;
 
         /// <summary>
         /// 내용이 바뀔 때마다 오른다. 뷰가 이 값을 기억해 두고 달라졌을 때만
@@ -36,7 +61,7 @@ namespace Olympus.Core.Territory
                 throw new ArgumentOutOfRangeException(nameof(radius), "반경은 음수일 수 없다.");
 
             _bounds = bounds;
-            Radius = radius;
+            _radius = radius;
         }
 
         public int RestoredCellCount => _restored.Count;
@@ -74,9 +99,12 @@ namespace Olympus.Core.Territory
                 AddHalo(next, b.Anchor, def.Footprint);
             }
 
-            if (SetsEqual(next, _restored))
+            // 반경이 바뀌었으면 결과가 같아도 한 번은 통과시켜 버전을 올린다 —
+            // 그래야 뷰가 다시 그린다. (같은 반경으로 다시 계산할 때는 건너뛴다.)
+            if (!_radiusDirty && SetsEqual(next, _restored))
                 return;
 
+            _radiusDirty = false;
             _restored.Clear();
             foreach (GridPos c in next)
             {

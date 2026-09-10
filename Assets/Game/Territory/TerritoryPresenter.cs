@@ -40,12 +40,21 @@ namespace Olympus.Game.Territory
         [SerializeField, Range(0.5f, 1f)] private float _footprintInset = 0.9f;
 
         [Header("복구")]
-        [Tooltip("복구된 건물에서 녹지가 번지는 반경(칸).")]
-        [SerializeField] private float _restorationRadius = 2f;
+        [Tooltip("복구된 건물에서 녹지가 번지는 반경(칸).\n\n" +
+                 "플레이 중에 이 값을 돌리면 바로 반영된다 — 눈으로 정하는 값이다.\n" +
+                 "반경이 작으면 녹지가 건물에 전부 가려져 틈만 초록으로 보인다 " +
+                 "(건물 사이 여백이 1칸이다).")]
+        [SerializeField, Range(0f, 12f)] private float _restorationRadius = 4f;
 
         [Header("시작 자원")]
         [SerializeField] private long _startingWood = 2000;
         [SerializeField] private long _startingStone = 2000;
+
+        [Header("디버그")]
+        [Tooltip("플레이 중 단축키를 켠다. 게임 규칙이 아니라 화면을 판단하기 위한 것이다.\n\n" +
+                 "F — 진행 중인 공사를 전부 즉시 완료\n" +
+                 "R — 모든 폐허를 비용 없이 즉시 복구 (최종 화면 확인용)")]
+        [SerializeField] private bool _debugHotkeys = true;
 
         private BuildingCatalog _catalog;
         private TerritoryRuntime _runtime;
@@ -132,11 +141,39 @@ namespace Olympus.Game.Territory
 
         private void Update()
         {
+            // 인스펙터에서 반경을 돌리면 즉시 반영한다. float 비교 하나라 값이 싸다.
+            _runtime.SetRestorationRadius(_restorationRadius);
+
             // 공사 완료 판정. "끝나는 시각 <= 지금" 비교라 프레임을 놓쳐도 결과가 같다.
             // 녹지 재계산은 런타임이 상태 통지에 묶어 두었으므로 여기서 부르지 않는다.
             _runtime.Tick();
 
+            HandleDebugHotkeys();
             HandleTap();
+        }
+
+        private void HandleDebugHotkeys()
+        {
+            if (!_debugHotkeys)
+                return;
+
+            Keyboard kb = Keyboard.current;
+            if (kb == null)
+                return;
+
+            if (kb.fKey.wasPressedThisFrame)
+            {
+                int done = _runtime.DebugCompleteAllConstruction();
+                Debug.Log("[디버그] 공사 " + done + "건을 즉시 완료했습니다.");
+            }
+
+            if (kb.rKey.wasPressedThisFrame)
+            {
+                int done = _runtime.DebugRestoreAll();
+                Debug.Log("[디버그] 폐허 " + done + "곳을 즉시 복구했습니다. " +
+                          "녹지 " + _runtime.Restoration.RestoredCellCount + "칸 (" +
+                          (_runtime.Restoration.RestoredFraction * 100f).ToString("0.0") + "%).");
+            }
         }
 
         private void HandleTap()
