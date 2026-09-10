@@ -18,8 +18,18 @@ namespace Olympus.Editor
     public static class TerritorySceneBuilder
     {
         private const string ScenePath = "Assets/Scenes/Territory.unity";
-        private const string MaterialPath = "Assets/Settings/TerritoryGround.mat";
-        private const string TexturePath = "Assets/Settings/GridChecker.asset";
+        private const string DevastatedMaterialPath = "Assets/Settings/GroundDevastated.mat";
+        private const string RestoredMaterialPath = "Assets/Settings/GroundRestored.mat";
+        private const string DevastatedTexturePath = "Assets/Settings/GridCheckerDevastated.asset";
+        private const string RestoredTexturePath = "Assets/Settings/GridCheckerRestored.asset";
+
+        // 황폐 — 마르고 갈라진 땅. 배경 아트 디렉션의 "누렇게 마른 목초, 갈라진 땅".
+        private static readonly Color DevastatedLight = new Color(0.60f, 0.55f, 0.42f);
+        private static readonly Color DevastatedDark = new Color(0.52f, 0.47f, 0.36f);
+
+        // 복구 — 되찾은 녹지.
+        private static readonly Color RestoredLight = new Color(0.44f, 0.60f, 0.34f);
+        private static readonly Color RestoredDark = new Color(0.37f, 0.52f, 0.28f);
 
         [MenuItem("Olympus/Setup/기지 씬 만들기", false, 100)]
         public static void BuildTerritoryScene()
@@ -39,13 +49,19 @@ namespace Olympus.Editor
             EnsureFolder("Assets/Scenes");
             EnsureFolder("Assets/Settings");
 
-            Material groundMaterial = CreateOrLoadGroundMaterial();
+            Material devastated = CreateOrLoadGroundMaterial(
+                DevastatedMaterialPath, DevastatedTexturePath, "GroundDevastated",
+                DevastatedLight, DevastatedDark);
+
+            Material restored = CreateOrLoadGroundMaterial(
+                RestoredMaterialPath, RestoredTexturePath, "GroundRestored",
+                RestoredLight, RestoredDark);
 
             UnityEngine.SceneManagement.Scene scene =
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             CreateLight();
-            TerritoryGround ground = CreateGround(groundMaterial);
+            TerritoryGround ground = CreateGround(devastated, restored);
             CreateCamera(ground);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -75,13 +91,16 @@ namespace Olympus.Editor
             go.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
         }
 
-        private static TerritoryGround CreateGround(Material material)
+        private static TerritoryGround CreateGround(Material devastated, Material restored)
         {
             var go = new GameObject("TerritoryGround");
             go.AddComponent<MeshFilter>();
 
             MeshRenderer renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = material;
+
+            // 순서가 서브메쉬 번호와 같아야 한다 — 0=황폐, 1=녹지.
+            // 개수가 어긋나면 Unity가 조용히 첫 머티리얼로 덮어 그린다.
+            renderer.sharedMaterials = new[] { devastated, restored };
 
             // 지면은 그림자를 받기만 한다 — 드리울 대상이 없다.
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -115,11 +134,12 @@ namespace Olympus.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static Material CreateOrLoadGroundMaterial()
+        private static Material CreateOrLoadGroundMaterial(
+            string materialPath, string texturePath, string name, Color light, Color dark)
         {
-            Texture2D checker = CreateOrLoadCheckerTexture();
+            Texture2D checker = CreateOrLoadCheckerTexture(texturePath, name + "Checker", light, dark);
 
-            var existing = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
             if (existing != null)
             {
                 existing.mainTexture = checker;
@@ -133,7 +153,7 @@ namespace Olympus.Editor
                 shader = Shader.Find("Standard");
             }
 
-            var material = new Material(shader) { name = "TerritoryGround" };
+            var material = new Material(shader) { name = name };
             material.mainTexture = checker;
 
             // 그레이박스 지면 — 광택 없이 무광. 아트가 들어오면 이 머티리얼을 교체한다.
@@ -142,7 +162,7 @@ namespace Olympus.Editor
             if (material.HasProperty("_Metallic"))
                 material.SetFloat("_Metallic", 0f);
 
-            AssetDatabase.CreateAsset(material, MaterialPath);
+            AssetDatabase.CreateAsset(material, materialPath);
             return material;
         }
 
@@ -150,28 +170,26 @@ namespace Olympus.Editor
         /// 2×2 체커 텍스처. 지면 메쉬가 UV를 칸마다 0~1로 깔아 주므로
         /// 이 텍스처를 반복으로 물리면 칸 경계가 그대로 눈에 보인다 — 셰이더 작업이 필요 없다.
         /// </summary>
-        private static Texture2D CreateOrLoadCheckerTexture()
+        private static Texture2D CreateOrLoadCheckerTexture(
+            string texturePath, string name, Color light, Color dark)
         {
-            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(TexturePath);
+            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
             if (existing != null)
                 return existing;
 
             var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false)
             {
-                name = "GridChecker",
+                name = name,
 
                 // 칸 경계가 흐려지면 격자를 읽을 수 없다 — 반드시 Point.
                 filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Repeat,
             };
 
-            var light = new Color(0.62f, 0.60f, 0.56f);
-            var dark = new Color(0.54f, 0.52f, 0.48f);
-
             tex.SetPixels(new[] { light, dark, dark, light });
             tex.Apply();
 
-            AssetDatabase.CreateAsset(tex, TexturePath);
+            AssetDatabase.CreateAsset(tex, texturePath);
             return tex;
         }
 

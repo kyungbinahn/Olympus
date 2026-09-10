@@ -1,5 +1,6 @@
 using UnityEngine;
 using Olympus.Core.Grid;
+using Olympus.Core.Territory;
 
 namespace Olympus.Game.Territory
 {
@@ -21,9 +22,15 @@ namespace Olympus.Game.Territory
                  "시작 규모 30~40채에 맞춰 48로 잡았다. 데이터 값이라 조정 자유롭다.")]
         [SerializeField] private int _baseSize = 48;
 
+        [Header("복구")]
+        [Tooltip("복구된 건물에서 녹지가 번지는 반경(칸).")]
+        [SerializeField] private float _restorationRadius = 2f;
+
         private SquareGrid _grid;
         private GridRect _bounds;
         private Mesh _mesh;
+        private RestorationMap _restoration;
+        private int _builtRestorationVersion = -1;
 
         /// <summary>로직에 넘겨줄 격자. 로직과 뷰가 같은 인스턴스를 쓴다.</summary>
         public SquareGrid Grid
@@ -56,12 +63,37 @@ namespace Olympus.Game.Territory
             _bounds = GridRect.Centered(_baseSize);
         }
 
+        /// <summary>
+        /// 어느 칸이 녹지인지 계산하는 지도. 황폐한 세계가 복구되며 초록으로 바뀐다.
+        /// 로직 쪽에서 <see cref="RestorationMap.Recompute"/>를 부르면 이 컴포넌트가
+        /// 버전 변화를 보고 지면을 다시 만든다.
+        /// </summary>
+        public RestorationMap Restoration
+        {
+            get
+            {
+                EnsureGrid();
+
+                if (_restoration == null)
+                    _restoration = new RestorationMap(_bounds, _restorationRadius);
+
+                return _restoration;
+            }
+        }
+
         private void Awake()
         {
             Rebuild();
         }
 
-        /// <summary>지면 메쉬를 다시 만든다. 기지가 확장되면 다시 부른다.</summary>
+        private void LateUpdate()
+        {
+            // 버전 정수 하나를 비교한다. 집합을 매 프레임 대조하지 않으려고 둔 장치다.
+            if (_restoration != null && _restoration.Version != _builtRestorationVersion)
+                Rebuild();
+        }
+
+        /// <summary>지면 메쉬를 다시 만든다. 기지가 확장되거나 녹지가 번지면 다시 부른다.</summary>
         public void Rebuild()
         {
             EnsureGrid();
@@ -76,8 +108,13 @@ namespace Olympus.Game.Territory
                     DestroyImmediate(_mesh);
             }
 
-            _mesh = GroundMeshBuilder.Build(_bounds, _grid);
+            System.Func<GridPos, bool> isRestored =
+                _restoration != null ? (System.Func<GridPos, bool>)_restoration.IsRestored : null;
+
+            _mesh = GroundMeshBuilder.Build(_bounds, _grid, isRestored);
             GetComponent<MeshFilter>().sharedMesh = _mesh;
+
+            _builtRestorationVersion = _restoration != null ? _restoration.Version : -1;
         }
 
         /// <summary>

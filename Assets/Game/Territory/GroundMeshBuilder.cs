@@ -29,7 +29,20 @@ namespace Olympus.Game.Territory
         /// UV는 칸 하나가 정확히 0~1을 쓰게 깐다. 그래서 2×2 체커 텍스처를 반복으로
         /// 물리면 칸 경계가 그대로 눈에 보인다 — 커스텬 셰이더가 필요 없다.
         /// </summary>
-        public static Mesh Build(GridRect bounds, SquareGrid grid, string meshName = "TerritoryGround")
+        /// <param name="isRestored">
+        /// 그 칸이 녹지로 복구됐는지. 참인 칸은 서브메쉬 1(녹지), 나머지는 서브메쉬 0(황폐)으로
+        /// 나뉜다 — 머티리얼 두 장이면 셰이더 작업 없이 두 지면이 한 메쉬에서 그려진다.
+        /// null이면 전부 황폐로 둔다.
+        ///
+        /// 칸 경계가 각져 보이는 것이 이 방식의 한계다. 부드럽게 번지는 연출이 필요해지면
+        /// 복구도를 칸 하나당 1픽셀인 마스크 텍스처로 만들고 Shader Graph에서 두 지면을
+        /// 블렌딩하면 된다 — 실제 아트가 들어오는 시점의 작업이다.
+        /// </param>
+        public static Mesh Build(
+            GridRect bounds,
+            SquareGrid grid,
+            System.Func<GridPos, bool> isRestored = null,
+            string meshName = "TerritoryGround")
         {
             if (grid == null)
                 throw new System.ArgumentNullException(nameof(grid));
@@ -49,17 +62,20 @@ namespace Olympus.Game.Territory
             var vertices = new Vector3[vertexCount];
             var uv = new Vector2[vertexCount];
             var normals = new Vector3[vertexCount];
-            var triangles = new int[cellCount * 6];
+
+            // 황폐/녹지 두 서브메쉬로 나눈다.
+            var devastated = new System.Collections.Generic.List<int>(cellCount * 6);
+            var restored = new System.Collections.Generic.List<int>(64);
 
             float half = grid.CellSize * 0.5f;
             int v = 0;
-            int t = 0;
 
             for (int y = bounds.MinY; y < bounds.MaxYExclusive; y++)
             {
                 for (int x = bounds.MinX; x < bounds.MaxXExclusive; x++)
                 {
-                    WorldXZ center = grid.CellToWorld(new GridPos(x, y));
+                    var cell = new GridPos(x, y);
+                    WorldXZ center = grid.CellToWorld(cell);
 
                     // 칸 중심이 격자점이므로 네 코너는 중심 ± 반칸이다.
                     vertices[v + 0] = new Vector3(center.X - half, 0f, center.Z - half);
@@ -79,15 +95,16 @@ namespace Olympus.Game.Territory
                     normals[v + 3] = Vector3.up;
 
                     // 위(+Y)에서 봤을 때 시계방향이 앞면이다.
-                    triangles[t + 0] = v + 0;
-                    triangles[t + 1] = v + 1;
-                    triangles[t + 2] = v + 2;
-                    triangles[t + 3] = v + 0;
-                    triangles[t + 4] = v + 2;
-                    triangles[t + 5] = v + 3;
+                    var target = (isRestored != null && isRestored(cell)) ? restored : devastated;
+
+                    target.Add(v + 0);
+                    target.Add(v + 1);
+                    target.Add(v + 2);
+                    target.Add(v + 0);
+                    target.Add(v + 2);
+                    target.Add(v + 3);
 
                     v += 4;
-                    t += 6;
                 }
             }
 
@@ -95,7 +112,12 @@ namespace Olympus.Game.Territory
             mesh.vertices = vertices;
             mesh.uv = uv;
             mesh.normals = normals;
-            mesh.triangles = triangles;
+
+            // 서브메쉬 수를 항상 2로 둔다 — 녹지가 하나도 없어도 렌더러의 머티리얼
+            // 슬롯 수와 어긋나지 않게 한다(어긋나면 Unity가 조용히 첫 머티리얼로 덮어 그린다).
+            mesh.subMeshCount = 2;
+            mesh.SetTriangles(devastated, 0);
+            mesh.SetTriangles(restored, 1);
             mesh.RecalculateBounds();
 
             return mesh;
