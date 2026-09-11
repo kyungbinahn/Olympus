@@ -34,18 +34,6 @@ namespace Olympus.Editor
         [MenuItem("Olympus/Setup/기지 씬 만들기", false, 100)]
         public static void BuildTerritoryScene()
         {
-            if (File.Exists(ScenePath))
-            {
-                bool overwrite = EditorUtility.DisplayDialog(
-                    "기지 씬 다시 만들기",
-                    ScenePath + " 가 이미 있습니다.\n\n" +
-                    "다시 만들면 그 씬에 손으로 넣은 것이 모두 사라집니다.\n계속할까요?",
-                    "다시 만들기", "취소");
-
-                if (!overwrite)
-                    return;
-            }
-
             // 데이터 JSON을 Unity 밖에서 만들었을 수 있다 — 임포트되기 전이면
             // LoadAssetAtPath가 null을 주고, 기지가 조용히 비어 있게 뜬다.
             AssetDatabase.Refresh();
@@ -61,13 +49,20 @@ namespace Olympus.Editor
                 RestoredMaterialPath, RestoredTexturePath, "GroundRestored",
                 RestoredLight, RestoredDark);
 
-            UnityEngine.SceneManagement.Scene scene =
-                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            // 씬 파일이 이미 있으면 그 씬을 그대로 연다(새로 밀지 않는다) — 아래
+            // FindOrCreate* 들이 이미 있는 오브젝트는 손대지 않고 넘어간다. 그래서
+            // 카메라 화각·복구 반경처럼 인스펙터에서 눈으로 맞춘 값이 다시 실행해도 남는다.
+            UnityEngine.SceneManagement.Scene scene = File.Exists(ScenePath)
+                ? EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single)
+                : EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            CreateLight();
-            TerritoryGround ground = CreateGround(devastated, restored);
-            CreateCamera(ground);
-            CreatePresenter(ground);
+            FindOrCreateLight();
+            TerritoryGround ground = FindOrCreateGround(devastated, restored);
+            FindOrCreateCamera(ground);
+            TerritoryPresenter presenter = FindOrCreatePresenter(ground);
+
+            // HUD는 전부 코드가 소유한 내용이라(손으로 맞출 값이 없다) 매번 통째로 다시 짓는다.
+            HudSceneBuilder.Build(presenter);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             AddSceneToBuildSettings(ScenePath);
@@ -75,7 +70,7 @@ namespace Olympus.Editor
             AssetDatabase.SaveAssets();
 
             Debug.Log(
-                "기지 씬을 만들었습니다: " + ScenePath +
+                "기지 씬을 준비했습니다: " + ScenePath +
                 "\n격자 " + ground.BaseSize + "x" + ground.BaseSize +
                 " (칸 " + ground.Grid.CellSize + " 유닛), 범위 " + ground.Bounds +
                 "\n좌클릭 드래그로 팬, 휠로 줌.");
@@ -83,8 +78,39 @@ namespace Olympus.Editor
             EditorGUIUtility.PingObject(ground.gameObject);
         }
 
-        private static void CreateLight()
+        /// <summary>
+        /// HUD만 다시 짓는다 — 지면·카메라·기지 데이터는 전혀 건드리지 않는다.
+        /// HUD를 반복해서 고칠 때는 이 명령을 쓴다(위의 "기지 씬 만들기"는 매번 전부를 훑는다).
+        /// </summary>
+        [MenuItem("Olympus/Setup/HUD 다시 만들기", false, 101)]
+        public static void RebuildHud()
         {
+            TerritoryPresenter presenter = FindRootComponent<TerritoryPresenter>("TerritoryPresenter");
+
+            if (presenter == null)
+            {
+                EditorUtility.DisplayDialog(
+                    "HUD 다시 만들기",
+                    "열린 씬에서 TerritoryPresenter를 찾지 못했습니다.\n" +
+                    "먼저 \"기지 씬 만들기\"로 씬을 한 번 만들어야 합니다.",
+                    "확인");
+                return;
+            }
+
+            HudSceneBuilder.Build(presenter);
+
+            EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
+            EditorSceneManager.SaveScene(presenter.gameObject.scene);
+
+            Debug.Log("HUD를 다시 만들었습니다.");
+        }
+
+        private static void FindOrCreateLight()
+        {
+            // 세기·각도를 손으로 맞췄을 수 있다 — 있으면 그대로 둔다.
+            if (FindRoot("Directional Light") != null)
+                return;
+
             var go = new GameObject("Directional Light");
             Light light = go.AddComponent<Light>();
             light.type = LightType.Directional;
@@ -96,8 +122,12 @@ namespace Olympus.Editor
             go.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
         }
 
-        private static TerritoryGround CreateGround(Material devastated, Material restored)
+        private static TerritoryGround FindOrCreateGround(Material devastated, Material restored)
         {
+            TerritoryGround existing = FindRootComponent<TerritoryGround>("TerritoryGround");
+            if (existing != null)
+                return existing;
+
             var go = new GameObject("TerritoryGround");
             go.AddComponent<MeshFilter>();
 
@@ -117,8 +147,12 @@ namespace Olympus.Editor
             return ground;
         }
 
-        private static void CreateCamera(TerritoryGround ground)
+        private static void FindOrCreateCamera(TerritoryGround ground)
         {
+            // 화각·줌 범위·피치를 손으로 맞췄을 수 있다 — 있으면 그대로 둔다.
+            if (FindRoot("TerritoryCamera") != null)
+                return;
+
             var go = new GameObject("TerritoryCamera");
             go.tag = "MainCamera";
 
@@ -139,8 +173,13 @@ namespace Olympus.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void CreatePresenter(TerritoryGround ground)
+        private static TerritoryPresenter FindOrCreatePresenter(TerritoryGround ground)
         {
+            // 시작 자원·디버그 단축키·녹지 반경 같은 인스펙터 값을 손으로 맞췄을 수 있다.
+            TerritoryPresenter existing = FindRootComponent<TerritoryPresenter>("TerritoryPresenter");
+            if (existing != null)
+                return existing;
+
             var go = new GameObject("TerritoryPresenter");
             TerritoryPresenter presenter = go.AddComponent<TerritoryPresenter>();
 
@@ -149,6 +188,7 @@ namespace Olympus.Editor
             Wire(so, "_ground", ground);
             Wire(so, "_buildingDefs", LoadRequired<TextAsset>("Assets/Data/building-defs.json"));
             Wire(so, "_baseLayout", LoadRequired<TextAsset>("Assets/Data/base-layout.json"));
+            Wire(so, "_strings", LoadRequired<TextAsset>("Assets/Data/strings-ko.json"));
 
             // 그레이박스 색 — 폐허는 어둡고 칙칙하게, 완성은 대리석처럼 밝게.
             // 복구가 진행되면 화면이 어두운 데서 밝은 쪽으로 옮겨가는 것이 눈에 보인다.
@@ -169,9 +209,32 @@ namespace Olympus.Editor
                     new Color(0.30f, 0.85f, 0.95f)));
 
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            return presenter;
         }
 
-        private static void Wire(SerializedObject so, string propertyName, Object value)
+        /// <summary>지금 열려 있는 씬의 최상위 오브젝트 중 그 이름을 찾는다. 없으면 null.</summary>
+        private static GameObject FindRoot(string name)
+        {
+            UnityEngine.SceneManagement.Scene scene = EditorSceneManager.GetActiveScene();
+            GameObject[] roots = scene.GetRootGameObjects();
+
+            for (int i = 0; i < roots.Length; i++)
+            {
+                if (roots[i].name == name)
+                    return roots[i];
+            }
+
+            return null;
+        }
+
+        private static T FindRootComponent<T>(string name) where T : Component
+        {
+            GameObject go = FindRoot(name);
+            return go == null ? null : go.GetComponent<T>();
+        }
+
+        internal static void Wire(SerializedObject so, string propertyName, Object value)
         {
             SerializedProperty prop = so.FindProperty(propertyName);
 
@@ -185,7 +248,7 @@ namespace Olympus.Editor
             prop.objectReferenceValue = value;
         }
 
-        private static T LoadRequired<T>(string path) where T : Object
+        internal static T LoadRequired<T>(string path) where T : Object
         {
             var asset = AssetDatabase.LoadAssetAtPath<T>(path);
 

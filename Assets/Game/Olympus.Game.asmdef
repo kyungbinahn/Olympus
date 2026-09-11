@@ -3,7 +3,8 @@
     "rootNamespace": "Olympus.Game",
     "references": [
         "Olympus.Core",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
