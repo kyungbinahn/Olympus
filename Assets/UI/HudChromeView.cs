@@ -1,15 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Olympus.Game;
 
 namespace Olympus.UI
 {
     /// <summary>
     /// 하단 내비바 + 설정 버튼 — SLG 화면의 "껍데기"다. 상점·동맹·영웅·가방·설정은
-    /// 그 기능 자체가 아직 없어서 눌러도 토스트만 뜬다. 월드맵(외출)만 다르게 안내하는
-    /// 이유는 CLAUDE.md 마일스톤 ③이 월드맵이라 다음에 실제로 연결될 자리이기 때문이다.
+    /// 그 기능 자체가 아직 없어서 눌러도 토스트만 뜬다.
     ///
-    /// 나중에 각 기능이 생기면 이 클래스의 onClick 배선만 그 화면을 여는 코드로
-    /// 바꾸면 된다 — 버튼 배치·모양은 그대로 재사용된다.
+    /// 외출(월드맵)만 실제로 동작한다 — 마일스톤 ③이 월드맵이라 그 화면이 먼저 생겼다.
+    /// 나머지도 각 기능이 생기면 이 클래스의 onClick 배선만 바꾸면 된다
+    /// (버튼 배치·모양은 그대로 재사용된다).
     /// </summary>
     public sealed class HudChromeView : MonoBehaviour
     {
@@ -32,7 +33,8 @@ namespace Olympus.UI
             Wire(_bagButton, "가방 — 준비중입니다");
             Wire(_settingsButton, "설정 — 준비중입니다");
 
-            Wire(_worldMapButton, "월드맵 — 다음 마일스톤에서 만듭니다");
+            if (_worldMapButton != null)
+                _worldMapButton.onClick.AddListener(SceneRouter.GoToWorld);
         }
 
         private void Wire(Button button, string message)

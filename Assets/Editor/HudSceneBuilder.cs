@@ -36,6 +36,22 @@ namespace Olympus.Editor
 
         private static TMP_FontAsset _koreanFont;
 
+        /// <summary>한글 폰트를 물어 둔다. 이걸 부르기 전에 만든 텍스트는 한글이 네모로 나온다.</summary>
+        internal static void EnsureKoreanFont()
+        {
+            if (_koreanFont != null)
+                return;
+
+            _koreanFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanFontPath);
+
+            if (_koreanFont == null)
+            {
+                Debug.LogWarning(
+                    "한글 폰트를 못 찾았습니다: " + KoreanFontPath +
+                    " — TMP 기본 폰트(라틴 전용)로 대체되어 한글이 네모로 보일 수 있습니다.");
+            }
+        }
+
         public static void Build(TerritoryPresenter presenter)
         {
             if (presenter == null)
@@ -44,13 +60,7 @@ namespace Olympus.Editor
                 return;
             }
 
-            _koreanFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanFontPath);
-            if (_koreanFont == null)
-            {
-                Debug.LogWarning(
-                    "한글 폰트를 못 찾았습니다: " + KoreanFontPath +
-                    " — TMP 기본 폰트(라틴 전용)로 대체되어 한글이 네모로 보일 수 있습니다.");
-            }
+            EnsureKoreanFont();
 
             // 이전에 지었던 HUD가 있으면 통째로 밀고 새로 짓는다 — HUD 안에는 손으로
             // 맞출 값이 없으므로(전부 코드가 정하는 색·배치) 부분 갱신을 신경 쓸 이유가 없다.
@@ -122,7 +132,7 @@ namespace Olympus.Editor
             so4.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void DestroyIfExists(string rootName)
+        internal static void DestroyIfExists(string rootName)
         {
             UnityEngine.SceneManagement.Scene scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             GameObject[] roots = scene.GetRootGameObjects();
@@ -137,14 +147,14 @@ namespace Olympus.Editor
             }
         }
 
-        private static void CreateEventSystem()
+        internal static void CreateEventSystem()
         {
             var go = new GameObject("EventSystem");
             go.AddComponent<EventSystem>();
             go.AddComponent<InputSystemUIInputModule>();
         }
 
-        private static RectTransform CreateCanvas()
+        internal static RectTransform CreateCanvas()
         {
             var go = new GameObject("HUD");
             var canvas = go.AddComponent<Canvas>();
@@ -292,7 +302,7 @@ namespace Olympus.Editor
             return panel;
         }
 
-        private static RectTransform CreatePanel(
+        internal static RectTransform CreatePanel(
             Transform parent, string name,
             Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPos, Vector2 sizeDelta)
         {
@@ -314,7 +324,7 @@ namespace Olympus.Editor
             return rect;
         }
 
-        private static TMP_Text CreateText(
+        internal static TMP_Text CreateText(
             Transform parent, string name, string initialText, int fontSize, FontStyles style,
             Color color, TextAlignmentOptions alignment,
             Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPos, Vector2 sizeDelta)
@@ -341,7 +351,7 @@ namespace Olympus.Editor
             return text;
         }
 
-        private static Button CreateButton(
+        internal static Button CreateButton(
             Transform parent, string name, string label, out TMP_Text labelText,
             Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPos, Vector2 sizeDelta,
             Color? fillColor = null, int labelFontSize = 26)

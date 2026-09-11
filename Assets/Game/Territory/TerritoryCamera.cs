@@ -42,9 +42,10 @@ namespace Olympus.Game.Territory
         private Vector3 _focus;
         private float _targetDistance;
 
-        private bool _dragging;
-        private Vector3 _dragStartGroundPoint;
-        private Vector3 _dragStartFocus;
+        // 팬 계산은 Core에 있다 — 이 자리에서 같은 버그를 두 번 냈고, 시험이 걸리는
+        // 곳으로 옮겨서 못 박았다(DragPan의 주석 참고).
+        private readonly DragPan _pan = new DragPan();
+        private Vector2 _dragStartScreen;
 
         private Camera _camera;
 
@@ -89,14 +90,8 @@ namespace Olympus.Game.Territory
                 scroll = mouse.scroll.ReadValue().y;
 
             // 두 손가락 핀치 — 손가락 간 거리 변화를 휠처럼 쓴다.
-            //
-            // Touchscreen.touches는 손가락 슬롯 10개짜리 고정 배열이라 Count는 손을 안 대도
-            // 항상 10이다. touches[0]·touches[1]을 실제 손가락이라고 가정하면, 손가락이
-            // 다른 슬롯에 잡혔을 때(드문 일이 아니다) 팬·줌이 끊기다 이어지다 하며 버벅인다
-            // (2026-09-10, 안드로이드로 전환한 뒤 발견 — 화면 이동이 "걸리는" 것처럼 보였다).
-            // 눌려 있는 슬롯을 직접 찾아야 한다.
-            Touchscreen touch = Touchscreen.current;
-            if (touch != null && CollectActiveTouches(touch) >= 2)
+            // 슬롯 번호를 손가락 번호로 가정하면 안 되는 이유는 PointerGuard에 적어 뒀다.
+            if (PointerGuard.CollectActiveTouches(_activeTouches) >= 2)
             {
                 TouchControl t0 = _activeTouches[0];
                 TouchControl t1 = _activeTouches[1];
@@ -127,36 +122,40 @@ namespace Olympus.Game.Territory
 
             if (!pressed || PointerGuard.IsOverUI())
             {
-                _dragging = false;
+                _pan.End();
                 return;
             }
 
-            Vector3 groundPoint;
-            if (!TryGroundPoint(screen, out groundPoint))
-                return;
-
-            if (!_dragging)
+            if (!_pan.IsDragging)
             {
-                _dragging = true;
-                _dragStartGroundPoint = groundPoint;
-                _dragStartFocus = _focus;
+                _dragStartScreen = screen;
+                _pan.Begin(new WorldXZ(_focus.x, _focus.z));
                 return;
             }
 
-            // 잡은 지점이 손가락에 붙어 따라오게 — 초점을 시작 지점과의 차이만큼 되민다.
-            // 화면 델타를 그냥 쓰면 줌 배율에 따라 감도가 달라진다.
-            Vector3 delta = _dragStartGroundPoint - groundPoint;
-            _focus = ClampToBounds(_dragStartFocus + delta);
+            // 두 점을 같은 프레임의 같은 카메라로 투영한다 — 하나라도 예전 카메라로 잰
+            // 값을 쓰면 초점이 매 프레임 시작점으로 튕긴다(DragPan 주석의 그 버그다).
+            Vector3 grabPoint;
+            Vector3 pointerPoint;
+
+            if (!TryGroundPoint(_dragStartScreen, out grabPoint)
+                || !TryGroundPoint(screen, out pointerPoint))
+                return;
+
+            WorldXZ next = _pan.FocusFor(
+                new WorldXZ(grabPoint.x, grabPoint.z),
+                new WorldXZ(pointerPoint.x, pointerPoint.z));
+
+            _focus = ClampToBounds(new Vector3(next.X, 0f, next.Z));
         }
 
         private bool ReadPointer(out Vector2 screen)
         {
             screen = Vector2.zero;
 
-            Touchscreen touch = Touchscreen.current;
-            if (touch != null)
+            if (Touchscreen.current != null)
             {
-                int count = CollectActiveTouches(touch);
+                int count = PointerGuard.CollectActiveTouches(_activeTouches);
 
                 // 손가락이 정확히 하나일 때만 팬이다 — 0개는 안 닿은 것, 2개 이상은 핀치 중이다.
                 if (count != 1)
@@ -174,32 +173,6 @@ namespace Olympus.Game.Territory
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// 실제로 눌려 있는 손가락 슬롯을 찾는다. <see cref="Touchscreen.touches"/>는
-        /// 손가락 슬롯 10개 고정 배열이라(닿지 않아도 Count가 항상 10) 인덱스를
-        /// "몇 번째로 닿았나"로 가정하면 안 된다 — 매번 눌림 상태를 직접 봐야 한다.
-        /// 2개까지만 채우고, 그 이상 눌려 있어도 정확한 개수를 그대로 돌려준다
-        /// (핀치·팬 판정에는 "1개인가/2개 이상인가"만 필요하다).
-        /// </summary>
-        private int CollectActiveTouches(Touchscreen touch)
-        {
-            int count = 0;
-
-            for (int i = 0; i < touch.touches.Count; i++)
-            {
-                TouchControl t = touch.touches[i];
-                if (!t.press.isPressed)
-                    continue;
-
-                if (count < _activeTouches.Length)
-                    _activeTouches[count] = t;
-
-                count++;
-            }
-
-            return count;
         }
 
         private bool TryGroundPoint(Vector2 screen, out Vector3 point)
