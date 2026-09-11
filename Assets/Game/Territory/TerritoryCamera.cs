@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using Olympus.Core.Grid;
 
 namespace Olympus.Game.Territory
@@ -47,6 +48,9 @@ namespace Olympus.Game.Territory
 
         private Camera _camera;
 
+        // 재사용 버퍼 — 매 프레임 새로 만들지 않는다.
+        private readonly TouchControl[] _activeTouches = new TouchControl[2];
+
         private void Awake()
         {
             _camera = GetComponent<Camera>();
@@ -85,23 +89,26 @@ namespace Olympus.Game.Territory
                 scroll = mouse.scroll.ReadValue().y;
 
             // 두 손가락 핀치 — 손가락 간 거리 변화를 휠처럼 쓴다.
+            //
+            // Touchscreen.touches는 손가락 슬롯 10개짜리 고정 배열이라 Count는 손을 안 대도
+            // 항상 10이다. touches[0]·touches[1]을 실제 손가락이라고 가정하면, 손가락이
+            // 다른 슬롯에 잡혔을 때(드문 일이 아니다) 팬·줌이 끊기다 이어지다 하며 버벅인다
+            // (2026-09-10, 안드로이드로 전환한 뒤 발견 — 화면 이동이 "걸리는" 것처럼 보였다).
+            // 눌려 있는 슬롯을 직접 찾아야 한다.
             Touchscreen touch = Touchscreen.current;
-            if (touch != null && touch.touches.Count >= 2)
+            if (touch != null && CollectActiveTouches(touch) >= 2)
             {
-                var t0 = touch.touches[0];
-                var t1 = touch.touches[1];
+                TouchControl t0 = _activeTouches[0];
+                TouchControl t1 = _activeTouches[1];
 
-                if (t0.press.isPressed && t1.press.isPressed)
-                {
-                    Vector2 p0 = t0.position.ReadValue();
-                    Vector2 p1 = t1.position.ReadValue();
-                    Vector2 d0 = t0.delta.ReadValue();
-                    Vector2 d1 = t1.delta.ReadValue();
+                Vector2 p0 = t0.position.ReadValue();
+                Vector2 p1 = t1.position.ReadValue();
+                Vector2 d0 = t0.delta.ReadValue();
+                Vector2 d1 = t1.delta.ReadValue();
 
-                    float now = Vector2.Distance(p0, p1);
-                    float before = Vector2.Distance(p0 - d0, p1 - d1);
-                    scroll += (now - before) * 4f;
-                }
+                float now = Vector2.Distance(p0, p1);
+                float before = Vector2.Distance(p0 - d0, p1 - d1);
+                scroll += (now - before) * 4f;
             }
 
             if (Mathf.Approximately(scroll, 0f))
@@ -118,7 +125,7 @@ namespace Olympus.Game.Territory
             Vector2 screen;
             bool pressed = ReadPointer(out screen);
 
-            if (!pressed)
+            if (!pressed || PointerGuard.IsOverUI())
             {
                 _dragging = false;
                 return;
@@ -142,23 +149,21 @@ namespace Olympus.Game.Territory
             _focus = ClampToBounds(_dragStartFocus + delta);
         }
 
-        private static bool ReadPointer(out Vector2 screen)
+        private bool ReadPointer(out Vector2 screen)
         {
             screen = Vector2.zero;
 
             Touchscreen touch = Touchscreen.current;
-            if (touch != null && touch.touches.Count > 0)
+            if (touch != null)
             {
-                var primary = touch.touches[0];
+                int count = CollectActiveTouches(touch);
 
-                // 두 손가락은 핀치로 처리하므로 팬에서 뺀다.
-                if (primary.press.isPressed && touch.touches.Count < 2)
-                {
-                    screen = primary.position.ReadValue();
-                    return true;
-                }
+                // 손가락이 정확히 하나일 때만 팬이다 — 0개는 안 닿은 것, 2개 이상은 핀치 중이다.
+                if (count != 1)
+                    return false;
 
-                return false;
+                screen = _activeTouches[0].position.ReadValue();
+                return true;
             }
 
             Mouse mouse = Mouse.current;
@@ -169,6 +174,32 @@ namespace Olympus.Game.Territory
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 실제로 눌려 있는 손가락 슬롯을 찾는다. <see cref="Touchscreen.touches"/>는
+        /// 손가락 슬롯 10개 고정 배열이라(닿지 않아도 Count가 항상 10) 인덱스를
+        /// "몇 번째로 닿았나"로 가정하면 안 된다 — 매번 눌림 상태를 직접 봐야 한다.
+        /// 2개까지만 채우고, 그 이상 눌려 있어도 정확한 개수를 그대로 돌려준다
+        /// (핀치·팬 판정에는 "1개인가/2개 이상인가"만 필요하다).
+        /// </summary>
+        private int CollectActiveTouches(Touchscreen touch)
+        {
+            int count = 0;
+
+            for (int i = 0; i < touch.touches.Count; i++)
+            {
+                TouchControl t = touch.touches[i];
+                if (!t.press.isPressed)
+                    continue;
+
+                if (count < _activeTouches.Length)
+                    _activeTouches[count] = t;
+
+                count++;
+            }
+
+            return count;
         }
 
         private bool TryGroundPoint(Vector2 screen, out Vector3 point)

@@ -24,6 +24,9 @@ namespace Olympus.Game.Territory
         [Tooltip("Assets/Data/base-layout.json")]
         [SerializeField] private TextAsset _baseLayout;
 
+        [Tooltip("Assets/Data/strings-ko.json — HUD가 보여줄 화면 문구.")]
+        [SerializeField] private TextAsset _strings;
+
         [Header("뷰")]
         [SerializeField] private TerritoryGround _ground;
         [SerializeField] private Material _ruinedMaterial;
@@ -59,6 +62,7 @@ namespace Olympus.Game.Territory
         private BuildingCatalog _catalog;
         private TerritoryRuntime _runtime;
         private IClock _clock;
+        private LocalizedStrings _stringsTable;
 
         private readonly Dictionary<int, Transform> _visuals = new Dictionary<int, Transform>();
         private readonly Dictionary<int, MeshRenderer> _renderers = new Dictionary<int, MeshRenderer>();
@@ -71,6 +75,10 @@ namespace Olympus.Game.Territory
 
         public TerritoryRuntime Runtime => _runtime;
         public int SelectedSlotId => _selectedSlotId;
+        public LocalizedStrings Strings => _stringsTable;
+
+        /// <summary>선택이 바뀔 때마다 알린다. HUD가 이걸 듣고 패널을 갱신한다.</summary>
+        public event System.Action<int> SelectionChanged;
 
         private void Awake()
         {
@@ -78,6 +86,7 @@ namespace Olympus.Game.Territory
             _clock = new SystemClock();
 
             _catalog = TerritoryDataLoader.LoadCatalog(_buildingDefs);
+            _stringsTable = LocalizedStrings.Load(_strings);
             BaseLayoutFile layoutFile = TerritoryDataLoader.LoadLayoutFile(_baseLayout);
 
             VerifyBaseSizeMatches(layoutFile);
@@ -181,6 +190,9 @@ namespace Olympus.Game.Territory
             if (!WasTapped())
                 return;
 
+            if (PointerGuard.IsOverUI())
+                return;
+
             Vector2 screen;
             if (!TryGetPointerPosition(out screen))
                 return;
@@ -198,43 +210,41 @@ namespace Olympus.Game.Territory
             }
 
             Select(building.Id);
-            ReportBuilding(building);
         }
 
-        private void ReportBuilding(BuildingInstance b)
+        /// <summary>
+        /// 선택된 자리를 HUD가 보여줄 형태로 요약한다. 상태를 바꾸지 않는다 —
+        /// 패널이 매 프레임 다시 불러도 안전해야 한다.
+        /// </summary>
+        public bool TryGetStatus(int slotId, out BuildingStatusView view)
         {
+            view = default;
+
+            BuildingInstance b;
+            if (slotId < 0 || !_runtime.State.TryGetBuilding(slotId, out b))
+                return false;
+
             BuildingDef def;
-            _catalog.TryGet(b.DefId, out def);
+            if (!_catalog.TryGet(b.DefId, out def))
+                return false;
 
-            if (b.IsRuined)
-            {
-                BuildResult can = _runtime.Construction.CanStartRepair(b.Id);
-
-                if (can.Started)
-                {
-                    _runtime.Construction.TryStartRepair(b.Id);
-                    Debug.Log("복구 시작 — Slot#" + b.Id + " " + b.DefId +
-                              " (" + (def.BuildDurationMs / 1000f) + "초)");
-                }
-                else
-                {
-                    Debug.Log("복구 불가 — Slot#" + b.Id + " " + b.DefId + " : " + Describe(can.Rejection));
-                }
-
-                return;
-            }
-
-            if (b.Phase == BuildingPhase.Constructing)
-            {
-                float remain = b.RemainingConstructionMs(_clock.NowUnixMs) / 1000f;
-                Debug.Log("공사 중 — Slot#" + b.Id + " " + b.DefId + ", 남은 " + remain.ToString("0.0") + "초");
-                return;
-            }
-
-            Debug.Log("완성 — Slot#" + b.Id + " " + b.DefId + " Lv" + b.Level);
+            view = BuildingStatusView.Describe(b, def, _runtime.State.Resources, _clock.NowUnixMs);
+            return true;
         }
 
-        private static string Describe(BuildRejection r)
+        /// <summary>
+        /// 지금 선택된 자리의 복구를 시도한다. 복구 버튼이 이걸 부른다 —
+        /// 탭만으로는 더 이상 복구가 시작되지 않는다(HUD가 비용을 보여주고 확인을 받는다).
+        /// </summary>
+        public BuildResult TryRepairSelected()
+        {
+            if (_selectedSlotId < 0)
+                return BuildResult.Fail(BuildRejection.UnknownSlot);
+
+            return _runtime.Construction.TryStartRepair(_selectedSlotId);
+        }
+
+        public static string DescribeRejection(BuildRejection r)
         {
             switch (r)
             {
@@ -400,6 +410,8 @@ namespace Olympus.Game.Territory
             }
 
             _selectionFilter.sharedMesh = _selectionMesh;
+
+            SelectionChanged?.Invoke(slotId);
         }
 
         private void OnDestroy()
