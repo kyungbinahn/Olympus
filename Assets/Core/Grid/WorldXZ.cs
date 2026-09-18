@@ -16,6 +16,10 @@ namespace Olympus.Core.Grid
             Z = z;
         }
 
+        public static WorldXZ operator +(WorldXZ a, WorldXZ b) => new WorldXZ(a.X + b.X, a.Z + b.Z);
+
+        public static WorldXZ operator -(WorldXZ a, WorldXZ b) => new WorldXZ(a.X - b.X, a.Z - b.Z);
+
         public override string ToString() => "(" + X + ", " + Z + ")";
     }
 }

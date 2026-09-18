@@ -1,0 +1,25 @@
+{
+    "strings": [
+        { "key": "building.main_hall", "text": "본부" },
+        { "key": "building.timber_store", "text": "목재 창고" },
+        { "key": "building.mason_yard", "text": "건설 작업장" },
+        { "key": "building.gatehouse", "text": "성문" },
+        { "key": "building.war_engine_yard", "text": "목마 건조장" },
+        { "key": "building.ironworks", "text": "제철소" },
+        { "key": "building.carpentry", "text": "목공소" },
+        { "key": "building.mine", "text": "광산" },
+        { "key": "building.quarry", "text": "채석장" },
+        { "key": "building.arena", "text": "투기장" },
+        { "key": "building.barracks", "text": "병영" },
+        { "key": "building.farm", "text": "농장" },
+        { "key": "building.fishing_hut", "text": "어부의 오두막" },
+        { "key": "building.silver_mine", "text": "은광" },
+        { "key": "building.council_hall", "text": "회의당" },
+        { "key": "building.healing_house", "text": "치유의 집" },
+        { "key": "building.notice_stele", "text": "공고비" },
+        { "key": "building.training_ground", "text": "훈련장" },
+        { "key": "building.shipyard", "text": "조선소" },
+        { "key": "building.hidden_cove", "text": "숨겨진 만" },
+        { "key": "building.warehouse", "text": "창고" }
+    ]
+}

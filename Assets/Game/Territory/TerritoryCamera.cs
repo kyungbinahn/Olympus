@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using Olympus.Core.Grid;
 
 namespace Olympus.Game.Territory
@@ -41,11 +42,15 @@ namespace Olympus.Game.Territory
         private Vector3 _focus;
         private float _targetDistance;
 
-        private bool _dragging;
-        private Vector3 _dragStartGroundPoint;
-        private Vector3 _dragStartFocus;
+        // 팬 계산은 Core에 있다 — 이 자리에서 같은 버그를 두 번 냈고, 시험이 걸리는
+        // 곳으로 옮겨서 못 박았다(DragPan의 주석 참고).
+        private readonly DragPan _pan = new DragPan();
+        private Vector2 _dragStartScreen;
 
         private Camera _camera;
+
+        // 재사용 버퍼 — 매 프레임 새로 만들지 않는다.
+        private readonly TouchControl[] _activeTouches = new TouchControl[2];
 
         private void Awake()
         {
@@ -85,23 +90,20 @@ namespace Olympus.Game.Territory
                 scroll = mouse.scroll.ReadValue().y;
 
             // 두 손가락 핀치 — 손가락 간 거리 변화를 휠처럼 쓴다.
-            Touchscreen touch = Touchscreen.current;
-            if (touch != null && touch.touches.Count >= 2)
+            // 슬롯 번호를 손가락 번호로 가정하면 안 되는 이유는 PointerGuard에 적어 뒀다.
+            if (PointerGuard.CollectActiveTouches(_activeTouches) >= 2)
             {
-                var t0 = touch.touches[0];
-                var t1 = touch.touches[1];
+                TouchControl t0 = _activeTouches[0];
+                TouchControl t1 = _activeTouches[1];
 
-                if (t0.press.isPressed && t1.press.isPressed)
-                {
-                    Vector2 p0 = t0.position.ReadValue();
-                    Vector2 p1 = t1.position.ReadValue();
-                    Vector2 d0 = t0.delta.ReadValue();
-                    Vector2 d1 = t1.delta.ReadValue();
+                Vector2 p0 = t0.position.ReadValue();
+                Vector2 p1 = t1.position.ReadValue();
+                Vector2 d0 = t0.delta.ReadValue();
+                Vector2 d1 = t1.delta.ReadValue();
 
-                    float now = Vector2.Distance(p0, p1);
-                    float before = Vector2.Distance(p0 - d0, p1 - d1);
-                    scroll += (now - before) * 4f;
-                }
+                float now = Vector2.Distance(p0, p1);
+                float before = Vector2.Distance(p0 - d0, p1 - d1);
+                scroll += (now - before) * 4f;
             }
 
             if (Mathf.Approximately(scroll, 0f))
@@ -118,47 +120,49 @@ namespace Olympus.Game.Territory
             Vector2 screen;
             bool pressed = ReadPointer(out screen);
 
-            if (!pressed)
+            if (!pressed || PointerGuard.IsOverUI())
             {
-                _dragging = false;
+                _pan.End();
                 return;
             }
 
-            Vector3 groundPoint;
-            if (!TryGroundPoint(screen, out groundPoint))
-                return;
-
-            if (!_dragging)
+            if (!_pan.IsDragging)
             {
-                _dragging = true;
-                _dragStartGroundPoint = groundPoint;
-                _dragStartFocus = _focus;
+                _dragStartScreen = screen;
+                _pan.Begin(new WorldXZ(_focus.x, _focus.z));
                 return;
             }
 
-            // 잡은 지점이 손가락에 붙어 따라오게 — 초점을 시작 지점과의 차이만큼 되민다.
-            // 화면 델타를 그냥 쓰면 줌 배율에 따라 감도가 달라진다.
-            Vector3 delta = _dragStartGroundPoint - groundPoint;
-            _focus = ClampToBounds(_dragStartFocus + delta);
+            // 두 점을 같은 프레임의 같은 카메라로 투영한다 — 하나라도 예전 카메라로 잰
+            // 값을 쓰면 초점이 매 프레임 시작점으로 튕긴다(DragPan 주석의 그 버그다).
+            Vector3 grabPoint;
+            Vector3 pointerPoint;
+
+            if (!TryGroundPoint(_dragStartScreen, out grabPoint)
+                || !TryGroundPoint(screen, out pointerPoint))
+                return;
+
+            WorldXZ next = _pan.FocusFor(
+                new WorldXZ(grabPoint.x, grabPoint.z),
+                new WorldXZ(pointerPoint.x, pointerPoint.z));
+
+            _focus = ClampToBounds(new Vector3(next.X, 0f, next.Z));
         }
 
-        private static bool ReadPointer(out Vector2 screen)
+        private bool ReadPointer(out Vector2 screen)
         {
             screen = Vector2.zero;
 
-            Touchscreen touch = Touchscreen.current;
-            if (touch != null && touch.touches.Count > 0)
+            if (Touchscreen.current != null)
             {
-                var primary = touch.touches[0];
+                int count = PointerGuard.CollectActiveTouches(_activeTouches);
 
-                // 두 손가락은 핀치로 처리하므로 팬에서 뺀다.
-                if (primary.press.isPressed && touch.touches.Count < 2)
-                {
-                    screen = primary.position.ReadValue();
-                    return true;
-                }
+                // 손가락이 정확히 하나일 때만 팬이다 — 0개는 안 닿은 것, 2개 이상은 핀치 중이다.
+                if (count != 1)
+                    return false;
 
-                return false;
+                screen = _activeTouches[0].position.ReadValue();
+                return true;
             }
 
             Mouse mouse = Mouse.current;
