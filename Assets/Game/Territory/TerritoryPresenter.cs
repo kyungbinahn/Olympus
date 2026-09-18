@@ -3,12 +3,39 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using Olympus.Core.Grid;
+using Olympus.Core.Save;
 using Olympus.Core.State;
 using Olympus.Core.Territory;
 using Olympus.Core.Time;
 
 namespace Olympus.Game.Territory
 {
+    /// <summary>
+    /// 건물 한 종류에 붙일 실제 모델. <c>defId</c>로 잇는다 —
+    /// 아트 쪽 파일 이름(artCode)이 아니라 게임 데이터의 키로 묶어야
+    /// 아트 파일을 갈아끼워도 배선이 안 끊긴다.
+    /// </summary>
+    [System.Serializable]
+    public sealed class BuildingModelEntry
+    {
+        public string defId;
+        public GameObject model;
+
+        /// <summary>
+        /// 이 건물에 입힐 머티리얼.
+        ///
+        /// FBX가 들고 오는 머티리얼을 쓰지 않고 따로 만들어 붙이는 이유 —
+        /// Unity의 FBX 머티리얼 임포트에 두 번 기댔다가 두 번 다 텍스처가 안 붙었다
+        /// (2026-09-14·16). 임포터가 무엇을 만들어 주느냐에 기대지 않고 우리가 만든
+        /// 에셋을 직접 입히면 그 부류의 실패가 없다. 머티리얼은 눈에 보이는 .mat 파일이라
+        /// 손으로 열어 볼 수도 있다.
+        /// </summary>
+        public Material material;
+
+        [Tooltip("이 건물만 따로 돌려야 할 때 쓰는 각도(도). 아트마다 정면이 다를 수 있다.")]
+        public float yawOffset;
+    }
+
     /// <summary>
     /// 기지 화면을 조립하는 유일한 지점 — 데이터를 읽고, 로직을 세우고, 뷰를 붙인다.
     ///
@@ -27,6 +54,18 @@ namespace Olympus.Game.Territory
 
         [Tooltip("Assets/Data/strings-ko.json — HUD가 보여줄 화면 문구.")]
         [SerializeField] private TextAsset _strings;
+
+        [Header("건물 모델")]
+        [Tooltip("실제 3D 모델. 여기 없는 건물은 그레이박스 큐브로 남는다 — 한 채씩 바꿔 갈 수 있다.\n\n" +
+                 "완성 상태에서만 쓴다. 폐허·공사 중은 아직 전용 모델이 없어서 큐브 그대로다.")]
+        [SerializeField] private List<BuildingModelEntry> _buildingModels = new List<BuildingModelEntry>();
+
+        [Tooltip("모델 전체를 돌리는 각도(도). 플레이 중에 돌리면 바로 반영된다 — 눈으로 정하는 값이다.\n\n" +
+                 "아트가 어느 쪽을 정면으로 만들었는지, 카메라(yaw 45°)에 어떻게 맞출지가 " +
+                 "여기서 정해진다. 건물마다 다르면 각 항목의 yawOffset을 쓴다.")]
+        [SerializeField, Range(-180f, 180f)] private float _modelYaw;
+
+        private float _appliedModelYaw;
 
         [Header("뷰")]
         [SerializeField] private TerritoryGround _ground;
@@ -51,8 +90,15 @@ namespace Olympus.Game.Territory
         [SerializeField, Range(0f, 12f)] private float _restorationRadius = 4f;
 
         [Header("시작 자원")]
+        [Tooltip("저장된 진행이 없을 때만 쓴다.")]
         [SerializeField] private long _startingWood = 2000;
         [SerializeField] private long _startingStone = 2000;
+
+        [Header("저장")]
+        [Tooltip("기기에 진행을 저장한다. 끄면 켤 때마다 처음부터 시작한다 — 밸런스를 " +
+                 "초반부터 반복해서 볼 때 쓴다.\n\n" +
+                 "저장 위치는 콘솔 로그에 찍힌다. 지우려면 메뉴의 Olympus/디버그/저장 파일 지우기.")]
+        [SerializeField] private bool _useSaveFile = true;
 
         [Header("디버그")]
         [Tooltip("플레이 중 단축키를 켠다. 게임 규칙이 아니라 화면을 판단하기 위한 것이다.\n\n" +
@@ -67,6 +113,9 @@ namespace Olympus.Game.Territory
 
         private readonly Dictionary<int, Transform> _visuals = new Dictionary<int, Transform>();
         private readonly Dictionary<int, MeshRenderer> _renderers = new Dictionary<int, MeshRenderer>();
+
+        /// <summary>실제 모델로 세운 자리. 큐브와 갱신 방식이 달라 구분해 둔다.</summary>
+        private readonly HashSet<int> _modelVisuals = new HashSet<int>();
 
         private Camera _camera;
         private Transform _visualRoot;
@@ -92,30 +141,72 @@ namespace Olympus.Game.Territory
 
             VerifyBaseSizeMatches(layoutFile);
 
-            var state = new GameState(_ground.Grid, _ground.Bounds);
-            _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius);
+            // 월드에 갔다 왔으면 진행이 남아 있다 — 상태는 세션이 들고 있고, 화면만 다시 붙인다.
+            bool resumed = TerritorySession.HasRuntime;
+
+            if (resumed)
+            {
+                _runtime = TerritorySession.Runtime;
+
+                // 카탈로그·시계도 세션 것을 쓴다 — 같은 데이터로 두 인스턴스를 만들면
+                // 언젠가 갈라지고, 갈라진 쪽이 먼저 죽는다.
+                _catalog = _runtime.Catalog;
+                _clock = _runtime.Clock;
+                _runtime.SetRestorationRadius(_restorationRadius);
+            }
+            else
+            {
+                var state = new GameState(_ground.Grid, _ground.Bounds);
+                _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius);
+                TerritorySession.Adopt(_runtime);
+            }
 
             // 지면은 로직의 복구도 지도를 받아서 그리기만 한다 — 뷰가 자기 것을 따로
             // 만들면 두 인스턴스가 갈라져 "로직은 복구했는데 화면은 황폐"가 된다.
             _ground.Restoration = _runtime.Restoration;
 
-            _runtime.Store.Apply(new StateDelta()
-                .WithResource(ResourceChange.Absolute(ResourceKind.Wood, _startingWood))
-                .WithResource(ResourceChange.Absolute(ResourceKind.Stone, _startingStone)));
-
             BuildVisualRoot();
             _runtime.Store.Changed += OnStateChanged;
 
-            // 자리를 전부 폐허로 세운다. 레이아웃이 잘못되면 어느 자리가 문제인지
-            // 말하며 여기서 터진다 — 화면에서 겹쳐 보이는 것으로 나중에 알게 되는 것보다 낫다.
-            _runtime.Initialize(TerritoryDataLoader.ToLayout(layoutFile, _ground.Bounds));
+            if (!resumed)
+                LoadOrStartFresh(layoutFile);
 
             RefreshAllVisuals();
 
             Debug.Log(
-                "기지 준비 완료 — 자리 " + _runtime.State.BuildingCount + "개, " +
-                "건물 정의 " + _catalog.Count + "종, 격자 " + _ground.Bounds +
-                "\n폐허를 클릭하면 정보가 뜨고, 자원이 충분하면 복구가 시작됩니다.");
+                (resumed ? "기지로 돌아왔습니다 — 진행 유지" : "기지 준비 완료")
+                + " — 자리 " + _runtime.State.BuildingCount + "개, "
+                + "건물 정의 " + _catalog.Count + "종, 격자 " + _ground.Bounds);
+        }
+
+        /// <summary>
+        /// 저장된 진행이 있으면 그걸로, 없으면 처음부터 세운다.
+        ///
+        /// 레이아웃이 잘못되면 어느 자리가 문제인지 말하며 여기서 터진다 —
+        /// 화면에서 겹쳐 보이는 것으로 나중에 알게 되는 것보다 낫다.
+        /// </summary>
+        private void LoadOrStartFresh(BaseLayoutFile layoutFile)
+        {
+            BaseLayout layout = TerritoryDataLoader.ToLayout(layoutFile, _ground.Bounds);
+
+            SaveFile save = null;
+            bool hasSave = _useSaveFile && SaveStore.TryLoad(out save);
+
+            if (!hasSave)
+            {
+                _runtime.Store.Apply(new StateDelta()
+                    .WithResource(ResourceChange.Absolute(ResourceKind.Wood, _startingWood))
+                    .WithResource(ResourceChange.Absolute(ResourceKind.Stone, _startingStone)));
+
+                _runtime.Initialize(layout);
+                return;
+            }
+
+            SaveLoadReport report = _runtime.InitializeFromSave(layout, save);
+
+            // 어긋난 게 있으면 조용히 넘기지 않는다 — 데이터를 바꾼 직후라면 그게 이유다.
+            if (report.HasMismatch)
+                Debug.Log("세이브와 데이터가 일부 달랐습니다 — " + report);
         }
 
         /// <summary>
@@ -153,6 +244,7 @@ namespace Olympus.Game.Territory
         {
             // 인스펙터에서 반경을 돌리면 즉시 반영한다. float 비교 하나라 값이 싸다.
             _runtime.SetRestorationRadius(_restorationRadius);
+            ApplyModelYawIfChanged();
 
             // 공사 완료 판정. "끝나는 시각 <= 지금" 비교라 프레임을 놓쳐도 결과가 같다.
             // 녹지 재계산은 런타임이 상태 통지에 묶어 두었으므로 여기서 부르지 않는다.
@@ -354,23 +446,75 @@ namespace Olympus.Game.Territory
             if (!_catalog.TryGet(b.DefId, out def))
                 return;
 
+            // 완성된 자리에만 실제 모델을 쓴다 — 폐허·공사 중은 전용 모델이 아직 없고,
+            // 큐브의 높이·색이 그 단계를 읽어 주는 역할을 계속 해야 한다.
+            BuildingModelEntry entry = b.Phase == BuildingPhase.Complete ? EntryFor(b.DefId) : null;
+            bool wantsModel = entry != null;
+
             Transform t;
-            if (!_visuals.TryGetValue(b.Id, out t))
+            bool has = _visuals.TryGetValue(b.Id, out t);
+
+            // 큐브 ↔ 모델로 종류가 바뀌면 갈아엎는다. 안 그러면 완성 순간에 큐브가 남는다.
+            if (has && _modelVisuals.Contains(b.Id) != wantsModel)
             {
-                // 그레이박스는 원시 큐브로 세운다. 실제 모델(D:\그릭로만의 .glb)이
-                // 들어오면 여기만 프리팹 인스턴스화로 바꾸면 된다.
-                GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = "Slot" + b.Id + "_" + b.DefId;
-                go.transform.SetParent(_visualRoot, false);
-
-                // 콜라이더는 쓰지 않는다 — 탭 판정은 지면 평면 교차로 한다.
-                Object.Destroy(go.GetComponent<Collider>());
-
-                t = go.transform;
-                _visuals[b.Id] = t;
-                _renderers[b.Id] = go.GetComponent<MeshRenderer>();
+                RemoveVisual(b.Id);
+                has = false;
             }
 
+            if (!has)
+                t = wantsModel ? CreateModelVisual(b, entry) : CreateCubeVisual(b);
+
+            if (wantsModel)
+                PlaceModel(t, b, def);
+            else
+                PlaceCube(t, b, def);
+        }
+
+        private Transform CreateCubeVisual(BuildingInstance b)
+        {
+            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = "Slot" + b.Id + "_" + b.DefId;
+            go.transform.SetParent(_visualRoot, false);
+
+            // 콜라이더는 쓰지 않는다 — 탭 판정은 지면 평면 교차로 한다.
+            Object.Destroy(go.GetComponent<Collider>());
+
+            _visuals[b.Id] = go.transform;
+            _renderers[b.Id] = go.GetComponent<MeshRenderer>();
+            return go.transform;
+        }
+
+        /// <summary>
+        /// 모델을 래퍼 안에 넣는다. 위치·배율은 래퍼만 건드리고 모델 자신의 변환은 그대로 둔다.
+        ///
+        /// ⚠️ 모델의 회전을 초기화하면 안 된다. FBX 임포터가 축(Blender Z-up → Unity Y-up)을
+        /// 맞추려고 루트에 -90° X 회전을 넣어 두는데, 그걸 지우면 건물이 뒤로 눕는다.
+        /// 실제로 밟았다(2026-09-11 — 본부가 하늘을 보고 누웠다).
+        /// </summary>
+        private Transform CreateModelVisual(BuildingInstance b, BuildingModelEntry entry)
+        {
+            var wrapper = new GameObject("Slot" + b.Id + "_" + b.DefId);
+            wrapper.transform.SetParent(_visualRoot, false);
+
+            GameObject instance = Instantiate(entry.model, wrapper.transform);
+
+            // 머티리얼을 직접 입힌다 — FBX가 들고 온 것을 쓰지 않는다(BuildingModelEntry 주석 참고).
+            if (entry.material != null)
+            {
+                Renderer[] renderers = instance.GetComponentsInChildren<Renderer>();
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    renderers[i].sharedMaterial = entry.material;
+                }
+            }
+
+            _visuals[b.Id] = wrapper.transform;
+            _modelVisuals.Add(b.Id);
+            return wrapper.transform;
+        }
+
+        private void PlaceCube(Transform t, BuildingInstance b, BuildingDef def)
+        {
             float height = HeightFor(b.Phase);
             float cell = _ground.Grid.CellSize;
 
@@ -380,10 +524,107 @@ namespace Olympus.Game.Territory
                 def.Footprint.Height * cell * _footprintInset);
 
             // 큐브는 중심 기준이므로 절반 높이만큼 올려 지면에 얹는다.
-            Vector3 center = _ground.FootprintCenterWorld(b.Anchor, def.Footprint, height * 0.5f);
-            t.position = center;
+            t.position = _ground.FootprintCenterWorld(b.Anchor, def.Footprint, height * 0.5f);
 
-            _renderers[b.Id].sharedMaterial = MaterialFor(b.Phase);
+            MeshRenderer r;
+            if (_renderers.TryGetValue(b.Id, out r) && r != null)
+                r.sharedMaterial = MaterialFor(b.Phase);
+        }
+
+        /// <summary>
+        /// 모델을 자리 크기에 맞춰 앉힌다.
+        ///
+        /// 아트가 1x1x1로 정규화돼 나오지만 그걸 믿고 상수를 곱하지 않는다 — 실제 경계를
+        /// 재서 맞춘다. 한 채라도 다른 스케일로 나오면 그 한 채만 조용히 어긋나기 때문이다.
+        /// 비율은 유지한다(균등 배율) — 늘려 맞추면 실루엣이 망가진다.
+        /// </summary>
+        private void PlaceModel(Transform t, BuildingInstance b, BuildingDef def)
+        {
+            // 래퍼만 움직인다 — 모델 자신의 회전은 건드리지 않는다(CreateModelVisual 주석 참고).
+            // 래퍼를 돌리면 모델의 축 보정은 그대로 둔 채 정면 방향만 맞출 수 있다.
+            t.localScale = Vector3.one;
+            t.position = Vector3.zero;
+            t.rotation = Quaternion.Euler(0f, _modelYaw + YawOffsetFor(b.DefId), 0f);
+
+            Bounds bounds;
+            if (!TryGetRendererBounds(t, out bounds))
+                return;
+
+            float cell = _ground.Grid.CellSize;
+            float targetX = def.Footprint.Width * cell * _footprintInset;
+            float targetZ = def.Footprint.Height * cell * _footprintInset;
+
+            float scaleX = bounds.size.x > 0.0001f ? targetX / bounds.size.x : 1f;
+            float scaleZ = bounds.size.z > 0.0001f ? targetZ / bounds.size.z : 1f;
+            float scale = Mathf.Min(scaleX, scaleZ);
+
+            t.localScale = Vector3.one * scale;
+
+            // 피벗이 바닥이 아니라 경계의 중심이다 — 잰 경계를 기준으로 바닥을 지면에 맞춘다.
+            Vector3 center = _ground.FootprintCenterWorld(b.Anchor, def.Footprint, 0f);
+            t.position = center - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z) * scale;
+        }
+
+        /// <summary>스케일 1일 때의 경계. 모델 밑의 렌더러를 전부 합친다.</summary>
+        private static bool TryGetRendererBounds(Transform root, out Bounds bounds)
+        {
+            bounds = new Bounds();
+            Renderer[] renderers = root.GetComponentsInChildren<Renderer>();
+
+            if (renderers.Length == 0)
+                return false;
+
+            bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                bounds.Encapsulate(renderers[i].bounds);
+            }
+
+            // 월드 경계를 루트 기준으로 되돌린다(위에서 위치·배율을 1로 초기화해 뒀다).
+            bounds.center -= root.position;
+            return true;
+        }
+
+        private BuildingModelEntry EntryFor(string defId)
+        {
+            for (int i = 0; i < _buildingModels.Count; i++)
+            {
+                BuildingModelEntry e = _buildingModels[i];
+                if (e != null && e.model != null && e.defId == defId)
+                    return e;
+            }
+
+            return null;
+        }
+
+        private float YawOffsetFor(string defId)
+        {
+            for (int i = 0; i < _buildingModels.Count; i++)
+            {
+                BuildingModelEntry e = _buildingModels[i];
+                if (e != null && e.defId == defId)
+                    return e.yawOffset;
+            }
+
+            return 0f;
+        }
+
+        /// <summary>
+        /// 인스펙터에서 각도를 돌리면 즉시 다시 앉힌다. 녹지 반경 슬라이더와 같은 이유로
+        /// 열어 둔다 — 이 값은 화면을 보면서 정해야 한다.
+        /// </summary>
+        private void ApplyModelYawIfChanged()
+        {
+            if (Mathf.Approximately(_appliedModelYaw, _modelYaw))
+                return;
+
+            _appliedModelYaw = _modelYaw;
+
+            foreach (BuildingInstance b in _runtime.State.Buildings)
+            {
+                if (_modelVisuals.Contains(b.Id))
+                    RefreshVisual(b);
+            }
         }
 
         private float HeightFor(BuildingPhase phase)
@@ -417,6 +658,7 @@ namespace Olympus.Game.Territory
 
             _visuals.Remove(id);
             _renderers.Remove(id);
+            _modelVisuals.Remove(id);
         }
 
         private void Select(int slotId)
@@ -448,13 +690,45 @@ namespace Olympus.Game.Territory
             SelectionChanged?.Invoke(slotId);
         }
 
+        /// <summary>
+        /// 지금 진행을 기기에 쓴다.
+        ///
+        /// 부르는 시점이 셋인 이유 — 안드로이드에서는 <c>OnApplicationQuit</c>이 안 불릴 수
+        /// 있다(홈 버튼으로 나간 뒤 시스템이 앱을 정리하는 경우). 백그라운드로 내려가는
+        /// <c>OnApplicationPause(true)</c>가 가장 믿을 만한 자리고, 화면 전환은
+        /// <c>OnDestroy</c>가 받는다.
+        /// </summary>
+        private void WriteSave()
+        {
+            if (!_useSaveFile || _runtime == null)
+                return;
+
+            SaveStore.Save(_runtime.CaptureSave());
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused)
+                WriteSave();
+        }
+
+        private void OnApplicationQuit()
+        {
+            WriteSave();
+        }
+
         private void OnDestroy()
         {
+            // 화면을 떠난다 — 월드로 가는 길일 수도 있고 앱이 닫히는 중일 수도 있다.
+            WriteSave();
+
+            // 내 구독만 끊는다.
+            //
+            // ⚠️ _runtime.Dispose()를 부르면 안 된다. 런타임은 세션이 들고 있고 씬보다
+            //    오래 산다 — 여기서 Dispose하면 런타임이 상태 통지에 걸어 둔 녹지 재계산이
+            //    끊겨서, 월드에 갔다 온 뒤로는 복구해도 녹지가 안 뜬다.
             if (_runtime != null)
-            {
                 _runtime.Store.Changed -= OnStateChanged;
-                _runtime.Dispose();
-            }
 
             if (_selectionMesh != null)
                 Destroy(_selectionMesh);

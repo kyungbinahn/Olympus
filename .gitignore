@@ -58,6 +58,8 @@
 # Unity 크래시 잔여물
 # (CatClient 전례: 추적 해제만 하고 규칙을 안 넣어 다음 크래시 때 재발했다)
 /Assets/_Recovery/
+# 폴더 규칙만으로는 Unity가 그 옆에 만드는 폴더 meta가 남는다(2026-09-18에 커밋에 딸려올 뻔했다).
+/Assets/_Recovery.meta
 mono_crash.*.json
 sysinfo.txt
 crashlytics-build.properties

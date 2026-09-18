@@ -178,7 +178,16 @@ namespace Olympus.Editor
             // 시작 자원·디버그 단축키·녹지 반경 같은 인스펙터 값을 손으로 맞췄을 수 있다.
             TerritoryPresenter existing = FindRootComponent<TerritoryPresenter>("TerritoryPresenter");
             if (existing != null)
+            {
+                // 건물 모델 목록만은 매번 다시 건다 — 머티리얼과 같은 부류로, 손으로 맞추는
+                // 값이 아니라 코드(아래 표)가 소유하는 배선이다. 안 그러면 아트를 새로
+                // 넣어도 기존 씬에 반영되지 않는다.
+                var existingSo = new SerializedObject(existing);
+                WireBuildingModels(existingSo);
+                existingSo.ApplyModifiedPropertiesWithoutUndo();
+
                 return existing;
+            }
 
             var go = new GameObject("TerritoryPresenter");
             TerritoryPresenter presenter = go.AddComponent<TerritoryPresenter>();
@@ -208,9 +217,159 @@ namespace Olympus.Editor
                 CreateOrLoadFlatMaterial("Assets/Settings/CellSelection.mat", "CellSelection",
                     new Color(0.30f, 0.85f, 0.95f)));
 
+            WireBuildingModels(so);
+
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return presenter;
+        }
+
+        /// <summary>
+        /// 실제 모델이 들어온 건물만 배선한다. 없는 건물은 그레이박스 큐브로 남는다 —
+        /// 아트가 나오는 대로 여기에 한 줄씩 늘려 간다.
+        ///
+        /// artCode(B01)가 아니라 defId(main_hall)로 잇는 이유는 게임 데이터 쪽 키가
+        /// 기준이어야 아트 파일을 갈아끼워도 배선이 안 끊기기 때문이다.
+        /// </summary>
+        private static void WireBuildingModels(SerializedObject so)
+        {
+            // artCode(B01)로 파일을 찾고 defId(main_hall)로 게임에 잇는다.
+            //
+            // ⚠️ .fbx다. Unity 기본 임포터는 glTF(.glb)를 모델로 읽지 못한다 —
+            // 넣으면 DefaultImporter가 물어서 GameObject가 되지 않고 조용히 큐브로 남는다
+            // (2026-09-11에 밟았다). 변환은 아트 쪽 background/glb-to-fbx.py 가 한다.
+            var models = new[]
+            {
+                new KeyValuePair<string, string>("main_hall", "B01"),
+                new KeyValuePair<string, string>("timber_store", "B03"),
+                new KeyValuePair<string, string>("mason_yard", "B05"),
+                new KeyValuePair<string, string>("gatehouse", "B14"),
+                new KeyValuePair<string, string>("war_engine_yard", "B16"),
+                new KeyValuePair<string, string>("arena", "C01"),
+                new KeyValuePair<string, string>("barracks", "C02"),
+                new KeyValuePair<string, string>("farm", "C03"),
+                new KeyValuePair<string, string>("fishing_hut", "C04"),
+                new KeyValuePair<string, string>("silver_mine", "C05"),
+                new KeyValuePair<string, string>("council_hall", "C06"),
+                new KeyValuePair<string, string>("healing_house", "C07"),
+                new KeyValuePair<string, string>("notice_stele", "C08"),
+                new KeyValuePair<string, string>("training_ground", "C09"),
+                new KeyValuePair<string, string>("shipyard", "C10"),
+                new KeyValuePair<string, string>("hidden_cove", "C11"),
+                new KeyValuePair<string, string>("warehouse", "C12"),
+                new KeyValuePair<string, string>("ironworks", "N1"),
+                new KeyValuePair<string, string>("carpentry", "N2"),
+                new KeyValuePair<string, string>("mine", "N3"),
+                new KeyValuePair<string, string>("quarry", "N4"),
+            };
+
+            SerializedProperty list = so.FindProperty("_buildingModels");
+            if (list == null)
+            {
+                Debug.LogError("_buildingModels 필드를 못 찾았습니다.");
+                return;
+            }
+
+            // 아트가 내보내는 방향은 21종이 다 같다 — 눈으로 맞추는 값이 아니라 변환 상수라
+            // 여기서 정한다. 건물 하나만 정면이 다르면 그건 항목별 yawOffset으로 잡는다.
+            //
+            // 왜 -90인가 — 카메라가 yaw 45°로 내려다보므로 화면 좌상단이 월드 +Z,
+            // 좌하단이 월드 -X다. 모델이 +Z를 보고 나오는데 정면은 좌하단(-X)이어야 한다.
+            SerializedProperty yaw = so.FindProperty("_modelYaw");
+            if (yaw != null)
+                yaw.floatValue = -90f;
+
+            list.ClearArray();
+            int index = 0;
+
+            var missing = new List<string>();
+
+            for (int i = 0; i < models.Length; i++)
+            {
+                string defId = models[i].Key;
+                string path = "Assets/Art/Buildings/" + models[i].Value + "_" + defId + ".fbx";
+
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
+                if (model == null)
+                {
+                    missing.Add(models[i].Value + "(" + defId + ")");
+                    continue;
+                }
+
+                list.InsertArrayElementAtIndex(index);
+                SerializedProperty entry = list.GetArrayElementAtIndex(index);
+                entry.FindPropertyRelative("defId").stringValue = defId;
+                entry.FindPropertyRelative("model").objectReferenceValue = model;
+                entry.FindPropertyRelative("material").objectReferenceValue =
+                    CreateOrLoadBuildingMaterial(models[i].Value, defId);
+                index++;
+            }
+
+            if (missing.Count > 0)
+            {
+                Debug.LogWarning(
+                    "건물 모델 " + missing.Count + "종을 못 찾아 그레이박스 큐브로 남습니다: " +
+                    string.Join(", ", missing));
+            }
+
+            Debug.Log("건물 모델 " + index + "종을 배선했습니다.");
+        }
+
+        /// <summary>
+        /// 건물 머티리얼을 만들거나 불러온다.
+        ///
+        /// FBX가 들고 오는 머티리얼에 기대지 않는 이유 — Unity의 FBX 머티리얼 임포트에
+        /// 두 번 기댔다가 두 번 다 텍스처가 안 붙었다(2026-09-14·16). 임포터 콜백이
+        /// 언제 도는지에 매달리는 대신, 우리가 .mat 에셋을 만들어 직접 입힌다.
+        /// 눈에 보이는 파일이라 열어서 확인할 수도 있다.
+        ///
+        /// 텍스처 배선은 이미 있는 머티리얼에도 매번 다시 건다 — 아트가 텍스처를
+        /// 갈아끼웠을 때 반영되어야 한다(그레이박스 머티리얼의 색을 매번 덮는 것과 같은 이유).
+        /// </summary>
+        private static Material CreateOrLoadBuildingMaterial(string artCode, string defId)
+        {
+            string stem = "Assets/Art/Buildings/" + artCode + "_" + defId;
+            string materialPath = stem + ".mat";
+
+            Texture2D texture =
+                AssetDatabase.LoadAssetAtPath<Texture2D>(stem + "_basecolor.jpg")
+                ?? AssetDatabase.LoadAssetAtPath<Texture2D>(stem + "_basecolor.png");
+
+            if (texture == null)
+            {
+                Debug.LogWarning(
+                    "건물 텍스처를 못 찾았습니다: " + stem + "_basecolor.jpg" +
+                    " — " + defId + "이(가) 흰색으로 보입니다.");
+            }
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+
+            if (material == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                material = new Material(shader) { name = artCode + "_" + defId };
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+
+            // URP Lit은 _BaseMap, 빌트인 Standard는 _MainTex 다.
+            if (texture != null)
+            {
+                if (material.HasProperty("_BaseMap"))
+                    material.SetTexture("_BaseMap", texture);
+                if (material.HasProperty("_MainTex"))
+                    material.SetTexture("_MainTex", texture);
+            }
+
+            // 생성 모델은 금속·광택 정보가 없다(컬러 한 장뿐인 구성). 광택이 있으면
+            // 대리석이 플라스틱처럼 보인다.
+            if (material.HasProperty("_Smoothness"))
+                material.SetFloat("_Smoothness", 0.1f);
+            if (material.HasProperty("_Metallic"))
+                material.SetFloat("_Metallic", 0f);
+
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         /// <summary>지금 열려 있는 씬의 최상위 오브젝트 중 그 이름을 찾는다. 없으면 null.</summary>

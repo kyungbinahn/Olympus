@@ -1,4 +1,5 @@
 using System;
+using Olympus.Core.Save;
 using Olympus.Core.State;
 using Olympus.Core.Time;
 
@@ -62,6 +63,31 @@ namespace Olympus.Core.Territory
 
             // 레이아웃에 처음부터 완성 상태인 자리가 생길 수 있으므로 한 번 맞춰 둔다.
             Restoration.Recompute(State.Buildings, Catalog);
+        }
+
+        /// <summary>
+        /// 저장된 진행으로 기지를 세운다. <paramref name="save"/>가 null이면
+        /// <see cref="Initialize"/>와 같게 전부 폐허로 시작한다.
+        ///
+        /// 레이아웃 검증을 똑같이 지난다 — 세이브가 있다고 데이터 실수를 건너뛰면 안 된다.
+        /// </summary>
+        public SaveLoadReport InitializeFromSave(BaseLayout layout, SaveFile save)
+        {
+            Construction.ValidateOrThrow(layout);
+
+            SaveLoadReport report;
+            StateDelta delta = SaveMapper.ToDelta(save, layout, Catalog, out report);
+
+            Store.Apply(delta);
+            Restoration.Recompute(State.Buildings, Catalog);
+
+            return report;
+        }
+
+        /// <summary>지금 진행을 저장 형태로 뜬다.</summary>
+        public SaveFile CaptureSave()
+        {
+            return SaveMapper.Capture(State, Clock.NowUnixMs);
         }
 
         /// <summary>

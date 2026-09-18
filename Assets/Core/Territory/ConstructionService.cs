@@ -70,25 +70,35 @@ namespace Olympus.Core.Territory
         /// 검증 없이 넘기면 스토어가 "놓을 수 없는 자리에 Add가 왔다"로 터지고 어느
         /// 자리가 문제인지 알기 어렵다. 여기서 잡으면 자리 번호와 상대를 이름 대고 말해준다.
         /// </summary>
-        public void InitializeFromLayout(BaseLayout layout)
+        /// <summary>
+        /// 레이아웃이 성립하는지 보고, 안 되면 어느 자리가 무엇과 부딪히는지 대며 터진다.
+        /// 세이브에서 세울 때도 같은 검증을 지나야 한다 — 검증을 건너뛰는 진입점이 하나라도
+        /// 있으면 그 경로로 들어온 데이터 실수만 조용히 통과한다.
+        /// </summary>
+        public void ValidateOrThrow(BaseLayout layout)
         {
             if (layout == null)
                 throw new ArgumentNullException(nameof(layout));
 
             IReadOnlyList<LayoutProblem> problems = layout.Validate(_catalog);
 
-            if (problems.Count > 0)
+            if (problems.Count == 0)
+                return;
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append("기지 레이아웃이 유효하지 않다 (").Append(problems.Count).Append("건):");
+
+            for (int i = 0; i < problems.Count; i++)
             {
-                var sb = new System.Text.StringBuilder();
-                sb.Append("기지 레이아웃이 유효하지 않다 (").Append(problems.Count).Append("건):");
-
-                for (int i = 0; i < problems.Count; i++)
-                {
-                    sb.Append("\n  - ").Append(problems[i]);
-                }
-
-                throw new InvalidOperationException(sb.ToString());
+                sb.Append("\n  - ").Append(problems[i]);
             }
+
+            throw new InvalidOperationException(sb.ToString());
+        }
+
+        public void InitializeFromLayout(BaseLayout layout)
+        {
+            ValidateOrThrow(layout);
 
             var delta = new StateDelta();
 
