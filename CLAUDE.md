@@ -7,6 +7,7 @@
   - `C:\Users\user\CatClient` — 고양이(Cat). Unity 6000.3.16f1. `CatClient\CLAUDE.md`가 훌륭한 지도다.
   - `C:\Users\user\dfw-client` — 뉴포리아. 라이브 서비스 중. Unity 2022.3.62f2.
   - 무엇을 가져올 가치가 있고 무엇을 피해야 하는지는 [`docs/reference-findings.md`](docs/reference-findings.md).
+  - 경쟁작 초반 구조(방치형 → SLG 전환)와 올림푸스 대응안은 [`docs/topforce-early-game.md`](docs/topforce-early-game.md).
 - 아트 원본은 **형제 폴더** `D:\OlympusArt`에 있다(별도 git 레포). Unity 프로젝트 안에 넣지 않는다.
   건물 로스터·화풍·프롬프트가 거기 있고, `Assets/Data/building-defs.json`의 `artCode`가 둘을 잇는다.
 - 폴더 규칙과 그 근거는 [`docs/project-layout.md`](docs/project-layout.md). **파일을 어디 둘지 헷갈리면 먼저 읽는다.**
