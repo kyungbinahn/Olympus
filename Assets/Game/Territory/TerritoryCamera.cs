@@ -32,6 +32,11 @@ namespace Olympus.Game.Territory
         [SerializeField] private float _zoomStep = 0.12f;
         [SerializeField] private float _zoomSmoothing = 12f;
 
+        [Tooltip("직교 카메라는 거리가 아니라 orthographicSize가 화면 배율을 정한다. " +
+            "_distance * 이 값으로 환산한다 — 건물 판넬(사전 렌더 그림)이 항상 같은 " +
+            "각도·배율로 보이려면 원근이 아니라 직교여야 하기 때문(가장자리 왜곡 없음).")]
+        [SerializeField] private float _orthoSizeFactor = 0.4142f;
+
         [Header("범위")]
         [Tooltip("초점이 기지 밖으로 나가지 않게 잡아 줄 지면. 없으면 제한하지 않는다.")]
         [SerializeField] private TerritoryGround _ground;
@@ -55,6 +60,7 @@ namespace Olympus.Game.Territory
         private void Awake()
         {
             _camera = GetComponent<Camera>();
+            _camera.orthographic = true;
             _targetDistance = _distance;
             ApplyTransform();
         }
@@ -68,6 +74,9 @@ namespace Olympus.Game.Territory
 
             if (_camera == null)
                 _camera = GetComponent<Camera>();
+
+            if (_camera != null)
+                _camera.orthographic = true;
 
             ApplyTransform();
         }
@@ -218,6 +227,9 @@ namespace Olympus.Game.Territory
             Quaternion rotation = Quaternion.Euler(_pitch, _yaw, 0f);
             transform.rotation = rotation;
             transform.position = _focus - rotation * Vector3.forward * _distance;
+
+            if (_camera != null)
+                _camera.orthographicSize = _distance * _orthoSizeFactor;
         }
 
         /// <summary>카메라를 그 칸으로 옮긴다. 폐허를 탭했을 때 가운데로 오게 하는 데 쓴다.</summary>

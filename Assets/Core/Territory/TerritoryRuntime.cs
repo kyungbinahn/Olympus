@@ -1,4 +1,5 @@
 using System;
+using Olympus.Core.Progression;
 using Olympus.Core.Save;
 using Olympus.Core.State;
 using Olympus.Core.Time;
@@ -26,18 +27,30 @@ namespace Olympus.Core.Territory
         public RestorationMap Restoration { get; }
         public IClock Clock { get; }
 
+        public ProgressionConfig Progression { get; }
+        public UpgradeService Upgrades { get; }
+        public ProductionService Production { get; }
+        public SpeedUpService SpeedUps { get; }
+        public QuestService Quests { get; }
+
         public TerritoryRuntime(
             GameState state,
             BuildingCatalog catalog,
             IClock clock,
-            float restorationRadius = 2f)
+            float restorationRadius = 2f,
+            ProgressionConfig progression = null)
         {
             State = state ?? throw new ArgumentNullException(nameof(state));
             Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+            Progression = progression ?? ProgressionConfig.Empty;
 
             Store = new StateStore(state);
-            Construction = new ConstructionService(Store, catalog, clock);
+            Construction = new ConstructionService(Store, catalog, clock, Progression);
+            Upgrades = new UpgradeService(Store, catalog, clock, Progression);
+            Production = new ProductionService(Store, catalog, clock);
+            SpeedUps = new SpeedUpService(Store, clock, Progression);
+            Quests = new QuestService(Store, Progression);
             Restoration = new RestorationMap(state.BaseOccupancy.Bounds, restorationRadius);
 
             // 건물이 바뀌면 무조건 녹지를 다시 센다. 어느 경로로 바뀌었는지 따지지 않는다 —
@@ -54,12 +67,26 @@ namespace Olympus.Core.Territory
             Restoration.Recompute(State.Buildings, Catalog);
         }
 
+        /// <summary>본부 레벨(본부 건물의 레벨). 본부가 폐허면 0.</summary>
+        public int HqLevel => ProgressionRules.HqLevel(State, Progression);
+
+        public bool IsFeatureUnlocked(string featureId) => Progression.Features.IsUnlocked(featureId, HqLevel);
+
         /// <summary>
-        /// 레이아웃대로 자리를 폐허로 세운다. 기지에 들어갈 때 한 번 부른다.
+        /// 레이아웃대로 자리를 폐허로 세우고 시작 자원·아이템을 준다. 처음 시작할 때 한 번 부른다.
         /// </summary>
         public void Initialize(BaseLayout layout)
         {
             Construction.InitializeFromLayout(layout);
+
+            var starting = new StateDelta().WithResources(Progression.StartingResources);
+            for (int i = 0; i < Progression.StartingItems.Count; i++)
+            {
+                ItemGrant g = Progression.StartingItems[i];
+                starting.WithItem(CountChange.Delta(g.ItemId, g.Amount));
+            }
+
+            Store.Apply(starting);
 
             // 레이아웃에 처음부터 완성 상태인 자리가 생길 수 있으므로 한 번 맞춰 둔다.
             Restoration.Recompute(State.Buildings, Catalog);
@@ -121,6 +148,7 @@ namespace Olympus.Core.Territory
         public int DebugCompleteAllConstruction()
         {
             var delta = new StateDelta();
+            long now = Clock.NowUnixMs;
             int count = 0;
 
             foreach (BuildingInstance b in State.Buildings)
@@ -128,8 +156,9 @@ namespace Olympus.Core.Territory
                 if (b.Phase != BuildingPhase.Constructing)
                     continue;
 
-                delta.WithBuilding(BuildingChange.Update(
-                    b.Id, b.Anchor, BuildingPhase.Complete, b.Level + 1, 0L));
+                // 규칙과 같은 완성 경로를 탄다 — 디버그로 끝낸 본부 레벨업에서 보상이 빠지면
+                // "디버그로 보면 가속권이 안 들어온다"를 버그로 착각하게 된다.
+                ProgressionRules.AppendCompletion(delta, b, b.Level + 1, now, Progression);
                 count++;
             }
 
@@ -148,6 +177,7 @@ namespace Olympus.Core.Territory
         public int DebugRestoreAll()
         {
             var delta = new StateDelta();
+            long now = Clock.NowUnixMs;
             int count = 0;
 
             foreach (BuildingInstance b in State.Buildings)
@@ -156,7 +186,7 @@ namespace Olympus.Core.Territory
                     continue;
 
                 delta.WithBuilding(BuildingChange.Update(
-                    b.Id, b.Anchor, BuildingPhase.Complete, 1, 0L));
+                    b.Id, b.Anchor, BuildingPhase.Complete, b.Level > 0 ? b.Level : 1, 0L, now));
                 count++;
             }
 
@@ -164,6 +194,22 @@ namespace Olympus.Core.Territory
                 Store.Apply(delta);
 
             return count;
+        }
+
+        /// <summary>
+        /// 자원을 비용 없이 준다. 디버그용 — 곡선을 끝까지 따라가 보지 않고 Lv.4·5 화면을
+        /// 바로 보려는 것이다. 게임 규칙이 아니다.
+        /// </summary>
+        public void DebugGrantResources(long amount)
+        {
+            var delta = new StateDelta();
+
+            foreach (ResourceKind kind in Enum.GetValues(typeof(ResourceKind)))
+            {
+                delta.WithResource(ResourceChange.Delta(kind, amount));
+            }
+
+            Store.Apply(delta);
         }
 
         public void Dispose()

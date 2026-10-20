@@ -117,7 +117,7 @@ namespace Olympus.Core.Tests
 
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
                 1, "barracks", new GridPos(0, 0), GridFootprint.Square(2),
-                BuildingPhase.Complete, 1, 0L)));
+                BuildingPhase.Complete, 1, 0L, 0L)));
 
             Assert.That(store.State.BuildingCount, Is.EqualTo(1));
             Assert.That(store.State.BaseOccupancy.OccupiedCellCount, Is.EqualTo(4));
@@ -133,7 +133,7 @@ namespace Olympus.Core.Tests
             StateStore store = StateTestFactory.NewStore();
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
                 1, "farm", new GridPos(2, 2), GridFootprint.Square(3),
-                BuildingPhase.Complete, 1, 0L)));
+                BuildingPhase.Complete, 1, 0L, 0L)));
 
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Remove(1)));
 
@@ -147,10 +147,10 @@ namespace Olympus.Core.Tests
             StateStore store = StateTestFactory.NewStore();
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
                 1, "farm", new GridPos(0, 0), GridFootprint.Square(2),
-                BuildingPhase.Complete, 1, 0L)));
+                BuildingPhase.Complete, 1, 0L, 0L)));
 
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Update(
-                1, new GridPos(5, 5), BuildingPhase.Complete, 1, 0L)));
+                1, new GridPos(5, 5), BuildingPhase.Complete, 1, 0L, 0L)));
 
             Assert.That(store.State.BaseOccupancy.IsFree(new GridPos(0, 0)), Is.True);
             Assert.That(store.State.BaseOccupancy.IsFree(new GridPos(5, 5)), Is.False);
@@ -164,13 +164,13 @@ namespace Olympus.Core.Tests
             // 그 칸이 비어 보이는 상태가 된다(다른 건물이 위에 겹쳐 지어진다).
             StateStore store = StateTestFactory.NewStore();
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
-                1, "a", new GridPos(0, 0), GridFootprint.Square(2), BuildingPhase.Complete, 1, 0L)));
+                1, "a", new GridPos(0, 0), GridFootprint.Square(2), BuildingPhase.Complete, 1, 0L, 0L)));
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
-                2, "b", new GridPos(4, 4), GridFootprint.Square(2), BuildingPhase.Complete, 1, 0L)));
+                2, "b", new GridPos(4, 4), GridFootprint.Square(2), BuildingPhase.Complete, 1, 0L, 0L)));
 
             Assert.Throws<InvalidOperationException>(() =>
                 store.Apply(new StateDelta().WithBuilding(BuildingChange.Update(
-                    1, new GridPos(4, 4), BuildingPhase.Complete, 1, 0L))));
+                    1, new GridPos(4, 4), BuildingPhase.Complete, 1, 0L, 0L))));
 
             BuildingInstance b1;
             store.State.TryGetBuilding(1, out b1);
@@ -184,11 +184,11 @@ namespace Olympus.Core.Tests
         {
             StateStore store = StateTestFactory.NewStore();
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
-                1, "a", new GridPos(0, 0), GridFootprint.Square(2), BuildingPhase.Complete, 1, 0L)));
+                1, "a", new GridPos(0, 0), GridFootprint.Square(2), BuildingPhase.Complete, 1, 0L, 0L)));
 
             Assert.Throws<InvalidOperationException>(() =>
                 store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
-                    2, "b", new GridPos(1, 1), GridFootprint.Square(2), BuildingPhase.Complete, 1, 0L))));
+                    2, "b", new GridPos(1, 1), GridFootprint.Square(2), BuildingPhase.Complete, 1, 0L, 0L))));
         }
 
         [Test]
@@ -196,11 +196,11 @@ namespace Olympus.Core.Tests
         {
             StateStore store = StateTestFactory.NewStore();
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
-                1, "a", new GridPos(0, 0), GridFootprint.Single, BuildingPhase.Complete, 1, 0L)));
+                1, "a", new GridPos(0, 0), GridFootprint.Single, BuildingPhase.Complete, 1, 0L, 0L)));
 
             Assert.Throws<InvalidOperationException>(() =>
                 store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
-                    1, "b", new GridPos(5, 5), GridFootprint.Single, BuildingPhase.Complete, 1, 0L))));
+                    1, "b", new GridPos(5, 5), GridFootprint.Single, BuildingPhase.Complete, 1, 0L, 0L))));
         }
 
         [Test]
@@ -210,7 +210,7 @@ namespace Olympus.Core.Tests
 
             Assert.Throws<InvalidOperationException>(() =>
                 store.Apply(new StateDelta().WithBuilding(BuildingChange.Update(
-                    99, GridPos.Zero, BuildingPhase.Complete, 1, 0L))));
+                    99, GridPos.Zero, BuildingPhase.Complete, 1, 0L, 0L))));
 
             Assert.Throws<InvalidOperationException>(() =>
                 store.Apply(new StateDelta().WithBuilding(BuildingChange.Remove(99))));
@@ -222,7 +222,7 @@ namespace Olympus.Core.Tests
             StateStore store = StateTestFactory.NewStore();
 
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
-                10, "a", new GridPos(0, 0), GridFootprint.Single, BuildingPhase.Complete, 1, 0L)));
+                10, "a", new GridPos(0, 0), GridFootprint.Single, BuildingPhase.Complete, 1, 0L, 0L)));
 
             Assert.That(store.State.NextBuildingId, Is.EqualTo(11));
         }
@@ -236,7 +236,7 @@ namespace Olympus.Core.Tests
             StateStore store = StateTestFactory.NewStore();
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
                 1, "a", GridPos.Zero, GridFootprint.Single,
-                BuildingPhase.Constructing, 0, 10_000L)));
+                BuildingPhase.Constructing, 0, 10_000L, 0L)));
 
             BuildingInstance b;
             store.State.TryGetBuilding(1, out b);
@@ -255,7 +255,7 @@ namespace Olympus.Core.Tests
             StateStore store = StateTestFactory.NewStore();
             store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
                 1, "a", GridPos.Zero, GridFootprint.Single,
-                BuildingPhase.Complete, 1, 0L)));
+                BuildingPhase.Complete, 1, 0L, 0L)));
 
             BuildingInstance b;
             store.State.TryGetBuilding(1, out b);

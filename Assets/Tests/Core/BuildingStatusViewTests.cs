@@ -37,7 +37,7 @@ namespace Olympus.Core.Tests
             BuildingDef def = Def(defId);
 
             _store.Apply(new StateDelta().WithBuilding(BuildingChange.Add(
-                1, defId, new GridPos(0, 0), def.Footprint, phase, level, endsAtUnixMs)));
+                1, defId, new GridPos(0, 0), def.Footprint, phase, level, endsAtUnixMs, 0L)));
 
             BuildingInstance b;
             _state.TryGetBuilding(1, out b);

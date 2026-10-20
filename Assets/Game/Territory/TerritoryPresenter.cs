@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using Olympus.Core.Grid;
+using Olympus.Core.Progression;
 using Olympus.Core.Save;
 using Olympus.Core.State;
 using Olympus.Core.Territory;
@@ -31,9 +32,6 @@ namespace Olympus.Game.Territory
         /// 손으로 열어 볼 수도 있다.
         /// </summary>
         public Material material;
-
-        [Tooltip("이 건물만 따로 돌려야 할 때 쓰는 각도(도). 아트마다 정면이 다를 수 있다.")]
-        public float yawOffset;
     }
 
     /// <summary>
@@ -55,6 +53,20 @@ namespace Olympus.Game.Territory
         [Tooltip("Assets/Data/strings-ko.json — HUD가 보여줄 화면 문구.")]
         [SerializeField] private TextAsset _strings;
 
+        [Tooltip("Assets/Data/building-art.json — 건물별 각도·크기 보정.\n\n" +
+                 "메뉴의 Olympus/건물 아트/늘어놓기 로 편집하고 저장하면 이 파일이 바뀐다. " +
+                 "편집 툴과 게임이 같은 파일을 쓴다.")]
+        [SerializeField] private TextAsset _buildingArt;
+
+        [Tooltip("Assets/Data/progression.json — 본부 레벨 표·건물 레벨 곡선·가속 아이템·시작 자원.")]
+        [SerializeField] private TextAsset _progression;
+
+        [Tooltip("Assets/Data/quests.json — 하단 임무 바의 임무 체인.")]
+        [SerializeField] private TextAsset _quests;
+
+        [Tooltip("Assets/Data/function-unlock.json — 버튼이 몇 레벨 본부에서 생기는가.")]
+        [SerializeField] private TextAsset _featureUnlocks;
+
         [Header("건물 모델")]
         [Tooltip("실제 3D 모델. 여기 없는 건물은 그레이박스 큐브로 남는다 — 한 채씩 바꿔 갈 수 있다.\n\n" +
                  "완성 상태에서만 쓴다. 폐허·공사 중은 아직 전용 모델이 없어서 큐브 그대로다.")]
@@ -62,10 +74,20 @@ namespace Olympus.Game.Territory
 
         [Tooltip("모델 전체를 돌리는 각도(도). 플레이 중에 돌리면 바로 반영된다 — 눈으로 정하는 값이다.\n\n" +
                  "아트가 어느 쪽을 정면으로 만들었는지, 카메라(yaw 45°)에 어떻게 맞출지가 " +
-                 "여기서 정해진다. 건물마다 다르면 각 항목의 yawOffset을 쓴다.")]
+                 "여기서 정해진다. 건물마다 다른 보정은 building-art.json이 들고 있다.")]
         [SerializeField, Range(-180f, 180f)] private float _modelYaw;
 
         private float _appliedModelYaw;
+        private BuildingArtTable _art;
+
+        /// <summary>편집 툴이 게임과 같은 포즈를 만들려고 읽는다.</summary>
+        public float ModelYaw => _modelYaw;
+
+        /// <summary>편집 툴이 게임과 같은 포즈를 만들려고 읽는다.</summary>
+        public float FootprintInset => _footprintInset;
+
+        /// <summary>편집 툴이 모델·머티리얼을 찾으려고 읽는다.</summary>
+        public IReadOnlyList<BuildingModelEntry> BuildingModels => _buildingModels;
 
         [Header("뷰")]
         [SerializeField] private TerritoryGround _ground;
@@ -89,11 +111,6 @@ namespace Olympus.Game.Territory
                  "(건물 사이 여백이 1칸이다).")]
         [SerializeField, Range(0f, 12f)] private float _restorationRadius = 4f;
 
-        [Header("시작 자원")]
-        [Tooltip("저장된 진행이 없을 때만 쓴다.")]
-        [SerializeField] private long _startingWood = 2000;
-        [SerializeField] private long _startingStone = 2000;
-
         [Header("저장")]
         [Tooltip("기기에 진행을 저장한다. 끄면 켤 때마다 처음부터 시작한다 — 밸런스를 " +
                  "초반부터 반복해서 볼 때 쓴다.\n\n" +
@@ -103,7 +120,8 @@ namespace Olympus.Game.Territory
         [Header("디버그")]
         [Tooltip("플레이 중 단축키를 켠다. 게임 규칙이 아니라 화면을 판단하기 위한 것이다.\n\n" +
                  "F — 진행 중인 공사를 전부 즉시 완료\n" +
-                 "R — 모든 폐허를 비용 없이 즉시 복구 (최종 화면 확인용)")]
+                 "R — 모든 폐허를 비용 없이 즉시 복구 (최종 화면 확인용)\n" +
+                 "G — 자원 전부 +5000 (본부 Lv.4·5 화면을 곡선을 따라가지 않고 보기)")]
         [SerializeField] private bool _debugHotkeys = true;
 
         private BuildingCatalog _catalog;
@@ -118,6 +136,7 @@ namespace Olympus.Game.Territory
         private readonly HashSet<int> _modelVisuals = new HashSet<int>();
 
         private Camera _camera;
+        private TerritoryCamera _cameraRig;
         private Transform _visualRoot;
         private MeshFilter _selectionFilter;
         private Mesh _selectionMesh;
@@ -133,10 +152,12 @@ namespace Olympus.Game.Territory
         private void Awake()
         {
             _camera = Camera.main;
+            _cameraRig = _camera != null ? _camera.GetComponent<TerritoryCamera>() : null;
             _clock = new SystemClock();
 
             _catalog = TerritoryDataLoader.LoadCatalog(_buildingDefs);
             _stringsTable = LocalizedStrings.Load(_strings);
+            _art = TerritoryDataLoader.LoadArtTable(_buildingArt);
             BaseLayoutFile layoutFile = TerritoryDataLoader.LoadLayoutFile(_baseLayout);
 
             VerifyBaseSizeMatches(layoutFile);
@@ -156,8 +177,11 @@ namespace Olympus.Game.Territory
             }
             else
             {
+                ProgressionConfig progression = TerritoryDataLoader.LoadProgression(
+                    _progression, _quests, _featureUnlocks, _catalog);
+
                 var state = new GameState(_ground.Grid, _ground.Bounds);
-                _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius);
+                _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius, progression);
                 TerritorySession.Adopt(_runtime);
             }
 
@@ -192,12 +216,10 @@ namespace Olympus.Game.Territory
             SaveFile save = null;
             bool hasSave = _useSaveFile && SaveStore.TryLoad(out save);
 
+            // 시작 자원은 progression.json이 정한다(예전에는 이 컴포넌트의 인스펙터 값이었다) —
+            // 진척 곡선의 첫 칸이라 곡선과 같은 파일에 있어야 같이 고쳐진다.
             if (!hasSave)
             {
-                _runtime.Store.Apply(new StateDelta()
-                    .WithResource(ResourceChange.Absolute(ResourceKind.Wood, _startingWood))
-                    .WithResource(ResourceChange.Absolute(ResourceKind.Stone, _startingStone)));
-
                 _runtime.Initialize(layout);
                 return;
             }
@@ -267,6 +289,12 @@ namespace Olympus.Game.Territory
             {
                 int done = _runtime.DebugCompleteAllConstruction();
                 Debug.Log("[디버그] 공사 " + done + "건을 즉시 완료했습니다.");
+            }
+
+            if (kb.gKey.wasPressedThisFrame)
+            {
+                _runtime.DebugGrantResources(5000);
+                Debug.Log("[디버그] 자원을 전부 5000씩 더했습니다.");
             }
 
             if (kb.rKey.wasPressedThisFrame)
@@ -360,11 +388,70 @@ namespace Olympus.Game.Territory
             return _runtime.Construction.TryStartRepair(_selectedSlotId);
         }
 
+        /// <summary>선택한 자리를 다음 레벨로 올린다. 본부면 본부 레벨업이다.</summary>
+        public BuildResult TryUpgradeSelected()
+        {
+            if (_selectedSlotId < 0)
+                return BuildResult.Fail(BuildRejection.UnknownSlot);
+
+            return _runtime.Upgrades.TryStart(_selectedSlotId);
+        }
+
+        public long TryCollectSelected(out CollectRejection rejection)
+        {
+            rejection = CollectRejection.UnknownSlot;
+            if (_selectedSlotId < 0)
+                return 0L;
+
+            return _runtime.Production.TryCollect(_selectedSlotId, out rejection);
+        }
+
+        public SpeedUpRejection TrySpeedUpSelected(string itemId)
+        {
+            if (_selectedSlotId < 0)
+                return SpeedUpRejection.UnknownSlot;
+
+            return _runtime.SpeedUps.TryUse(_selectedSlotId, itemId);
+        }
+
+        /// <summary>
+        /// 그 종류 건물로 카메라를 옮기고 선택한다. 임무 바를 누르면 부른다 —
+        /// "무엇을 하라"와 함께 "어디서"를 보여 주는 것이 탑포스 퀘스트 바의 핵심이다.
+        /// 같은 종류가 여럿이면 가장 덜 진행된 자리로 간다(그게 보통 할 일이 남은 곳이다).
+        /// </summary>
+        public bool FocusOnDef(string defId)
+        {
+            if (string.IsNullOrEmpty(defId))
+                return false;
+
+            BuildingInstance target = null;
+            foreach (BuildingInstance b in _runtime.State.Buildings)
+            {
+                if (b.DefId == defId && (target == null || b.Level < target.Level))
+                    target = b;
+            }
+
+            BuildingDef def;
+            if (target == null || !_catalog.TryGet(target.DefId, out def))
+                return false;
+
+            if (_cameraRig != null)
+                _cameraRig.FocusOn(_ground.FootprintCenterWorld(target.Anchor, def.Footprint, 0f));
+
+            Select(target.Id);
+            return true;
+        }
+
         public static string DescribeRejection(BuildRejection r)
         {
             switch (r)
             {
                 case BuildRejection.InsufficientResources: return "자원이 부족합니다";
+                case BuildRejection.HqLevelTooLow: return "본부 레벨이 부족합니다";
+                case BuildRejection.QueueFull: return "공사 대기열이 가득 찼습니다 — 다른 공사가 끝나거나 가속하세요";
+                case BuildRejection.NotComplete: return "공사가 끝나야 올릴 수 있습니다";
+                case BuildRejection.MaxLevel: return "최고 레벨입니다";
+                case BuildRejection.RequirementsNotMet: return "본부 승급 조건을 채우지 못했습니다";
                 case BuildRejection.NotRuined: return "이미 복구된 자리입니다";
                 case BuildRejection.UnknownSlot: return "없는 자리입니다";
                 case BuildRejection.UnknownDef: return "건물 정의를 찾을 수 없습니다(데이터 오류)";
@@ -532,57 +619,26 @@ namespace Olympus.Game.Territory
         }
 
         /// <summary>
-        /// 모델을 자리 크기에 맞춰 앉힌다.
-        ///
-        /// 아트가 1x1x1로 정규화돼 나오지만 그걸 믿고 상수를 곱하지 않는다 — 실제 경계를
-        /// 재서 맞춘다. 한 채라도 다른 스케일로 나오면 그 한 채만 조용히 어긋나기 때문이다.
-        /// 비율은 유지한다(균등 배율) — 늘려 맞추면 실루엣이 망가진다.
+        /// 모델을 자리 크기에 맞춰 앉힌다. 계산은 <see cref="BuildingModelPlacement"/>가 한다 —
+        /// 편집 툴과 같은 함수를 써야 편집한 포즈와 게임에 뜨는 포즈가 갈라지지 않는다.
         /// </summary>
         private void PlaceModel(Transform t, BuildingInstance b, BuildingDef def)
         {
-            // 래퍼만 움직인다 — 모델 자신의 회전은 건드리지 않는다(CreateModelVisual 주석 참고).
-            // 래퍼를 돌리면 모델의 축 보정은 그대로 둔 채 정면 방향만 맞출 수 있다.
-            t.localScale = Vector3.one;
-            t.position = Vector3.zero;
-            t.rotation = Quaternion.Euler(0f, _modelYaw + YawOffsetFor(b.DefId), 0f);
-
-            Bounds bounds;
-            if (!TryGetRendererBounds(t, out bounds))
-                return;
-
+            BuildingArtAdjustment art = _art.For(b.DefId);
             float cell = _ground.Grid.CellSize;
-            float targetX = def.Footprint.Width * cell * _footprintInset;
-            float targetZ = def.Footprint.Height * cell * _footprintInset;
 
-            float scaleX = bounds.size.x > 0.0001f ? targetX / bounds.size.x : 1f;
-            float scaleZ = bounds.size.z > 0.0001f ? targetZ / bounds.size.z : 1f;
-            float scale = Mathf.Min(scaleX, scaleZ);
+            BuildingModelPlacement.Place(
+                t,
 
-            t.localScale = Vector3.one * scale;
+                // 게임은 래퍼를 돌린다 — 모델 자신의 축 보정 회전은 그 밑에서 그대로 살아 있다.
+                Quaternion.identity,
 
-            // 피벗이 바닥이 아니라 경계의 중심이다 — 잰 경계를 기준으로 바닥을 지면에 맞춘다.
-            Vector3 center = _ground.FootprintCenterWorld(b.Anchor, def.Footprint, 0f);
-            t.position = center - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z) * scale;
-        }
-
-        /// <summary>스케일 1일 때의 경계. 모델 밑의 렌더러를 전부 합친다.</summary>
-        private static bool TryGetRendererBounds(Transform root, out Bounds bounds)
-        {
-            bounds = new Bounds();
-            Renderer[] renderers = root.GetComponentsInChildren<Renderer>();
-
-            if (renderers.Length == 0)
-                return false;
-
-            bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++)
-            {
-                bounds.Encapsulate(renderers[i].bounds);
-            }
-
-            // 월드 경계를 루트 기준으로 되돌린다(위에서 위치·배율을 1로 초기화해 뒀다).
-            bounds.center -= root.position;
-            return true;
+                _ground.FootprintCenterWorld(b.Anchor, def.Footprint, 0f),
+                new Vector3(art.OffsetX, art.OffsetY, art.OffsetZ),
+                _modelYaw + art.YawDegrees,
+                def.Footprint.Width * cell * _footprintInset,
+                def.Footprint.Height * cell * _footprintInset,
+                art.ScaleMultiplier);
         }
 
         private BuildingModelEntry EntryFor(string defId)
@@ -595,18 +651,6 @@ namespace Olympus.Game.Territory
             }
 
             return null;
-        }
-
-        private float YawOffsetFor(string defId)
-        {
-            for (int i = 0; i < _buildingModels.Count; i++)
-            {
-                BuildingModelEntry e = _buildingModels[i];
-                if (e != null && e.defId == defId)
-                    return e.yawOffset;
-            }
-
-            return 0f;
         }
 
         /// <summary>

@@ -58,6 +58,30 @@ namespace Olympus.Core.Grid
             return new WorldXZ(min.X + halfSpanX, min.Z + halfSpanZ);
         }
 
+        /// <summary>
+        /// <see cref="CenterAt"/>의 역산 — 건물이 저 자리에 서 있으려면 앵커가 어느 칸이어야 하나.
+        /// 기지를 씬에서 손으로 배치하고 그 자리를 데이터로 되돌릴 때 쓴다.
+        ///
+        /// 칸 사이에 걸친 위치는 가장 가까운 칸으로 붙인다 — 사람이 눈으로 끌어다 놓은 자리는
+        /// 정확히 칸에 떨어지지 않는다. 반올림은 <see cref="SquareGrid.WorldToCell"/>과 같은
+        /// 규칙(Floor(v+0.5))을 쓴다. 둘이 다르면 같은 위치가 툴과 게임에서 다른 칸이 된다.
+        /// </summary>
+        public GridPos AnchorForCenter(WorldXZ center, SquareGrid grid)
+        {
+            if (grid == null)
+                throw new ArgumentNullException(nameof(grid));
+
+            float anchorX = center.X / grid.CellSize - (Width - 1) * 0.5f;
+            float anchorZ = center.Z / grid.CellSize - (Height - 1) * 0.5f;
+
+            return new GridPos(RoundHalfUp(anchorX), RoundHalfUp(anchorZ));
+        }
+
+        private static int RoundHalfUp(float v)
+        {
+            return (int)Math.Floor(v + 0.5f);
+        }
+
         public override string ToString() => Width + "x" + Height;
     }
 }

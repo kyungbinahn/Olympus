@@ -1,12 +1,18 @@
 using TMPro;
 using UnityEngine;
+using Olympus.Core.Progression;
 using Olympus.Core.State;
+using Olympus.Core.Territory;
 using Olympus.Game.Territory;
 
 namespace Olympus.UI
 {
     /// <summary>
-    /// 화면 상단 자원 표시. StateStore.Changed만 듣는다 — 상태를 직접 고치지 않는다.
+    /// 화면 상단 자원 표시 + 본부 줄(레벨·번영도·공사 대기열). StateStore.Changed만 듣는다 —
+    /// 상태를 직접 고치지 않는다.
+    ///
+    /// 식량·금은 <c>food_gold</c> 기능이 열려야(본부 Lv.5) 보인다. 탑포스가 Lv.5에서 상단 자원 바를
+    /// "식량·철"로 바꾸는 순간과 같다 — 쓸 곳이 없는 자원을 처음부터 0으로 띄워 두면 그냥 소음이다.
     ///
     /// Start에서 구독하는 이유 — TerritoryPresenter.Awake가 Runtime을 만드는데,
     /// 서로 다른 게임 오브젝트라 Awake 순서가 보장되지 않는다. Unity는 같은 프레임의
@@ -15,8 +21,11 @@ namespace Olympus.UI
     public sealed class ResourceBarView : MonoBehaviour
     {
         [SerializeField] private TerritoryPresenter _presenter;
+        [SerializeField] private TMP_Text _hqText;
         [SerializeField] private TMP_Text _woodText;
         [SerializeField] private TMP_Text _stoneText;
+        [SerializeField] private TMP_Text _foodText;
+        [SerializeField] private TMP_Text _goldText;
 
         private void Start()
         {
@@ -37,20 +46,45 @@ namespace Olympus.UI
                 _presenter.Runtime.Store.Changed -= OnStateChanged;
         }
 
-        private void OnStateChanged(StateDelta delta)
-        {
-            if (delta.Resources == null)
-                return;
-
-            Refresh();
-        }
+        // 건물 변경도 듣는다 — 본부 레벨·번영도·대기열이 건물에서 나온다.
+        private void OnStateChanged(StateDelta delta) => Refresh();
 
         private void Refresh()
         {
-            ResourcePool resources = _presenter.Runtime.State.Resources;
+            TerritoryRuntime rt = _presenter.Runtime;
+            ResourcePool resources = rt.State.Resources;
 
             _woodText.text = ResourceLabels.Of(ResourceKind.Wood) + " " + resources.Get(ResourceKind.Wood);
             _stoneText.text = ResourceLabels.Of(ResourceKind.Stone) + " " + resources.Get(ResourceKind.Stone);
+
+            bool foodGold = rt.IsFeatureUnlocked("food_gold");
+            SetLine(_foodText, foodGold, ResourceLabels.Of(ResourceKind.Food) + " " + resources.Get(ResourceKind.Food));
+            SetLine(_goldText, foodGold, ResourceLabels.Of(ResourceKind.Gold) + " " + resources.Get(ResourceKind.Gold));
+
+            if (_hqText != null)
+                _hqText.text = HqLine(rt);
+        }
+
+        private static string HqLine(TerritoryRuntime rt)
+        {
+            string line = "본부 Lv." + rt.HqLevel + "   번영도 " + ProgressionRules.Prosperity(rt.State, rt.Progression);
+
+            // 대기열은 한도가 생긴 뒤(Lv.4~)에만 보인다 — 한도가 없을 때 "공사 3/∞"는 의미가 없다.
+            int slots = ProgressionRules.QueueSlots(rt.State, rt.Progression);
+            if (slots > 0)
+                line += "   공사 " + ProgressionRules.ConstructingCount(rt.State) + "/" + slots;
+
+            return line;
+        }
+
+        private static void SetLine(TMP_Text text, bool visible, string value)
+        {
+            if (text == null)
+                return;
+
+            text.gameObject.SetActive(visible);
+            if (visible)
+                text.text = value;
         }
     }
 }

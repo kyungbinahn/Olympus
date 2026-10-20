@@ -1,25 +1,268 @@
 {
     "strings": [
-        { "key": "building.main_hall", "text": "본부" },
-        { "key": "building.timber_store", "text": "목재 창고" },
-        { "key": "building.mason_yard", "text": "건설 작업장" },
-        { "key": "building.gatehouse", "text": "성문" },
-        { "key": "building.war_engine_yard", "text": "목마 건조장" },
-        { "key": "building.ironworks", "text": "제철소" },
-        { "key": "building.carpentry", "text": "목공소" },
-        { "key": "building.mine", "text": "광산" },
-        { "key": "building.quarry", "text": "채석장" },
-        { "key": "building.arena", "text": "투기장" },
-        { "key": "building.barracks", "text": "병영" },
-        { "key": "building.farm", "text": "농장" },
-        { "key": "building.fishing_hut", "text": "어부의 오두막" },
-        { "key": "building.silver_mine", "text": "은광" },
-        { "key": "building.council_hall", "text": "회의당" },
-        { "key": "building.healing_house", "text": "치유의 집" },
-        { "key": "building.notice_stele", "text": "공고비" },
-        { "key": "building.training_ground", "text": "훈련장" },
-        { "key": "building.shipyard", "text": "조선소" },
-        { "key": "building.hidden_cove", "text": "숨겨진 만" },
-        { "key": "building.warehouse", "text": "창고" }
+        {
+            "key": "building.main_hall",
+            "text": "본부"
+        },
+        {
+            "key": "building.timber_store",
+            "text": "목재 창고"
+        },
+        {
+            "key": "building.mason_yard",
+            "text": "건설 작업장"
+        },
+        {
+            "key": "building.gatehouse",
+            "text": "성문"
+        },
+        {
+            "key": "building.war_engine_yard",
+            "text": "목마 건조장"
+        },
+        {
+            "key": "building.ironworks",
+            "text": "제철소"
+        },
+        {
+            "key": "building.carpentry",
+            "text": "목공소"
+        },
+        {
+            "key": "building.mine",
+            "text": "광산"
+        },
+        {
+            "key": "building.quarry",
+            "text": "채석장"
+        },
+        {
+            "key": "building.arena",
+            "text": "투기장"
+        },
+        {
+            "key": "building.barracks",
+            "text": "병영"
+        },
+        {
+            "key": "building.farm",
+            "text": "농장"
+        },
+        {
+            "key": "building.fishing_hut",
+            "text": "어부의 오두막"
+        },
+        {
+            "key": "building.silver_mine",
+            "text": "은광"
+        },
+        {
+            "key": "building.council_hall",
+            "text": "회의당"
+        },
+        {
+            "key": "building.healing_house",
+            "text": "치유의 집"
+        },
+        {
+            "key": "building.notice_stele",
+            "text": "공고비"
+        },
+        {
+            "key": "building.training_ground",
+            "text": "훈련장"
+        },
+        {
+            "key": "building.shipyard",
+            "text": "조선소"
+        },
+        {
+            "key": "building.hidden_cove",
+            "text": "숨겨진 만"
+        },
+        {
+            "key": "building.warehouse",
+            "text": "창고"
+        },
+        {
+            "key": "quest.q01",
+            "text": "무너진 본부를 다시 세우자"
+        },
+        {
+            "key": "quest.q02",
+            "text": "공고비를 세워 흩어진 백성을 부르자"
+        },
+        {
+            "key": "quest.q03",
+            "text": "목공소를 복구하자"
+        },
+        {
+            "key": "quest.q04",
+            "text": "목공소에서 목재를 거두자"
+        },
+        {
+            "key": "quest.q05",
+            "text": "채석장을 복구하자"
+        },
+        {
+            "key": "quest.q06",
+            "text": "본부를 Lv.2로 올리자"
+        },
+        {
+            "key": "quest.q07",
+            "text": "목재 창고를 복구하자"
+        },
+        {
+            "key": "quest.q08",
+            "text": "광산을 복구하자"
+        },
+        {
+            "key": "quest.q09",
+            "text": "목공소를 Lv.2로 올리자"
+        },
+        {
+            "key": "quest.q10",
+            "text": "건설 작업장을 복구하자"
+        },
+        {
+            "key": "quest.q11",
+            "text": "창고를 복구하자"
+        },
+        {
+            "key": "quest.q12",
+            "text": "번영도를 11까지 올리자"
+        },
+        {
+            "key": "quest.q13",
+            "text": "본부를 Lv.3으로 올리자"
+        },
+        {
+            "key": "quest.q14",
+            "text": "병영을 복구해 호플리테스를 맞이하자"
+        },
+        {
+            "key": "quest.q15",
+            "text": "훈련장을 복구하자"
+        },
+        {
+            "key": "quest.q16",
+            "text": "채석장을 Lv.3으로 올리자"
+        },
+        {
+            "key": "quest.q17",
+            "text": "성문을 세워 거인의 잔당을 막자"
+        },
+        {
+            "key": "quest.q18",
+            "text": "치유의 집을 복구하자"
+        },
+        {
+            "key": "quest.q19",
+            "text": "번영도를 20까지 올리자"
+        },
+        {
+            "key": "quest.q20",
+            "text": "헤르메스의 날개로 공사를 앞당기자"
+        },
+        {
+            "key": "quest.q21",
+            "text": "본부를 Lv.4로 올려 폴리스를 선포하자"
+        },
+        {
+            "key": "quest.q22",
+            "text": "회의당을 복구하자"
+        },
+        {
+            "key": "quest.q23",
+            "text": "제철소를 복구하자"
+        },
+        {
+            "key": "quest.q24",
+            "text": "건설 작업장을 Lv.3으로 올리자"
+        },
+        {
+            "key": "quest.q25",
+            "text": "투기장을 복구하자"
+        },
+        {
+            "key": "quest.q26",
+            "text": "조선소를 복구하자"
+        },
+        {
+            "key": "quest.q27",
+            "text": "번영도를 30까지 올리자"
+        },
+        {
+            "key": "quest.q28",
+            "text": "신전을 재건하자 — 본부 Lv.5"
+        },
+        {
+            "key": "quest.q29",
+            "text": "농장을 복구해 식량을 마련하자"
+        },
+        {
+            "key": "quest.q30",
+            "text": "은광을 복구해 금을 캐자"
+        },
+        {
+            "key": "story.hq1",
+            "text": "본부에 다시 불이 켜졌다. 폐허가 된 폴리스를 하나씩 되살리자."
+        },
+        {
+            "key": "story.hq2",
+            "text": "백성들이 돌아오기 시작했다. 더 많은 건물을 되살릴 수 있다."
+        },
+        {
+            "key": "story.hq3",
+            "text": "헤르메스가 날개 달린 샌들을 보내왔다 — 공사를 앞당길 수 있다."
+        },
+        {
+            "key": "story.hq4",
+            "text": "폴리스로 인정받았다! 이제부터 공사는 동시에 두 곳까지 맡길 수 있다."
+        },
+        {
+            "key": "story.hq5",
+            "text": "신전이 다시 섰다. 그러나 보급이 바닥나고 있다 — 성문 밖으로 나가 식량과 금을 찾자."
+        },
+        {
+            "key": "item.hermes_wing_1m",
+            "text": "헤르메스의 날개 1분"
+        },
+        {
+            "key": "item.hermes_wing_5m",
+            "text": "헤르메스의 날개 5분"
+        },
+        {
+            "key": "item.hermes_wing_15m",
+            "text": "헤르메스의 날개 15분"
+        },
+        {
+            "key": "feature.shop",
+            "text": "상점"
+        },
+        {
+            "key": "feature.heroes",
+            "text": "영웅"
+        },
+        {
+            "key": "feature.bag",
+            "text": "가방"
+        },
+        {
+            "key": "feature.explore",
+            "text": "탐색"
+        },
+        {
+            "key": "feature.world_map",
+            "text": "외출(월드맵)"
+        },
+        {
+            "key": "feature.food_gold",
+            "text": "식량·금"
+        },
+        {
+            "key": "feature.alliance",
+            "text": "동맹"
+        }
     ]
 }

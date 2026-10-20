@@ -21,6 +21,11 @@
          그래서 Unity 밖에서 그냥 컴파일된다. -->
     <Compile Include="..\..\Assets\Core\**\*.cs" />
     <Compile Include="..\..\Assets\Tests\Core\**\*.cs" />
+
+    <!-- 실제 데이터 파일(Assets/Data/*.json)을 읽는 시험. 이 하네스에만 있다 —
+         JSON을 System.Text.Json으로 읽는데 Unity에는 그게 없어서 Unity 시험 조립체에 넣을 수 없다.
+         그 대신 파일 모양 → 규칙 객체 변환은 게임과 같은 Core 코드(BuildingDefFile·ProgressionFileMapper)를 쓴다. -->
+    <Compile Include="RealData\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

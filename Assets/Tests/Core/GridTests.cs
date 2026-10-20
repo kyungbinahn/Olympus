@@ -215,6 +215,62 @@ namespace Olympus.Core.Tests
         }
 
         [Test]
+        public void 중심에서_앵커를_되찾으면_원래_앵커다()
+        {
+            // 기지를 씬에서 손으로 배치하고 자리를 데이터로 되돌리는 길이다.
+            // 한 칸이라도 어긋나면 "배치한 자리와 게임에 뜨는 자리가 다르다"가 된다.
+            var grid = new SquareGrid(1f);
+
+            var footprints = new[]
+            {
+                GridFootprint.Single,
+                GridFootprint.Square(2),
+                GridFootprint.Square(3),
+                GridFootprint.Square(6),
+                new GridFootprint(2, 5),
+            };
+
+            var anchors = new[]
+            {
+                new GridPos(0, 0), new GridPos(3, -7), new GridPos(-12, 9), new GridPos(-24, -24),
+            };
+
+            for (int f = 0; f < footprints.Length; f++)
+            {
+                for (int a = 0; a < anchors.Length; a++)
+                {
+                    WorldXZ center = footprints[f].CenterAt(anchors[a], grid);
+
+                    Assert.AreEqual(
+                        anchors[a],
+                        footprints[f].AnchorForCenter(center, grid),
+                        footprints[f] + " @ " + anchors[a]);
+                }
+            }
+        }
+
+        [Test]
+        public void 칸_사이에_놓인_건물은_가장_가까운_칸에_붙는다()
+        {
+            // 사람이 눈으로 끌어다 놓은 자리는 칸에 딱 떨어지지 않는다.
+            var grid = new SquareGrid(1f);
+            var fp = GridFootprint.Square(3);
+
+            Assert.AreEqual(new GridPos(4, 4), fp.AnchorForCenter(new WorldXZ(5.3f, 4.8f), grid));
+            Assert.AreEqual(new GridPos(5, 4), fp.AnchorForCenter(new WorldXZ(5.5f, 5.4f), grid));
+        }
+
+        [Test]
+        public void 칸_크기가_1이_아니어도_앵커를_되찾는다()
+        {
+            var grid = new SquareGrid(2.5f);
+            var fp = new GridFootprint(4, 2);
+            var anchor = new GridPos(-6, 11);
+
+            Assert.AreEqual(anchor, fp.AnchorForCenter(fp.CenterAt(anchor, grid), grid));
+        }
+
+        [Test]
         public void 크기가_0이하면_만들_때_터진다()
         {
             Assert.Throws<System.ArgumentOutOfRangeException>(() => new GridFootprint(0, 1));

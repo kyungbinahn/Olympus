@@ -25,6 +25,11 @@ namespace Olympus.Editor
         private static readonly Color TextColor = new Color(0.96f, 0.95f, 0.90f);
         private static readonly Color DimTextColor = new Color(0.78f, 0.76f, 0.68f);
         private static readonly Color WarnColor = new Color(0.95f, 0.45f, 0.40f);
+        private static readonly Color AccentColor = new Color(0.95f, 0.80f, 0.45f);
+
+        /// <summary>임무 바는 내비바(높이 160) 위에 여유 16을 두고 앉는다.</summary>
+        private const float QuestBarBottom = 176f;
+        private const float QuestBarHeight = 110f;
 
         /// <summary>
         /// 유니티가 기본 제공하는 둥근 모서리 9-slice 스프라이트. 실제 아트가 들어오기 전까지
@@ -71,7 +76,14 @@ namespace Olympus.Editor
             CreateEventSystem();
             RectTransform canvas = CreateCanvas();
 
-            CreateResourceBar(canvas, out TMP_Text woodText, out TMP_Text stoneText);
+            CreateResourceBar(
+                canvas, out TMP_Text hqText, out TMP_Text woodText, out TMP_Text stoneText,
+                out TMP_Text foodText, out TMP_Text goldText);
+
+            CreateQuestBar(
+                canvas, out Button questBarButton, out TMP_Text questTitle, out TMP_Text questProgress,
+                out Button questClaimButton);
+
             RectTransform infoPanel = CreateBuildingInfoPanel(
                 canvas,
                 out TMP_Text nameText,
@@ -79,7 +91,11 @@ namespace Olympus.Editor
                 out TMP_Text costText,
                 out TMP_Text messageText,
                 out Button repairButton,
-                out TMP_Text repairLabel);
+                out TMP_Text repairLabel,
+                out Button collectButton,
+                out TMP_Text collectLabel,
+                out Button[] speedUpButtons,
+                out TMP_Text[] speedUpLabels);
 
             infoPanel.gameObject.SetActive(false);
 
@@ -97,8 +113,11 @@ namespace Olympus.Editor
             var resourceView = controller.AddComponent<ResourceBarView>();
             var so1 = new SerializedObject(resourceView);
             TerritorySceneBuilder.Wire(so1, "_presenter", presenter);
+            TerritorySceneBuilder.Wire(so1, "_hqText", hqText);
             TerritorySceneBuilder.Wire(so1, "_woodText", woodText);
             TerritorySceneBuilder.Wire(so1, "_stoneText", stoneText);
+            TerritorySceneBuilder.Wire(so1, "_foodText", foodText);
+            TerritorySceneBuilder.Wire(so1, "_goldText", goldText);
             so1.ApplyModifiedPropertiesWithoutUndo();
 
             var infoView = controller.AddComponent<BuildingInfoPanelView>();
@@ -111,6 +130,10 @@ namespace Olympus.Editor
             TerritorySceneBuilder.Wire(so2, "_messageText", messageText);
             TerritorySceneBuilder.Wire(so2, "_repairButton", repairButton);
             TerritorySceneBuilder.Wire(so2, "_repairButtonLabel", repairLabel);
+            TerritorySceneBuilder.Wire(so2, "_collectButton", collectButton);
+            TerritorySceneBuilder.Wire(so2, "_collectButtonLabel", collectLabel);
+            WireList(so2, "_speedUpButtons", speedUpButtons);
+            WireList(so2, "_speedUpLabels", speedUpLabels);
             so2.ApplyModifiedPropertiesWithoutUndo();
 
             var toastView = controller.AddComponent<ToastView>();
@@ -119,8 +142,19 @@ namespace Olympus.Editor
             TerritorySceneBuilder.Wire(so3, "_text", toastText);
             so3.ApplyModifiedPropertiesWithoutUndo();
 
+            var questView = controller.AddComponent<QuestBarView>();
+            var so5 = new SerializedObject(questView);
+            TerritorySceneBuilder.Wire(so5, "_presenter", presenter);
+            TerritorySceneBuilder.Wire(so5, "_toast", toastView);
+            TerritorySceneBuilder.Wire(so5, "_barButton", questBarButton);
+            TerritorySceneBuilder.Wire(so5, "_titleText", questTitle);
+            TerritorySceneBuilder.Wire(so5, "_progressText", questProgress);
+            TerritorySceneBuilder.Wire(so5, "_claimButton", questClaimButton);
+            so5.ApplyModifiedPropertiesWithoutUndo();
+
             var chromeView = controller.AddComponent<HudChromeView>();
             var so4 = new SerializedObject(chromeView);
+            TerritorySceneBuilder.Wire(so4, "_presenter", presenter);
             TerritorySceneBuilder.Wire(so4, "_toast", toastView);
             TerritorySceneBuilder.Wire(so4, "_exploreButton", exploreButton);
             TerritorySceneBuilder.Wire(so4, "_heroesButton", heroesButton);
@@ -130,6 +164,24 @@ namespace Olympus.Editor
             TerritorySceneBuilder.Wire(so4, "_worldMapButton", worldMapButton);
             TerritorySceneBuilder.Wire(so4, "_settingsButton", settingsButton);
             so4.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void WireList(SerializedObject so, string propertyName, Object[] values)
+        {
+            SerializedProperty prop = so.FindProperty(propertyName);
+
+            if (prop == null)
+            {
+                Debug.LogError("직렬화 필드를 못 찾았습니다: " + propertyName +
+                               " — 필드 이름이 바뀌었으면 이 배선도 함께 고쳐야 합니다.");
+                return;
+            }
+
+            prop.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+            {
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            }
         }
 
         internal static void DestroyIfExists(string rootName)
@@ -173,24 +225,74 @@ namespace Olympus.Editor
             return go.GetComponent<RectTransform>();
         }
 
-        private static RectTransform CreateResourceBar(RectTransform canvas, out TMP_Text woodText, out TMP_Text stoneText)
+        /// <summary>
+        /// 왼쪽 위 — 본부 줄 한 줄, 그 아래 자원 2열(목재|식량, 석재|금). 식량·금은 본부 Lv.5에
+        /// 생기므로(ResourceBarView) 그 전에는 오른쪽 열이 비어 있다.
+        /// </summary>
+        private static RectTransform CreateResourceBar(
+            RectTransform canvas, out TMP_Text hqText, out TMP_Text woodText, out TMP_Text stoneText,
+            out TMP_Text foodText, out TMP_Text goldText)
         {
             RectTransform panel = CreatePanel(
                 canvas, "ResourceBar",
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(24f, -24f), sizeDelta: new Vector2(260f, 100f));
+                anchoredPos: new Vector2(24f, -24f), sizeDelta: new Vector2(520f, 150f));
 
-            woodText = CreateText(
-                panel, "WoodText", "목재 0", 32, FontStyles.Normal, TextColor, TextAlignmentOptions.MidlineLeft,
+            hqText = CreateText(
+                panel, "HqText", "본부 Lv.0", 26, FontStyles.Bold, AccentColor, TextAlignmentOptions.MidlineLeft,
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0.5f, 1f),
-                anchoredPos: new Vector2(0f, -6f), sizeDelta: new Vector2(-32f, 40f));
+                anchoredPos: new Vector2(0f, -8f), sizeDelta: new Vector2(-32f, 40f));
 
-            stoneText = CreateText(
-                panel, "StoneText", "석재 0", 32, FontStyles.Normal, TextColor, TextAlignmentOptions.MidlineLeft,
-                anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0.5f, 1f),
-                anchoredPos: new Vector2(0f, -50f), sizeDelta: new Vector2(-32f, 40f));
+            woodText = CreateResourceCell(panel, "WoodText", "목재 0", 0, 0);
+            foodText = CreateResourceCell(panel, "FoodText", "식량 0", 1, 0);
+            stoneText = CreateResourceCell(panel, "StoneText", "석재 0", 0, 1);
+            goldText = CreateResourceCell(panel, "GoldText", "금 0", 1, 1);
 
             return panel;
+        }
+
+        private static TMP_Text CreateResourceCell(RectTransform panel, string name, string text, int column, int row)
+        {
+            return CreateText(
+                panel, name, text, 30, FontStyles.Normal, TextColor, TextAlignmentOptions.MidlineLeft,
+                anchorMin: new Vector2(column * 0.5f, 1f), anchorMax: new Vector2(column * 0.5f + 0.5f, 1f),
+                pivot: new Vector2(0.5f, 1f),
+                anchoredPos: new Vector2(0f, -52f - row * 44f), sizeDelta: new Vector2(-32f, 40f));
+        }
+
+        /// <summary>
+        /// 하단 임무 바 — 내비바 바로 위에 한 줄. 바 전체가 버튼이고(누르면 그 건물로 카메라가 간다),
+        /// 오른쪽 "받기"는 그 안의 별도 버튼이다. UGUI는 겹친 버튼 중 맨 위 것만 클릭을 받으므로
+        /// "받기"를 눌러도 바의 이동이 같이 일어나지 않는다.
+        /// </summary>
+        private static RectTransform CreateQuestBar(
+            RectTransform canvas, out Button barButton, out TMP_Text title, out TMP_Text progress, out Button claimButton)
+        {
+            RectTransform bar = CreatePanel(
+                canvas, "QuestBar",
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(0.5f, 0f),
+                anchoredPos: new Vector2(0f, QuestBarBottom), sizeDelta: new Vector2(-48f, QuestBarHeight));
+
+            barButton = bar.gameObject.AddComponent<Button>();
+            barButton.targetGraphic = bar.GetComponent<Image>();
+
+            title = CreateText(
+                bar, "TitleText", "", 30, FontStyles.Bold, TextColor, TextAlignmentOptions.MidlineLeft,
+                anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0f, 1f),
+                anchoredPos: new Vector2(24f, -12f), sizeDelta: new Vector2(-232f, 44f));
+
+            progress = CreateText(
+                bar, "ProgressText", "", 24, FontStyles.Normal, DimTextColor, TextAlignmentOptions.MidlineLeft,
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(0f, 0f),
+                anchoredPos: new Vector2(24f, 12f), sizeDelta: new Vector2(-232f, 36f));
+
+            claimButton = CreateButton(
+                bar, "ClaimButton", "받기", out _,
+                anchorMin: new Vector2(1f, 0.5f), anchorMax: new Vector2(1f, 0.5f), pivot: new Vector2(1f, 0.5f),
+                anchoredPos: new Vector2(-16f, 0f), sizeDelta: new Vector2(168f, 76f),
+                fillColor: new Color(0.85f, 0.65f, 0.25f));
+
+            return bar;
         }
 
         private static RectTransform CreateBuildingInfoPanel(
@@ -200,14 +302,18 @@ namespace Olympus.Editor
             out TMP_Text costText,
             out TMP_Text messageText,
             out Button repairButton,
-            out TMP_Text repairLabel)
+            out TMP_Text repairLabel,
+            out Button collectButton,
+            out TMP_Text collectLabel,
+            out Button[] speedUpButtons,
+            out TMP_Text[] speedUpLabels)
         {
-            // y=176 — 하단 내비바(높이 160) 위에 여유 16을 두고 앉는다. 내비바와 겹치면
-            // 복구 버튼과 내비바 버튼이 같은 자리에서 서로 탭을 가로챈다.
+            // 임무 바 위에 여유 16을 두고 앉는다. 겹치면 복구 버튼과 "받기"가 같은 자리에서
+            // 서로 탭을 가로챈다.
             RectTransform panel = CreatePanel(
                 canvas, "BuildingInfoPanel",
                 anchorMin: new Vector2(0.5f, 0f), anchorMax: new Vector2(0.5f, 0f), pivot: new Vector2(0.5f, 0f),
-                anchoredPos: new Vector2(0f, 176f), sizeDelta: new Vector2(600f, 220f));
+                anchoredPos: new Vector2(0f, QuestBarBottom + QuestBarHeight + 16f), sizeDelta: new Vector2(720f, 380f));
 
             nameText = CreateText(
                 panel, "NameText", "", 36, FontStyles.Bold, TextColor, TextAlignmentOptions.TopLeft,
@@ -217,22 +323,43 @@ namespace Olympus.Editor
             statusText = CreateText(
                 panel, "StatusText", "", 26, FontStyles.Normal, DimTextColor, TextAlignmentOptions.TopLeft,
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0.5f, 1f),
-                anchoredPos: new Vector2(0f, -68f), sizeDelta: new Vector2(-40f, 40f));
+                anchoredPos: new Vector2(0f, -66f), sizeDelta: new Vector2(-40f, 40f));
 
+            // 여러 줄 — 본부는 조건 줄 두세 개 + 비용 한 줄이 들어간다. 색 표시에 TMP 리치 텍스트를 쓴다.
             costText = CreateText(
-                panel, "CostText", "", 24, FontStyles.Normal, DimTextColor, TextAlignmentOptions.TopLeft,
+                panel, "CostText", "", 24, FontStyles.Normal, TextColor, TextAlignmentOptions.TopLeft,
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0.5f, 1f),
-                anchoredPos: new Vector2(0f, -108f), sizeDelta: new Vector2(-40f, 36f));
+                anchoredPos: new Vector2(0f, -108f), sizeDelta: new Vector2(-40f, 140f));
 
             messageText = CreateText(
-                panel, "MessageText", "", 22, FontStyles.Normal, WarnColor, TextAlignmentOptions.TopLeft,
-                anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0.5f, 1f),
-                anchoredPos: new Vector2(0f, -144f), sizeDelta: new Vector2(-40f, 32f));
+                panel, "MessageText", "", 22, FontStyles.Normal, WarnColor, TextAlignmentOptions.BottomLeft,
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(0.5f, 0f),
+                anchoredPos: new Vector2(0f, 92f), sizeDelta: new Vector2(-40f, 32f));
 
             repairButton = CreateButton(
                 panel, "RepairButton", "복구", out repairLabel,
                 anchorMin: new Vector2(1f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(1f, 0f),
-                anchoredPos: new Vector2(-20f, 16f), sizeDelta: new Vector2(160f, 56f));
+                anchoredPos: new Vector2(-20f, 16f), sizeDelta: new Vector2(190f, 64f));
+
+            collectButton = CreateButton(
+                panel, "CollectButton", "수확", out collectLabel,
+                anchorMin: new Vector2(1f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(1f, 0f),
+                anchoredPos: new Vector2(-222f, 16f), sizeDelta: new Vector2(190f, 64f),
+                fillColor: new Color(0.30f, 0.45f, 0.65f));
+
+            // 가속 버튼은 progression.json의 speedUps 수만큼 쓴다. 남는 칸은 패널이 숨긴다.
+            const int speedUpSlots = 3;
+            speedUpButtons = new Button[speedUpSlots];
+            speedUpLabels = new TMP_Text[speedUpSlots];
+
+            for (int i = 0; i < speedUpSlots; i++)
+            {
+                speedUpButtons[i] = CreateButton(
+                    panel, "SpeedUpButton" + i, "", out speedUpLabels[i],
+                    anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0f, 0f), pivot: new Vector2(0f, 0f),
+                    anchoredPos: new Vector2(20f + i * 124f, 16f), sizeDelta: new Vector2(112f, 64f),
+                    fillColor: new Color(0.55f, 0.42f, 0.70f), labelFontSize: 20);
+            }
 
             return panel;
         }
@@ -292,7 +419,7 @@ namespace Olympus.Editor
             RectTransform panel = CreatePanel(
                 canvas, "Toast",
                 anchorMin: new Vector2(0.5f, 0.5f), anchorMax: new Vector2(0.5f, 0.5f), pivot: new Vector2(0.5f, 0.5f),
-                anchoredPos: new Vector2(0f, 300f), sizeDelta: new Vector2(760f, 90f));
+                anchoredPos: new Vector2(0f, 300f), sizeDelta: new Vector2(900f, 220f));
 
             toastText = CreateText(
                 panel, "Text", "", 28, FontStyles.Normal, TextColor, TextAlignmentOptions.Midline,

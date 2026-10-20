@@ -27,7 +27,20 @@ namespace Olympus.Core.Save
         public List<SavedResource> resources = new List<SavedResource>();
         public List<SavedSlot> slots = new List<SavedSlot>();
 
-        public const int CurrentVersion = 1;
+        /// <summary>가방(헤르메스의 날개 등). 판 1 세이브에는 없다 — 읽으면 빈 목록이다.</summary>
+        public List<SavedCount> items = new List<SavedCount>();
+
+        /// <summary>누적 기록(수확·가속 횟수). 판 1 세이브에는 없다.</summary>
+        public List<SavedCount> counters = new List<SavedCount>();
+
+        /// <summary>임무 체인에서 몇 번째까지 보상을 받았나. 판 1 세이브에는 없다 — 0(처음)으로 읽힌다.</summary>
+        public int questIndex;
+
+        /// <summary>
+        /// 판 2 — 가방·누적 기록·임무·생산 시작 시각이 더해졌다. 판 1은 그대로 읽힌다
+        /// (빠진 필드는 빈 값으로 읽히고, 그게 "아직 아무것도 안 한 상태"와 같다).
+        /// </summary>
+        public const int CurrentVersion = 2;
     }
 
     [Serializable]
@@ -64,5 +77,18 @@ namespace Olympus.Core.Save
         /// 앱을 꺼 둔 동안에도 공사가 진행된다.
         /// </summary>
         public long constructionEndsAtUnixMs;
+
+        /// <summary>
+        /// 생산이 쌓이기 시작한 시각. 판 1 세이브에는 0으로 읽히고, 그러면 생산 건물은
+        /// 보관 한도까지 차 있는 상태로 시작한다 — 손해가 아니라 덤이라 그대로 둔다.
+        /// </summary>
+        public long productionAnchorUnixMs;
+    }
+
+    [Serializable]
+    public sealed class SavedCount
+    {
+        public string key;
+        public long amount;
     }
 }

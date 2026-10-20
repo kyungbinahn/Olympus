@@ -84,8 +84,13 @@ namespace Olympus.Core.Save
                     phase = b.Phase.ToString(),
                     level = b.Level,
                     constructionEndsAtUnixMs = b.ConstructionEndsAtUnixMs,
+                    productionAnchorUnixMs = b.ProductionAnchorUnixMs,
                 });
             }
+
+            CaptureCounts(state.Items, save.items);
+            CaptureCounts(state.Counters, save.counters);
+            save.questIndex = state.QuestIndex;
 
             return save;
         }
@@ -148,7 +153,8 @@ namespace Olympus.Core.Save
                     def.Footprint,
                     phase,
                     saved.level < 0 ? 0 : saved.level,
-                    phase == BuildingPhase.Constructing ? saved.constructionEndsAtUnixMs : 0L));
+                    phase == BuildingPhase.Constructing ? saved.constructionEndsAtUnixMs : 0L,
+                    saved.productionAnchorUnixMs));
             }
 
             int dropped = savedById.Count - (restored + replaced);
@@ -172,6 +178,15 @@ namespace Olympus.Core.Save
                 }
             }
 
+            if (save != null)
+            {
+                RestoreCounts(save.items, delta, true);
+                RestoreCounts(save.counters, delta, false);
+
+                if (save.questIndex > 0)
+                    delta.QuestIndex = save.questIndex;
+            }
+
             report = new SaveLoadReport(restored, fresh, replaced, dropped, skippedResources);
             return delta;
         }
@@ -179,7 +194,41 @@ namespace Olympus.Core.Save
         private static BuildingChange FreshRuin(BaseSlot slot, BuildingDef def)
         {
             return BuildingChange.Add(
-                slot.SlotId, slot.DefId, slot.Anchor, def.Footprint, BuildingPhase.Ruined, 0, 0L);
+                slot.SlotId, slot.DefId, slot.Anchor, def.Footprint, BuildingPhase.Ruined, 0, 0L, 0L);
+        }
+
+        private static void CaptureCounts(CountPool pool, List<SavedCount> target)
+        {
+            foreach (KeyValuePair<string, long> pair in pool.All())
+            {
+                // 0개는 적지 않는다 — 다 쓴 아이템 줄이 세이브에 계속 쌓이지 않게.
+                if (pair.Value > 0L)
+                    target.Add(new SavedCount { key = pair.Key, amount = pair.Value });
+            }
+        }
+
+        /// <summary>
+        /// 아이템 이름은 데이터 쪽 목록과 대조하지 않고 그대로 물려받는다 — 데이터에서 아이템이
+        /// 빠져도 가방에 남아 있는 편이, 조용히 지워지는 것보다 되돌리기 쉽다.
+        /// </summary>
+        private static void RestoreCounts(List<SavedCount> saved, StateDelta delta, bool isItem)
+        {
+            if (saved == null)
+                return;
+
+            for (int i = 0; i < saved.Count; i++)
+            {
+                SavedCount c = saved[i];
+                if (c == null || string.IsNullOrEmpty(c.key) || c.amount <= 0L)
+                    continue;
+
+                CountChange change = CountChange.Absolute(c.key, c.amount);
+
+                if (isItem)
+                    delta.WithItem(change);
+                else
+                    delta.WithCounter(change);
+            }
         }
 
         private static Dictionary<int, SavedSlot> IndexSlots(SaveFile save)

@@ -2,37 +2,33 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Olympus.Core.Grid;
-using Olympus.Core.State;
+using Olympus.Core.Progression;
 using Olympus.Core.Territory;
 
 namespace Olympus.Game.Territory
 {
-    /// <summary>
-    /// 건물 정의 파일 한 줄. JsonUtility가 읽는 형태라 필드가 평평하고 public이어야 한다.
-    /// </summary>
+    /// <summary>건물 아트 보정 한 줄. 편집 툴이 쓰고 게임이 읽는 같은 파일이다.</summary>
     [Serializable]
-    public sealed class BuildingDefRecord
+    public sealed class BuildingArtRecord
     {
         public string defId;
-        public string displayNameKey;
-        public int width = 1;
-        public int height = 1;
-        public long buildDurationMs;
-        public List<ResourceCostRecord> costs = new List<ResourceCostRecord>();
+
+        /// <summary>이 건물만 더 돌리는 각도(도).</summary>
+        public float yaw;
+
+        /// <summary>칸에 맞춘 크기에 곱하는 값.</summary>
+        public float scale = 1f;
+
+        /// <summary>자리 중앙에서 밀어낸 거리(월드 단위).</summary>
+        public float offsetX;
+        public float offsetY;
+        public float offsetZ;
     }
 
     [Serializable]
-    public sealed class ResourceCostRecord
+    public sealed class BuildingArtFile
     {
-        /// <summary>ResourceKind 이름. 숫자가 아니라 이름으로 두는 이유 — 사람이 읽고 고칠 파일이다.</summary>
-        public string kind;
-        public long amount;
-    }
-
-    [Serializable]
-    public sealed class BuildingDefFile
-    {
-        public List<BuildingDefRecord> defs = new List<BuildingDefRecord>();
+        public List<BuildingArtRecord> buildings = new List<BuildingArtRecord>();
     }
 
     [Serializable]
@@ -78,49 +74,97 @@ namespace Olympus.Game.Territory
 
             BuildingDefFile file = JsonUtility.FromJson<BuildingDefFile>(json.text);
 
-            if (file == null || file.defs == null || file.defs.Count == 0)
-                throw new InvalidOperationException("건물 정의가 비어 있다: " + json.name);
+            if (file == null)
+                throw new InvalidOperationException("건물 정의를 읽을 수 없다: " + json.name);
 
-            var catalog = new BuildingCatalog();
-
-            for (int i = 0; i < file.defs.Count; i++)
-            {
-                BuildingDefRecord r = file.defs[i];
-
-                catalog.Add(new BuildingDef(
-                    r.defId,
-                    r.displayNameKey,
-                    new GridFootprint(r.width, r.height),
-                    r.buildDurationMs,
-                    ParseCosts(r)));
-            }
-
-            return catalog;
+            return file.ToCatalog(json.name);
         }
 
-        private static List<ResourceCost> ParseCosts(BuildingDefRecord r)
+        /// <summary>
+        /// 진척 규칙(본부 레벨·임무·기능 해금)을 읽고 건물 정의와 맞는지 확인한다.
+        /// 어긋나면 무엇이 문제인지 전부 대며 터진다 — 달성할 수 없는 조건은 게임을 멈추지 않고
+        /// 그 자리에서 영원히 막히게 만드므로, 거기까지 플레이해서 발견하기 전에 켜는 순간 잡는다.
+        /// </summary>
+        public static ProgressionConfig LoadProgression(
+            TextAsset progression, TextAsset quests, TextAsset features, BuildingCatalog catalog)
         {
-            var costs = new List<ResourceCost>();
+            if (progression == null)
+                throw new ArgumentNullException(nameof(progression), "progression.json이 배선되지 않았다.");
 
-            if (r.costs == null)
-                return costs;
+            ProgressionConfig config = ProgressionFileMapper.ToConfig(
+                JsonUtility.FromJson<ProgressionFile>(progression.text),
+                quests == null ? null : JsonUtility.FromJson<QuestFile>(quests.text),
+                features == null ? null : JsonUtility.FromJson<FeatureUnlockFile>(features.text));
 
-            for (int i = 0; i < r.costs.Count; i++)
+            List<string> problems = config.Validate(catalog);
+
+            if (problems.Count > 0)
             {
-                ResourceCostRecord c = r.costs[i];
-
-                ResourceKind kind;
-                if (!Enum.TryParse(c.kind, true, out kind))
-                {
-                    throw new InvalidOperationException(
-                        "모르는 자원 종류다: '" + c.kind + "' (건물 " + r.defId + "). " +
-                        "쓸 수 있는 값: " + string.Join(", ", Enum.GetNames(typeof(ResourceKind))));
-                }
-
-                costs.Add(new ResourceCost(kind, c.amount));
+                throw new InvalidOperationException(
+                    "진척 데이터가 맞지 않는다 (" + problems.Count + "건):\n  - " +
+                    string.Join("\n  - ", problems));
             }
 
-            return costs;
+            return config;
+        }
+
+        /// <summary>
+        /// 건물 아트 보정을 읽는다. 파일이 없으면 빈 표 — 보정이 없다는 뜻이고,
+        /// 그때는 모든 건물이 칸에 꽉 맞는 기본 포즈로 뜬다. 여기서 터지면 안 된다.
+        /// </summary>
+        public static BuildingArtTable LoadArtTable(TextAsset json)
+        {
+            var table = new BuildingArtTable();
+
+            if (json == null)
+                return table;
+
+            BuildingArtFile file = JsonUtility.FromJson<BuildingArtFile>(json.text);
+
+            if (file == null || file.buildings == null)
+                throw new InvalidOperationException("건물 아트 보정을 읽을 수 없다: " + json.name);
+
+            for (int i = 0; i < file.buildings.Count; i++)
+            {
+                BuildingArtRecord r = file.buildings[i];
+
+                if (r == null || string.IsNullOrEmpty(r.defId))
+                    continue;
+
+                // 값 검증은 Core가 한다 — 배율 0 같은 값이 여기서 걸러지지 않으면
+                // 그 건물만 화면에서 사라지고 원인을 아트에서 찾게 된다.
+                table.Add(new BuildingArtAdjustment(
+                    r.defId, r.yaw, r.scale, r.offsetX, r.offsetY, r.offsetZ));
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// 편집 툴이 저장할 때 쓰는 형식. 게임이 읽는 파일과 같은 형식이어야 하므로
+        /// 쓰는 쪽도 여기에 둔다 — 형식이 두 군데로 갈라지면 갈라진 쪽이 먼저 죽는다.
+        /// </summary>
+        public static string ToJson(BuildingArtTable table)
+        {
+            if (table == null)
+                throw new ArgumentNullException(nameof(table));
+
+            var file = new BuildingArtFile();
+
+            foreach (BuildingArtAdjustment a in table.All)
+            {
+                file.buildings.Add(new BuildingArtRecord
+                {
+                    defId = a.DefId,
+                    yaw = a.YawDegrees,
+                    scale = a.ScaleMultiplier,
+                    offsetX = a.OffsetX,
+                    offsetY = a.OffsetY,
+                    offsetZ = a.OffsetZ,
+                });
+            }
+
+            return JsonUtility.ToJson(file, true);
         }
 
         public static BaseLayoutFile LoadLayoutFile(TextAsset json)
@@ -134,6 +178,18 @@ namespace Olympus.Game.Territory
                 throw new InvalidOperationException("기지 레이아웃을 읽을 수 없다: " + json.name);
 
             return file;
+        }
+
+        /// <summary>
+        /// 기지 배치를 파일 형식으로 되돌린다. 저작 툴이 씬에서 읽은 자리를 저장할 때 쓴다.
+        /// 읽는 쪽과 같은 파일에 둔다 — 형식이 두 군데로 갈라지면 갈라진 쪽이 먼저 죽는다.
+        /// </summary>
+        public static string ToJson(BaseLayoutFile file)
+        {
+            if (file == null)
+                throw new ArgumentNullException(nameof(file));
+
+            return JsonUtility.ToJson(file, true);
         }
 
         /// <summary>

@@ -97,6 +97,12 @@ namespace Olympus.Editor
                 return;
             }
 
+            // 새 HUD(임무 바 등)는 진척 데이터를 읽는다 — 그 배선이 없는 옛 씬에서 HUD만 다시 지으면
+            // 시작하자마자 "progression.json이 배선되지 않았다"로 터진다. 그래서 여기서도 건다.
+            var presenterSo = new SerializedObject(presenter);
+            WireProgressionData(presenterSo);
+            presenterSo.ApplyModifiedPropertiesWithoutUndo();
+
             HudSceneBuilder.Build(presenter);
 
             EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
@@ -163,7 +169,7 @@ namespace Olympus.Editor
             camera.backgroundColor = new Color(0.24f, 0.26f, 0.28f);
             camera.nearClipPlane = 1f;
             camera.farClipPlane = 400f;
-            camera.fieldOfView = 45f;
+            camera.orthographic = true;
 
             TerritoryCamera rig = go.AddComponent<TerritoryCamera>();
 
@@ -184,6 +190,14 @@ namespace Olympus.Editor
                 // 넣어도 기존 씬에 반영되지 않는다.
                 var existingSo = new SerializedObject(existing);
                 WireBuildingModels(existingSo);
+
+                // 아트 보정 파일도 매번 다시 건다 — 나중에 추가된 필드라 예전에 만든
+                // 씬에는 비어 있고, 비어 있으면 편집 툴로 맞춘 포즈가 게임에 안 뜬다.
+                Wire(existingSo, "_buildingArt", LoadArtAsset());
+
+                // 진척 데이터도 같은 이유로 매번 건다 — 본부 레벨이 생기기 전에 만든 씬에는 비어 있다.
+                WireProgressionData(existingSo);
+
                 existingSo.ApplyModifiedPropertiesWithoutUndo();
 
                 return existing;
@@ -198,6 +212,8 @@ namespace Olympus.Editor
             Wire(so, "_buildingDefs", LoadRequired<TextAsset>("Assets/Data/building-defs.json"));
             Wire(so, "_baseLayout", LoadRequired<TextAsset>("Assets/Data/base-layout.json"));
             Wire(so, "_strings", LoadRequired<TextAsset>("Assets/Data/strings-ko.json"));
+            Wire(so, "_buildingArt", LoadArtAsset());
+            WireProgressionData(so);
 
             // 그레이박스 색 — 폐허는 어둡고 칙칙하게, 완성은 대리석처럼 밝게.
             // 복구가 진행되면 화면이 어두운 데서 밝은 쪽으로 옮겨가는 것이 눈에 보인다.
@@ -222,6 +238,22 @@ namespace Olympus.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return presenter;
+        }
+
+        private static void WireProgressionData(SerializedObject so)
+        {
+            Wire(so, "_progression", LoadRequired<TextAsset>("Assets/Data/progression.json"));
+            Wire(so, "_quests", LoadRequired<TextAsset>("Assets/Data/quests.json"));
+            Wire(so, "_featureUnlocks", LoadRequired<TextAsset>("Assets/Data/function-unlock.json"));
+        }
+
+        /// <summary>
+        /// 아트 보정 파일. 아직 한 번도 저장하지 않았으면 없을 수 있다 — 그때는 비워 둔다
+        /// (보정 없이 뜬다). 필수 파일처럼 오류를 내지 않는 이유다.
+        /// </summary>
+        private static TextAsset LoadArtAsset()
+        {
+            return AssetDatabase.LoadAssetAtPath<TextAsset>(BuildingArtEditor.ArtDataPath);
         }
 
         /// <summary>
@@ -271,7 +303,7 @@ namespace Olympus.Editor
             }
 
             // 아트가 내보내는 방향은 21종이 다 같다 — 눈으로 맞추는 값이 아니라 변환 상수라
-            // 여기서 정한다. 건물 하나만 정면이 다르면 그건 항목별 yawOffset으로 잡는다.
+            // 여기서 정한다. 건물 하나만 정면이 다르면 그건 building-art.json이 잡는다.
             //
             // 왜 -90인가 — 카메라가 yaw 45°로 내려다보므로 화면 좌상단이 월드 +Z,
             // 좌하단이 월드 -X다. 모델이 +Z를 보고 나오는데 정면은 좌하단(-X)이어야 한다.

@@ -17,6 +17,15 @@ namespace Olympus.Core.State
 
         public ResourcePool Resources { get; } = new ResourcePool();
 
+        /// <summary>가방 — 헤르메스의 날개(가속) 같은 소모품.</summary>
+        public CountPool Items { get; } = new CountPool();
+
+        /// <summary>누적 기록. 수확 횟수·가속 사용 횟수처럼 "해 봤는가"를 센다.</summary>
+        public CountPool Counters { get; } = new CountPool();
+
+        /// <summary>임무 체인에서 지금 몇 번째 임무인가(0부터). 체인 길이와 같으면 전부 끝낸 것.</summary>
+        public int QuestIndex { get; internal set; }
+
         /// <summary>기지 격자의 점유 판. 건물 변경 시 스토어가 함께 갱신한다.</summary>
         public GridOccupancy BaseOccupancy { get; }
 
