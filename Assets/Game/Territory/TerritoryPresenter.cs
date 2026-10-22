@@ -70,6 +70,9 @@ namespace Olympus.Game.Territory
         [Tooltip("Assets/Data/battle.json — 전선 스테이지·병사 능력치·건물이 주는 병사와 강화.")]
         [SerializeField] private TextAsset _battle;
 
+        [Tooltip("Assets/Data/chapter1.json — 1장 '300 용사': 병사 훈련 규칙과 다가오는 거인.")]
+        [SerializeField] private TextAsset _chapter;
+
         [Header("건물 모델")]
         [Tooltip("실제 3D 모델. 여기 없는 건물은 그레이박스 큐브로 남는다 — 한 채씩 바꿔 갈 수 있다.\n\n" +
                  "완성 상태에서만 쓴다. 폐허·공사 중은 아직 전용 모델이 없어서 큐브 그대로다.")]
@@ -124,7 +127,10 @@ namespace Olympus.Game.Territory
         [Tooltip("플레이 중 단축키를 켠다. 게임 규칙이 아니라 화면을 판단하기 위한 것이다.\n\n" +
                  "F — 진행 중인 공사를 전부 즉시 완료\n" +
                  "R — 모든 폐허를 비용 없이 즉시 복구 (최종 화면 확인용)\n" +
-                 "G — 자원 전부 +5000 (본부 Lv.4·5 화면을 곡선을 따라가지 않고 보기)")]
+                 "G — 자원 전부 +5000 (본부 Lv.4·5 화면을 곡선을 따라가지 않고 보기)\n" +
+                 "T — 거인을 지금 도착시키기 (300 vs 1을 기다리지 않고 보기)\n" +
+                 "Y — 용사 +100\n" +
+                 "B — 도적단을 지금 오게 하기")]
         [SerializeField] private bool _debugHotkeys = true;
 
         private BuildingCatalog _catalog;
@@ -148,6 +154,8 @@ namespace Olympus.Game.Territory
         public TerritoryRuntime Runtime => _runtime;
         public int SelectedSlotId => _selectedSlotId;
         public LocalizedStrings Strings => _stringsTable;
+        public TerritoryGround Ground => _ground;
+        public TerritoryCamera CameraRig => _cameraRig;
 
         /// <summary>선택이 바뀔 때마다 알린다. HUD가 이걸 듣고 패널을 갱신한다.</summary>
         public event System.Action<int> SelectionChanged;
@@ -188,8 +196,10 @@ namespace Olympus.Game.Territory
                 // (군대가 기지 건물에서 나오고, 결과도 기지 상태에 들어가므로 주인이 하나여야 한다).
                 Olympus.Core.Battle.BattleConfig battle = TerritoryDataLoader.LoadBattle(_battle, _catalog, progression);
 
+                Olympus.Core.Chapter.ChapterConfig chapter = TerritoryDataLoader.LoadChapter(_chapter, battle, _catalog);
+
                 var state = new GameState(_ground.Grid, _ground.Bounds);
-                _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius, progression, battle);
+                _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius, progression, battle, chapter);
                 TerritorySession.Adopt(_runtime);
             }
 
@@ -303,6 +313,24 @@ namespace Olympus.Game.Territory
             {
                 _runtime.DebugGrantResources(5000);
                 Debug.Log("[디버그] 자원을 전부 5000씩 더했습니다.");
+            }
+
+            if (kb.tKey.wasPressedThisFrame)
+            {
+                bool done = _runtime.DebugThreatArriveNow();
+                Debug.Log(done ? "[디버그] 거인이 지금 도착했습니다." : "[디버그] 다가오는 거인이 없습니다(본부 Lv.2 이후에 나타납니다).");
+            }
+
+            if (kb.bKey.wasPressedThisFrame)
+            {
+                bool done = _runtime.DebugRaidSoon();
+                Debug.Log(done ? "[디버그] 도적단이 다가옵니다." : "[디버그] 도적 습격이 아직 없습니다(본부 Lv.1 이후).");
+            }
+
+            if (kb.yKey.wasPressedThisFrame)
+            {
+                _runtime.DebugGrantTroops(100);
+                Debug.Log("[디버그] 용사 +100 — 지금 " + _runtime.Training.Troops + "명.");
             }
 
             if (kb.rKey.wasPressedThisFrame)

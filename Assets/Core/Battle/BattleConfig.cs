@@ -24,8 +24,14 @@ namespace Olympus.Core.Battle
         /// <summary>몸 반지름 — 겹치지 않게 밀어내고, 사거리를 몸 가장자리부터 재는 데 쓴다.</summary>
         public float Radius { get; }
 
+        /// <summary>
+        /// 0보다 크면 한 번 칠 때 목표 둘레 이 거리(몸 가장자리 기준) 안의 적을 모두 친다 — 거인의 휩쓸기.
+        /// 이게 없으면 300 vs 1에서 거인이 한 번에 한 명만 쓰러뜨려 "300이 거인 하나를 두들기는" 그림이 된다.
+        /// </summary>
+        public float SplashRadius { get; }
+
         public UnitDef(string unitId, string displayNameKey, long hp, long attack, long attackIntervalMs,
-            float range, float moveSpeed, float radius)
+            float range, float moveSpeed, float radius, float splashRadius = 0f)
         {
             if (string.IsNullOrEmpty(unitId))
                 throw new ArgumentException("병사 이름은 비울 수 없다.", nameof(unitId));
@@ -42,6 +48,7 @@ namespace Olympus.Core.Battle
             Range = range;
             MoveSpeed = moveSpeed;
             Radius = radius;
+            SplashRadius = Math.Max(0f, splashRadius);
         }
 
         public bool IsRanged => Range >= 3f;

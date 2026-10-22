@@ -25,6 +25,9 @@ namespace Olympus.Game.Battle
         private static readonly int SpeedParam = Animator.StringToHash("Speed");
         private static readonly int AttackParam = Animator.StringToHash("Attack");
         private static readonly int DieParam = Animator.StringToHash("Die");
+        private static readonly int VariantParam = Animator.StringToHash("Variant");
+
+        private int _attacks;
 
         public readonly int UnitId;
         public readonly Transform Root;
@@ -80,14 +83,23 @@ namespace Olympus.Game.Battle
             }
 
             _from = _to = start;
-            root.position = start;
+            root.localPosition = start;
+
+            // 병사마다 동작 빠르기·시작 위치를 조금씩 다르게. 번호로 정해서 매번 같다.
+            if (_animator != null && _animator.runtimeAnimatorController != null)
+            {
+                float k = ((unitId * 37) % 100) / 100f;
+                _animator.speed = 0.88f + 0.24f * k;
+                _animator.Update(0f);
+                _animator.Play(0, 0, k);
+            }
             _phase = unitId * 0.7f;   // 다 같이 발맞춰 흔들리면 기계처럼 보인다.
         }
 
         /// <summary>시뮬레이션이 한 걸음 나아갔다 — 지금 자리에서 새 자리로 보간을 다시 건다.</summary>
         public void OnStep(BattleUnit unit, float y)
         {
-            _from = Root.position;
+            _from = Root.localPosition;
             _to = new Vector3(unit.X, y, unit.Z);
         }
 
@@ -95,7 +107,11 @@ namespace Olympus.Game.Battle
         {
             _lunge = 1f;
             if (_animator != null)
+            {
+                // 공격 동작을 번갈아 — 전원이 같은 동작을 같은 박자로 하면 기계처럼 보인다(2026-10-22).
+                _animator.SetInteger(VariantParam, (UnitId + _attacks++) % 2);
                 _animator.SetTrigger(AttackParam);
+            }
         }
 
         public void OnHit()
@@ -121,11 +137,11 @@ namespace Olympus.Game.Battle
         {
             float now = Time.time;
 
-            Root.position = Vector3.Lerp(_from, _to, t);
+            Root.localPosition = Vector3.Lerp(_from, _to, t);
 
             Vector3 facing = new Vector3(unit.FacingX, 0f, unit.FacingZ);
             if (facing.sqrMagnitude > 0.0001f && _diedAt < 0f)
-                Root.rotation = Quaternion.Slerp(Root.rotation, Quaternion.LookRotation(facing), Time.deltaTime * 10f);
+                Root.localRotation = Quaternion.Slerp(Root.localRotation, Quaternion.LookRotation(facing), Time.deltaTime * 10f);
 
             if (_animator != null)
             {

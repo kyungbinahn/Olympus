@@ -38,8 +38,9 @@ namespace Olympus.Editor
             FindOrCreateCamera();
             FindOrCreateGround();
             BattlePresenter presenter = FindOrCreatePresenter();
-            WireMaterials(presenter);
-            BattleSoldierSetup.Wire(presenter);
+            BattleArena arena = EnsureArena(presenter);
+            WireArenaMaterials(arena);
+            BattleSoldierSetup.Wire(arena);
             BuildHud(presenter);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -55,9 +56,26 @@ namespace Olympus.Editor
             return TerritorySceneBuilder.CreateOrLoadFlatMaterial(MaterialFolder + "/" + name + ".mat", name, color);
         }
 
-        private static void WireMaterials(BattlePresenter presenter)
+        /// <summary>전선 씬의 재생 부분 — 진행(BattlePresenter)과 같은 오브젝트에 붙이고 서로 잇는다.</summary>
+        internal static BattleArena EnsureArena(BattlePresenter presenter)
         {
+            BattleArena arena = presenter.GetComponent<BattleArena>();
+            if (arena == null)
+                arena = presenter.gameObject.AddComponent<BattleArena>();
+
             var so = new SerializedObject(presenter);
+            TerritorySceneBuilder.Wire(so, "_arena", arena);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return arena;
+        }
+
+        /// <summary>도형 병사·체력바 재질. 전선 씬과 기지(협곡 전투)가 같은 재질을 쓴다.</summary>
+        internal static void WireArenaMaterials(BattleArena arena)
+        {
+            EnsureFolder("Assets/Settings");
+            EnsureFolder(MaterialFolder);
+
+            var so = new SerializedObject(arena);
 
             // 아군은 파랑(그리스 방패색), 적은 녹슨 붉은 갈색 — 진영이 색으로 바로 갈린다.
             TerritorySceneBuilder.Wire(so, "_playerMaterial", Mat("BattlePlayer", new Color(0.22f, 0.40f, 0.78f)));

@@ -157,7 +157,7 @@
                     "amount": 30
                 }
             ],
-            "unlockHqLevel": 3
+            "unlockHqLevel": 2
         },
         {
             "defId": "training_ground",
@@ -293,7 +293,7 @@
                     "amount": 40
                 }
             ],
-            "unlockHqLevel": 5,
+            "unlockHqLevel": 2,
             "produces": {
                 "kind": "Food",
                 "perMinute": 40,

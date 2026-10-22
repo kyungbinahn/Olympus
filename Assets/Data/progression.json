@@ -60,11 +60,6 @@
                     "kind": "Prosperity",
                     "target": "",
                     "amount": 11
-                },
-                {
-                    "kind": "Counter",
-                    "target": "stage",
-                    "amount": 2
                 }
             ],
             "costs": [
@@ -116,8 +111,8 @@
                 },
                 {
                     "kind": "Counter",
-                    "target": "stage",
-                    "amount": 5
+                    "target": "threat.giant_1.won",
+                    "amount": 1
                 }
             ],
             "costs": [
@@ -166,11 +161,6 @@
                     "kind": "BuildingLevel",
                     "target": "mason_yard",
                     "amount": 3
-                },
-                {
-                    "kind": "Counter",
-                    "target": "stage",
-                    "amount": 10
                 }
             ],
             "costs": [

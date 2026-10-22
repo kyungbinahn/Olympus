@@ -41,19 +41,22 @@ namespace Olympus.Editor
         [MenuItem("Olympus/Setup/전투 병사 모델 다시 연결", false, 121)]
         private static void FromMenu()
         {
-            BattlePresenter presenter = Object.FindFirstObjectByType<BattlePresenter>();
-            if (presenter == null)
+            BattleArena[] arenas = Object.FindObjectsByType<BattleArena>(FindObjectsSortMode.None);
+            if (arenas.Length == 0)
             {
-                EditorUtility.DisplayDialog("전투 병사 모델", "전투 씬을 먼저 여세요(Olympus/Setup/전투 씬 만들기).", "확인");
+                EditorUtility.DisplayDialog("전투 병사 모델", "전투 씬이나 기지 씬을 먼저 여세요.", "확인");
                 return;
             }
 
-            Wire(presenter);
-            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
-            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(presenter.gameObject.scene);
+            foreach (BattleArena arena in arenas)
+            {
+                Wire(arena);
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(arena.gameObject.scene);
+                UnityEditor.SceneManagement.EditorSceneManager.SaveScene(arena.gameObject.scene);
+            }
         }
 
-        public static void Wire(BattlePresenter presenter)
+        public static void Wire(BattleArena arena)
         {
             var body = AssetDatabase.LoadAssetAtPath<GameObject>(BodyPath);
             if (body == null)
@@ -74,20 +77,28 @@ namespace Olympus.Editor
 
             Material material = CreateOrLoadMaterial();
 
-            RuntimeAnimatorController melee = BuildController("Soldier_Melee", clips, "Sword_Attack");
-            RuntimeAnimatorController brute = BuildController("Soldier_Brute", clips, "Punch_Cross");
-            RuntimeAnimatorController ranged = BuildController("Soldier_Ranged", clips, "Spell_Simple_Shoot");
+            // 공격 동작은 둘씩 — 병사가 번갈아 쓴다(BattleUnitView가 Variant를 0/1로 보낸다). 창병의 찌르기는 잽이 가장 가깝다.
+            RuntimeAnimatorController melee = BuildController("Soldier_Melee", clips, "Sword_Attack", "Punch_Jab");
+            RuntimeAnimatorController brute = BuildController("Soldier_Brute", clips, "Punch_Cross", "Punch_Jab");
+            RuntimeAnimatorController ranged = BuildController("Soldier_Ranged", clips, "Spell_Simple_Shoot", "Spell_Simple_Shoot");
 
-            var so = new SerializedObject(presenter);
+            var so = new SerializedObject(arena);
             SerializedProperty list = so.FindProperty("_unitModels");
             list.arraySize = 0;
 
             if (!AddHoplite(list, melee))
                 Add(list, "hoplite", body, melee, material);
             Add(list, "archer", body, ranged, material);
-            if (!AddGiant(list, brute))
+            if (!AddGiant(list, brute, "giant_brute"))
                 Add(list, "giant_brute", body, brute, material);
+
+            // 1장 "300 vs 1"의 거인 — 같은 몸, 판정 반지름(1.6)이 커서 약 7m로 선다.
+            if (!AddGiant(list, brute, "giant_chieftain"))
+                Add(list, "giant_chieftain", body, brute, material);
             Add(list, "giant_slinger", body, ranged, material);
+
+            // 도적 — 전용 모델이 오기 전까지는 칸을 비워 도형 병사(두건 + 짧은 칼)로 선다. 맨몸 임시 모델은
+            // 마을 수비대와 똑같은 몸이라 누가 도적인지 안 보였다(2026-10-22). 아트 납품이 오면 AddGiant처럼 붙인다.
             Add(list, "cyclops", body, brute, material);
 
             // 아군 = 300의 붉은색(호플리테스 팀색과 맞춘다), 적 = 돌빛 푸른색. 임시 몸(궁수·거인)에 덧칠되는 색이다.
@@ -138,7 +149,7 @@ namespace Olympus.Editor
         /// 아트 세션의 거인 몹을 붙인다. 정면 +Z(yaw 0). 몽둥이는 아직 소품으로 안 나와서 맨손 — 동작도 주먹 치기.
         /// 팀색 마스크가 비어 있다(거인은 적으로만 나온다) — 진영별 판은 같은 원색이 된다.
         /// </summary>
-        private static bool AddGiant(SerializedProperty list, RuntimeAnimatorController controller)
+        private static bool AddGiant(SerializedProperty list, RuntimeAnimatorController controller, string unitId)
         {
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(GiantFolder + "/giant_brute.fbx");
             if (model == null)
@@ -149,7 +160,7 @@ namespace Olympus.Editor
             int i = list.arraySize;
             list.arraySize = i + 1;
             SerializedProperty e = list.GetArrayElementAtIndex(i);
-            e.FindPropertyRelative("unitId").stringValue = "giant_brute";
+            e.FindPropertyRelative("unitId").stringValue = unitId;
             e.FindPropertyRelative("model").objectReferenceValue = model;
             e.FindPropertyRelative("controller").objectReferenceValue = controller;
             e.FindPropertyRelative("material").objectReferenceValue = mats[0];
@@ -160,7 +171,7 @@ namespace Olympus.Editor
             e.FindPropertyRelative("yaw").floatValue = 0f;
             e.FindPropertyRelative("props").arraySize = 0;
 
-            Debug.Log("거인(아트 납품) 모델을 연결했습니다.");
+            Debug.Log("거인(아트 납품) 모델을 연결했습니다 — " + unitId);
             return true;
         }
 
@@ -315,7 +326,8 @@ namespace Olympus.Editor
         /// 대기 ↔ 행군(Speed), 아무 때나 공격(Attack) 뒤 대기로, 아무 때나 쓰러짐(Die, 끝에서 멈춤).
         /// 매번 새로 짓는다 — 손으로 고칠 값이 없고, 클립 이름이 바뀌면 다시 지으면 된다.
         /// </summary>
-        private static RuntimeAnimatorController BuildController(string name, List<AnimationClip> clips, string attackClip)
+        private static RuntimeAnimatorController BuildController(string name, List<AnimationClip> clips,
+            string attackClip, string attackClipB)
         {
             string path = Folder + "/" + name + ".controller";
             AssetDatabase.DeleteAsset(path);
@@ -324,6 +336,7 @@ namespace Olympus.Editor
             c.AddParameter("Speed", AnimatorControllerParameterType.Float);
             c.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
             c.AddParameter("Die", AnimatorControllerParameterType.Trigger);
+            c.AddParameter("Variant", AnimatorControllerParameterType.Int);
 
             AnimatorStateMachine sm = c.layers[0].stateMachine;
 
@@ -333,9 +346,8 @@ namespace Olympus.Editor
             AnimatorState march = sm.AddState("March");
             march.motion = Find(clips, "Jog_Fwd_Loop") ?? Find(clips, "Walk_Loop");
 
-            AnimatorState attack = sm.AddState("Attack");
-            attack.motion = Find(clips, attackClip);
-            attack.speed = 1.4f;   // 공격 간격(1~1.6초)보다 동작이 길면 다음 공격이 중간에 끊긴다.
+            AnimatorState attack = AddAttack(sm, "Attack", Find(clips, attackClip), 0);
+            AnimatorState attackB = AddAttack(sm, "AttackB", Find(clips, attackClipB) ?? Find(clips, attackClip), 1);
 
             AnimatorState death = sm.AddState("Death");
             death.motion = Find(clips, "Death01");
@@ -352,16 +364,13 @@ namespace Olympus.Editor
             toIdle.hasExitTime = false;
             toIdle.duration = 0.1f;
 
-            AnimatorStateTransition hit = sm.AddAnyStateTransition(attack);
-            hit.AddCondition(AnimatorConditionMode.If, 0f, "Attack");
-            hit.hasExitTime = false;
-            hit.duration = 0.05f;
-            hit.canTransitionToSelf = true;
-
-            AnimatorStateTransition back = attack.AddTransition(idle);
-            back.hasExitTime = true;
-            back.exitTime = 0.9f;
-            back.duration = 0.1f;
+            foreach (AnimatorState a in new[] { attack, attackB })
+            {
+                AnimatorStateTransition back = a.AddTransition(idle);
+                back.hasExitTime = true;
+                back.exitTime = 0.9f;
+                back.duration = 0.1f;
+            }
 
             AnimatorStateTransition die = sm.AddAnyStateTransition(death);
             die.AddCondition(AnimatorConditionMode.If, 0f, "Die");
@@ -371,6 +380,21 @@ namespace Olympus.Editor
 
             AssetDatabase.SaveAssets();
             return c;
+        }
+
+        private static AnimatorState AddAttack(AnimatorStateMachine sm, string stateName, Motion motion, int variant)
+        {
+            AnimatorState state = sm.AddState(stateName);
+            state.motion = motion;
+            state.speed = 1.4f;   // 공격 간격(1~1.6초)보다 동작이 길면 다음 공격이 중간에 끊긴다.
+
+            AnimatorStateTransition hit = sm.AddAnyStateTransition(state);
+            hit.AddCondition(AnimatorConditionMode.If, 0f, "Attack");
+            hit.AddCondition(AnimatorConditionMode.Equals, variant, "Variant");
+            hit.hasExitTime = false;
+            hit.duration = 0.05f;
+            hit.canTransitionToSelf = true;
+            return state;
         }
 
         private static AnimationClip Find(List<AnimationClip> clips, string name)

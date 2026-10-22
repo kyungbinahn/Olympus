@@ -23,6 +23,9 @@ namespace Olympus.Core.Battle
         /// </summary>
         public float Scale { get; }
 
+        /// <summary>부르는 쪽이 붙인 표(예: 도적 습격에서 "기른 용사" = 1, "마을 수비대" = 0). 시뮬레이션은 안 본다.</summary>
+        public int Tag { get; }
+
         public float X { get; internal set; }
         public float Z { get; internal set; }
         public long Hp { get; internal set; }
@@ -38,8 +41,9 @@ namespace Olympus.Core.Battle
         internal long CooldownMs;
         internal int TargetId = -1;
 
-        internal BattleUnit(int id, BattleTeam team, UnitDef def, long maxHp, long attack, float scale, float x, float z)
+        internal BattleUnit(int id, BattleTeam team, UnitDef def, long maxHp, long attack, float scale, float x, float z, int tag = 0)
         {
+            Tag = tag;
             Id = id;
             Team = team;
             Def = def;
@@ -91,9 +95,11 @@ namespace Olympus.Core.Battle
         public readonly double HpMultiplier;
         public readonly double AttackMultiplier;
         public readonly float Scale;
+        public readonly int Tag;
 
-        public UnitSpawn(UnitDef def, double hpMultiplier, double attackMultiplier, float scale = 1f)
+        public UnitSpawn(UnitDef def, double hpMultiplier, double attackMultiplier, float scale = 1f, int tag = 0)
         {
+            Tag = tag;
             Def = def ?? throw new ArgumentNullException(nameof(def));
             HpMultiplier = hpMultiplier;
             AttackMultiplier = attackMultiplier;
@@ -126,6 +132,9 @@ namespace Olympus.Core.Battle
         private readonly List<BattleUnit> _units = new List<BattleUnit>();
         private readonly List<BattleEvent> _events = new List<BattleEvent>();
         private readonly long _timeLimitMs;
+        private readonly int _rowWidth;
+        private readonly float _spacing;
+        private readonly float _startDistance;
 
         public long ElapsedMs { get; private set; }
         public bool IsFinished { get; private set; }
@@ -138,12 +147,19 @@ namespace Olympus.Core.Battle
         /// <summary>바로 전 <see cref="Step"/>에서 일어난 일.</summary>
         public IReadOnlyList<BattleEvent> LastEvents => _events;
 
-        public BattleSimulation(IReadOnlyList<UnitSpawn> player, IReadOnlyList<UnitSpawn> enemy, long timeLimitMs)
+        /// <param name="rowWidth">한 줄에 서는 수. 0이면 기본(6). 300명을 6명씩 세우면 50줄이라 협곡 전투는 넓게 준다.</param>
+        /// <param name="spacing">병사 사이 간격(m). 0이면 기본(1.3). 밀집 방진은 좁게 — 진형이 짧아져 협곡을 마을 가까이 둘 수 있다.</param>
+        /// <param name="startDistance">양 진영이 처음 서는 거리(가운데선에서). 0이면 기본(7).</param>
+        public BattleSimulation(IReadOnlyList<UnitSpawn> player, IReadOnlyList<UnitSpawn> enemy, long timeLimitMs,
+            int rowWidth = 0, float spacing = 0f, float startDistance = 0f)
         {
             if (player == null) throw new ArgumentNullException(nameof(player));
             if (enemy == null) throw new ArgumentNullException(nameof(enemy));
 
             _timeLimitMs = timeLimitMs;
+            _rowWidth = rowWidth > 0 ? rowWidth : RowWidth;
+            _spacing = spacing > 0f ? spacing : Spacing;
+            _startDistance = startDistance > 0f ? startDistance : StartDistance;
 
             Deploy(player, BattleTeam.Player);
             Deploy(enemy, BattleTeam.Enemy);
@@ -217,18 +233,18 @@ namespace Olympus.Core.Battle
         /// </summary>
         private float PlaceRows(List<UnitSpawn> spawns, BattleTeam team, float sign, float depth)
         {
-            for (int start = 0; start < spawns.Count; start += RowWidth)
+            for (int start = 0; start < spawns.Count; start += _rowWidth)
             {
-                int count = Math.Min(RowWidth, spawns.Count - start);
+                int count = Math.Min(_rowWidth, spawns.Count - start);
 
-                float step = Spacing;
+                float step = _spacing;
                 for (int k = 0; k < count; k++)
                 {
                     UnitSpawn s = spawns[start + k];
                     step = Math.Max(step, s.Def.Radius * s.Scale * 2f + 0.3f);
                 }
 
-                float z = sign * (StartDistance + depth + (step - Spacing) * 0.5f);
+                float z = sign * (_startDistance + depth + (step - _spacing) * 0.5f);
 
                 for (int k = 0; k < count; k++)
                 {
@@ -238,7 +254,7 @@ namespace Olympus.Core.Battle
                     long hp = Math.Max(1L, (long)Math.Round(s.Def.Hp * s.HpMultiplier));
                     long attack = Math.Max(0L, (long)Math.Round(s.Def.Attack * s.AttackMultiplier));
 
-                    _units.Add(new BattleUnit(_units.Count, team, s.Def, hp, attack, s.Scale, x, z));
+                    _units.Add(new BattleUnit(_units.Count, team, s.Def, hp, attack, s.Scale, x, z, s.Tag));
                 }
 
                 depth += step;
@@ -302,13 +318,23 @@ namespace Olympus.Core.Battle
                     continue;
 
                 u.CooldownMs = u.Def.AttackIntervalMs;
-                target.Hp = Math.Max(0L, target.Hp - u.Attack);
-                _events.Add(new BattleEvent(BattleEventKind.Attack, u.Id, target.Id, u.Attack));
+                Hit(u, target);
 
-                if (!target.IsAlive)
+                if (u.Def.SplashRadius > 0f)
                 {
-                    target.IsMoving = false;
-                    _events.Add(new BattleEvent(BattleEventKind.Death, u.Id, target.Id, 0L));
+                    // 휩쓸기 — 목표 둘레의 다른 적도 같은 피해. 번호 순서로 돌아 결과가 늘 같다.
+                    for (int k = 0; k < _units.Count; k++)
+                    {
+                        BattleUnit o = _units[k];
+                        if (o == target || o.Team == u.Team || !o.IsAlive)
+                            continue;
+
+                        float sx = o.X - target.X;
+                        float sz = o.Z - target.Z;
+                        float reach = u.Def.SplashRadius + o.Radius + target.Radius;
+                        if (sx * sx + sz * sz <= reach * reach)
+                            Hit(u, o);
+                    }
                 }
             }
 
@@ -326,6 +352,18 @@ namespace Olympus.Core.Battle
             {
                 IsFinished = true;
                 PlayerWon = false;
+            }
+        }
+
+        private void Hit(BattleUnit source, BattleUnit target)
+        {
+            target.Hp = Math.Max(0L, target.Hp - source.Attack);
+            _events.Add(new BattleEvent(BattleEventKind.Attack, source.Id, target.Id, source.Attack));
+
+            if (!target.IsAlive)
+            {
+                target.IsMoving = false;
+                _events.Add(new BattleEvent(BattleEventKind.Death, source.Id, target.Id, 0L));
             }
         }
 

@@ -104,6 +104,10 @@ namespace Olympus.Editor
                 out Button battleButton, out Button exploreButton, out Button heroesButton, out Button allianceButton,
                 out Button shopButton, out Button bagButton, out Button worldMapButton);
 
+            // 1장(거인·훈련) — 오브젝트와 화면을 같이 맞춘다. 장 오브젝트가 없으면 여기서 세운다.
+            Olympus.Game.Chapter.GiantThreatDirector director = ChapterSceneSetup.EnsureChapter(presenter);
+            ChapterHudParts chapterParts = CreateChapterHud(canvas);
+
             Button settingsButton = CreateSettingsButton(canvas, out _);
             RectTransform toastPanel = CreateToast(canvas, out TMP_Text toastText);
 
@@ -152,6 +156,28 @@ namespace Olympus.Editor
             TerritorySceneBuilder.Wire(so5, "_claimButton", questClaimButton);
             so5.ApplyModifiedPropertiesWithoutUndo();
 
+            var chapterView = controller.AddComponent<ChapterHudView>();
+            var so6 = new SerializedObject(chapterView);
+            TerritorySceneBuilder.Wire(so6, "_presenter", presenter);
+            TerritorySceneBuilder.Wire(so6, "_director", director);
+            TerritorySceneBuilder.Wire(so6, "_raids", director != null ? director.GetComponentInChildren<Olympus.Game.Chapter.RaidDirector>(true) : null);
+            TerritorySceneBuilder.Wire(so6, "_toast", toastView);
+            TerritorySceneBuilder.Wire(so6, "_bannerRoot", chapterParts.Banner.gameObject);
+            TerritorySceneBuilder.Wire(so6, "_bannerButton", chapterParts.BannerButton);
+            TerritorySceneBuilder.Wire(so6, "_bannerTitle", chapterParts.BannerTitle);
+            TerritorySceneBuilder.Wire(so6, "_bannerDetail", chapterParts.BannerDetail);
+            TerritorySceneBuilder.Wire(so6, "_dispatchButton", chapterParts.DispatchButton);
+            TerritorySceneBuilder.Wire(so6, "_dispatchLabel", chapterParts.DispatchLabel);
+            TerritorySceneBuilder.Wire(so6, "_trainRoot", chapterParts.Train.gameObject);
+            TerritorySceneBuilder.Wire(so6, "_trainInfo", chapterParts.TrainInfo);
+            WireList(so6, "_trainButtons", chapterParts.TrainButtons);
+            WireList(so6, "_trainLabels", chapterParts.TrainLabels);
+            TerritorySceneBuilder.Wire(so6, "_battleRoot", chapterParts.Battle.gameObject);
+            TerritorySceneBuilder.Wire(so6, "_speedButton", chapterParts.SpeedButton);
+            TerritorySceneBuilder.Wire(so6, "_speedLabel", chapterParts.SpeedLabel);
+            TerritorySceneBuilder.Wire(so6, "_skipButton", chapterParts.SkipButton);
+            so6.ApplyModifiedPropertiesWithoutUndo();
+
             var chromeView = controller.AddComponent<HudChromeView>();
             var so4 = new SerializedObject(chromeView);
             TerritorySceneBuilder.Wire(so4, "_presenter", presenter);
@@ -165,6 +191,97 @@ namespace Olympus.Editor
             TerritorySceneBuilder.Wire(so4, "_worldMapButton", worldMapButton);
             TerritorySceneBuilder.Wire(so4, "_settingsButton", settingsButton);
             so4.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private sealed class ChapterHudParts
+        {
+            public RectTransform Banner;
+            public Button BannerButton;
+            public TMP_Text BannerTitle;
+            public TMP_Text BannerDetail;
+            public Button DispatchButton;
+            public TMP_Text DispatchLabel;
+            public RectTransform Train;
+            public TMP_Text TrainInfo;
+            public Button[] TrainButtons;
+            public TMP_Text[] TrainLabels;
+            public RectTransform Battle;
+            public Button SpeedButton;
+            public TMP_Text SpeedLabel;
+            public Button SkipButton;
+        }
+
+        /// <summary>
+        /// 1장 화면 조각. 상단 띠는 자원 바 아래(거인이 보이는 동안 늘 뜸), 훈련 칸은 정보 패널 바로 위
+        /// (병영을 눌렀을 때만), 전투 버튼은 오른쪽 아래. 처음엔 다 꺼 두고 <see cref="ChapterHudView"/>가 켠다.
+        /// </summary>
+        private static ChapterHudParts CreateChapterHud(RectTransform canvas)
+        {
+            var parts = new ChapterHudParts();
+            var danger = new Color(0.62f, 0.20f, 0.16f);
+            var blue = new Color(0.30f, 0.42f, 0.62f);
+
+            parts.Banner = CreatePanel(
+                canvas, "ChapterBanner",
+                anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0.5f, 1f),
+                anchoredPos: new Vector2(0f, -190f), sizeDelta: new Vector2(-48f, 140f));
+            parts.BannerButton = parts.Banner.gameObject.AddComponent<Button>();
+            parts.BannerButton.targetGraphic = parts.Banner.GetComponent<Image>();
+
+            parts.BannerTitle = CreateText(parts.Banner, "Title", "", 36, FontStyles.Bold, TextColor,
+                TextAlignmentOptions.MidlineLeft, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f),
+                new Vector2(24f, -14f), new Vector2(-300f, 56f));
+            parts.BannerTitle.richText = true;
+            parts.BannerDetail = CreateText(parts.Banner, "Detail", "", 28, FontStyles.Normal, TextColor,
+                TextAlignmentOptions.MidlineLeft, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 0f),
+                new Vector2(24f, 14f), new Vector2(-300f, 52f));
+            parts.BannerDetail.richText = true;
+
+            parts.DispatchButton = CreateButton(parts.Banner, "DispatchButton", "협곡으로 출정!", out parts.DispatchLabel,
+                anchorMin: new Vector2(1f, 0.5f), anchorMax: new Vector2(1f, 0.5f), pivot: new Vector2(1f, 0.5f),
+                anchoredPos: new Vector2(-16f, 0f), sizeDelta: new Vector2(260f, 100f), fillColor: danger, labelFontSize: 28);
+            parts.Banner.gameObject.SetActive(false);
+
+            // 정보 패널(380 높이) 바로 위.
+            parts.Train = CreatePanel(
+                canvas, "TrainingPanel",
+                anchorMin: new Vector2(0.5f, 0f), anchorMax: new Vector2(0.5f, 0f), pivot: new Vector2(0.5f, 0f),
+                anchoredPos: new Vector2(0f, QuestBarBottom + QuestBarHeight + 16f + 380f + 12f), sizeDelta: new Vector2(720f, 190f));
+            parts.TrainInfo = CreateText(parts.Train, "Info", "", 26, FontStyles.Normal, TextColor,
+                TextAlignmentOptions.TopLeft, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -12f), new Vector2(-40f, 84f));
+            parts.TrainInfo.richText = true;
+
+            parts.TrainButtons = new Button[4];
+            parts.TrainLabels = new TMP_Text[4];
+            string[] names = { "TrainSmall", "TrainLarge", "TrainMax", "TrainWing" };
+            for (int i = 0; i < 4; i++)
+            {
+                Color? fill = null;
+                if (i == 3)
+                    fill = blue;
+
+                parts.TrainButtons[i] = CreateButton(parts.Train, names[i], "", out parts.TrainLabels[i],
+                    anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0f, 0f), pivot: new Vector2(0f, 0f),
+                    anchoredPos: new Vector2(20f + i * 172f, 16f), sizeDelta: new Vector2(160f, 72f),
+                    fillColor: fill, labelFontSize: 24);
+            }
+            parts.Train.gameObject.SetActive(false);
+
+            parts.Battle = CreatePanel(
+                canvas, "CanyonBattleControls",
+                anchorMin: new Vector2(1f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(1f, 0f),
+                anchoredPos: new Vector2(-24f, QuestBarBottom + QuestBarHeight + 16f), sizeDelta: new Vector2(360f, 104f));
+            parts.SpeedButton = CreateButton(parts.Battle, "SpeedButton", "x1", out parts.SpeedLabel,
+                anchorMin: new Vector2(0f, 0.5f), anchorMax: new Vector2(0f, 0.5f), pivot: new Vector2(0f, 0.5f),
+                anchoredPos: new Vector2(16f, 0f), sizeDelta: new Vector2(150f, 76f), fillColor: blue);
+            TMP_Text skipLabel;
+            parts.SkipButton = CreateButton(parts.Battle, "SkipButton", "건너뛰기", out skipLabel,
+                anchorMin: new Vector2(1f, 0.5f), anchorMax: new Vector2(1f, 0.5f), pivot: new Vector2(1f, 0.5f),
+                anchoredPos: new Vector2(-16f, 0f), sizeDelta: new Vector2(170f, 76f), fillColor: new Color(0.30f, 0.28f, 0.26f));
+            parts.Battle.gameObject.SetActive(false);
+
+            return parts;
         }
 
         private static void WireList(SerializedObject so, string propertyName, Object[] values)

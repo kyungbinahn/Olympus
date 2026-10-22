@@ -1,5 +1,6 @@
 using System.Linq;
 using Olympus.Game.Battle;
+using Olympus.Game.Territory;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -22,7 +23,7 @@ namespace Olympus.Editor
         /// 연결 방식(<see cref="BattleSoldierSetup"/>)을 바꾸면 올린다 — 코드가 다시 읽힐 때 숫자가 다르면 저절로 다시 연결한다.
         /// 아트 파일은 그대로인데 연결 코드만 바뀐 경우(정면 자동 맞춤 등)에도 메뉴를 누르지 않게.
         /// </summary>
-        private const int WireVersion = 2;
+        private const int WireVersion = 6;
         private const string VersionFile = "Library/OlympusBattleWireVersion.txt";
 
         static BattleArtAutoWire()
@@ -58,7 +59,7 @@ namespace Olympus.Editor
             return path.EndsWith(".fbx") || path.EndsWith(".png");
         }
 
-        [MenuItem("Olympus/Setup/전투 병사 모델 다시 연결 (씬 안 열어도 됨)", false, 122)]
+        [MenuItem("Olympus/Setup/전투 병사·1장 화면 다시 연결 (씬 안 열어도 됨)", false, 122)]
         private static void Run()
         {
             _scheduled = false;
@@ -106,35 +107,88 @@ namespace Olympus.Editor
             return any;
         }
 
+        private const string TerritoryScenePath = "Assets/Scenes/Territory.unity";
+
         private static void WireBattleScene()
         {
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(BattleScenePath) == null)
-                return; // 전투 씬이 아직 없다 — "전투 씬 만들기"가 만들면서 연결한다.
+            bool battleOk = WithScene(BattleScenePath, scene =>
+            {
+                BattlePresenter presenter = scene.GetRootGameObjects()
+                    .Select(go => go.GetComponentInChildren<BattlePresenter>(true))
+                    .FirstOrDefault(p => p != null);
 
-            Scene scene = SceneManager.GetSceneByPath(BattleScenePath);
+                if (presenter == null)
+                {
+                    Debug.LogWarning("전투 씬에 BattlePresenter가 없습니다 — Olympus/Setup/전투 씬 만들기를 다시 누르세요.");
+                    return false;
+                }
+
+                BattleArena arena = BattleSceneBuilder.EnsureArena(presenter);
+                BattleSceneBuilder.WireArenaMaterials(arena);
+                BattleSoldierSetup.Wire(arena);
+                return true;
+            });
+
+            // 기지 씬: 1장 오브젝트(거인·협곡 전투)와 HUD(상단 띠·훈련 칸)를 같이 맞춘다 — HUD는 코드가 전부 정하는
+            // 내용이라 통째로 다시 지어도 잃는 것이 없다.
+            bool territoryOk = WithScene(TerritoryScenePath, scene =>
+            {
+                TerritoryPresenter presenter = scene.GetRootGameObjects()
+                    .Select(go => go.GetComponentInChildren<TerritoryPresenter>(true))
+                    .FirstOrDefault(p => p != null);
+
+                if (presenter == null)
+                {
+                    Debug.LogWarning("기지 씬에 TerritoryPresenter가 없습니다 — Olympus/Setup/기지 씬 만들기를 누르세요.");
+                    return false;
+                }
+
+                HudSceneBuilder.Build(presenter);
+                return true;
+            });
+
+            if (battleOk || territoryOk)
+            {
+                System.IO.File.WriteAllText(VersionFile, WireVersion.ToString());
+                Debug.Log("병사 모델·1장 화면을 자동으로 연결했습니다 (전투 씬 " + battleOk + ", 기지 씬 " + territoryOk + ").");
+            }
+        }
+
+        /// <summary>
+        /// 씬을 (열려 있지 않으면 덧붙여) 열고, 잠깐 활성 씬으로 삼아 일을 시키고, 저장하고, 원래대로 돌린다.
+        /// 활성 씬으로 삼는 이유 — HUD 빌더가 "활성 씬의 최상위"에서 옛 HUD를 찾아 지운다.
+        /// </summary>
+        private static bool WithScene(string path, System.Func<Scene, bool> work)
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) == null)
+                return false;
+
+            Scene previousActive = SceneManager.GetActiveScene();
+            Scene scene = SceneManager.GetSceneByPath(path);
             bool wasOpen = scene.IsValid() && scene.isLoaded;
             if (!wasOpen)
-                scene = EditorSceneManager.OpenScene(BattleScenePath, OpenSceneMode.Additive);
+                scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
 
-            BattlePresenter presenter = scene.GetRootGameObjects()
-                .Select(go => go.GetComponentInChildren<BattlePresenter>(true))
-                .FirstOrDefault(p => p != null);
-
-            if (presenter == null)
+            bool ok = false;
+            try
             {
-                Debug.LogWarning("전투 씬에 BattlePresenter가 없습니다 — Olympus/Setup/전투 씬 만들기를 다시 누르세요.");
+                SceneManager.SetActiveScene(scene);
+                ok = work(scene);
+                if (ok)
+                {
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+                }
             }
-            else
+            finally
             {
-                BattleSoldierSetup.Wire(presenter);
-                EditorSceneManager.MarkSceneDirty(scene);
-                EditorSceneManager.SaveScene(scene);
-                System.IO.File.WriteAllText(VersionFile, WireVersion.ToString());
-                Debug.Log("아트 납품을 전투 씬에 자동으로 연결했습니다.");
+                if (previousActive.IsValid() && previousActive.isLoaded)
+                    SceneManager.SetActiveScene(previousActive);
+                if (!wasOpen)
+                    EditorSceneManager.CloseScene(scene, true);
             }
 
-            if (!wasOpen)
-                EditorSceneManager.CloseScene(scene, true);
+            return ok;
         }
     }
 }

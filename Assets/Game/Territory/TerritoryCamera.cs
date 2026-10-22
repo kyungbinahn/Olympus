@@ -216,6 +216,16 @@ namespace Olympus.Game.Territory
             float minZ = (b.MinY - 0.5f) * cell - margin;
             float maxZ = (b.MaxYExclusive - 0.5f) * cell + margin;
 
+            // 기지 밖에서 벌어지는 일(다가오는 거인·협곡 전투)이 있으면 그 자리까지 넓힌다.
+            for (int i = 0; i < _extraPoints.Count; i++)
+            {
+                Vector3 p = _extraPoints[i];
+                minX = Mathf.Min(minX, p.x - margin);
+                maxX = Mathf.Max(maxX, p.x + margin);
+                minZ = Mathf.Min(minZ, p.z - margin);
+                maxZ = Mathf.Max(maxZ, p.z + margin);
+            }
+
             focus.x = Mathf.Clamp(focus.x, minX, maxX);
             focus.z = Mathf.Clamp(focus.z, minZ, maxZ);
             focus.y = 0f;
@@ -230,6 +240,29 @@ namespace Olympus.Game.Territory
 
             if (_camera != null)
                 _camera.orthographicSize = _distance * _orthoSizeFactor;
+        }
+
+        private readonly System.Collections.Generic.List<Vector3> _extraPoints = new System.Collections.Generic.List<Vector3>();
+
+        /// <summary>
+        /// 이 자리까지 카메라가 갈 수 있게 한다. 기지 경계로만 묶어 두면 성 밖 거인·협곡을 볼 수 없다.
+        /// 같은 자리를 여러 번 넣어도 한 번만 든다.
+        /// </summary>
+        public void ExtendBounds(Vector3 worldPoint)
+        {
+            for (int i = 0; i < _extraPoints.Count; i++)
+            {
+                if ((_extraPoints[i] - worldPoint).sqrMagnitude < 0.01f)
+                    return;
+            }
+
+            _extraPoints.Add(worldPoint);
+        }
+
+        /// <summary>줌(거리)을 바꾼다 — 300명 진형을 한 화면에 담을 때.</summary>
+        public void SetDistance(float distance)
+        {
+            _targetDistance = Mathf.Clamp(distance, _minDistance, _maxDistance);
         }
 
         /// <summary>카메라를 그 칸으로 옮긴다. 폐허를 탭했을 때 가운데로 오게 하는 데 쓴다.</summary>

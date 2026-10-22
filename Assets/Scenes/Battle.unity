@@ -357,6 +357,7 @@ GameObject:
   m_Component:
   - component: {fileID: 82857169}
   - component: {fileID: 82857168}
+  - component: {fileID: 82857170}
   m_Layer: 0
   m_Name: BattlePresenter
   m_TagString: Untagged
@@ -376,6 +377,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f26ac71b1b4de954199a3e4116d1e30a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Olympus.Game::Olympus.Game.Battle.BattlePresenter
+  _arena: {fileID: 82857170}
+--- !u!4 &82857169
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82857167}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &82857170
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82857167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b1c6dfbe822d524ab949e37ed4d5d77, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Olympus.Game::Olympus.Game.Battle.BattleArena
   _playerMaterial: {fileID: 2100000, guid: 8b9feb4869a930747975a9d3d88dea00, type: 2}
   _enemyMaterial: {fileID: 2100000, guid: 0ed8b48d93c3dcd40a74cc4b65298b69, type: 2}
   _skinMaterial: {fileID: 2100000, guid: 28fdd70e0ba9b68408df64498b2b8d5f, type: 2}
@@ -409,8 +438,16 @@ MonoBehaviour:
     enemyMaterial: {fileID: 0}
     props: []
     scale: 1
-    yaw: 180
+    yaw: 0
   - unitId: giant_brute
+    model: {fileID: 919132149155446097, guid: 1d63381076f77334a94b6e41b89fd1fa, type: 3}
+    controller: {fileID: 9100000, guid: 763dc2cea2c174a48bbdefb1fd29b543, type: 2}
+    material: {fileID: 2100000, guid: af7db3d2847fbcb42986b0067ef14f0a, type: 2}
+    enemyMaterial: {fileID: 2100000, guid: 7b46fd0aefc70b04ea4aafb5842fc429, type: 2}
+    props: []
+    scale: 1
+    yaw: 0
+  - unitId: giant_chieftain
     model: {fileID: 919132149155446097, guid: 1d63381076f77334a94b6e41b89fd1fa, type: 3}
     controller: {fileID: 9100000, guid: 763dc2cea2c174a48bbdefb1fd29b543, type: 2}
     material: {fileID: 2100000, guid: af7db3d2847fbcb42986b0067ef14f0a, type: 2}
@@ -425,7 +462,15 @@ MonoBehaviour:
     enemyMaterial: {fileID: 0}
     props: []
     scale: 1
-    yaw: 180
+    yaw: 0
+  - unitId: bandit
+    model: {fileID: 919132149155446097, guid: f09534900e462c04da1b29333bc27305, type: 3}
+    controller: {fileID: 9100000, guid: 32e468243dc872148880dca28e3c432f, type: 2}
+    material: {fileID: 2100000, guid: 47bda66593138794abd526483e44c470, type: 2}
+    enemyMaterial: {fileID: 0}
+    props: []
+    scale: 1
+    yaw: 0
   - unitId: cyclops
     model: {fileID: 919132149155446097, guid: f09534900e462c04da1b29333bc27305, type: 3}
     controller: {fileID: 9100000, guid: 763dc2cea2c174a48bbdefb1fd29b543, type: 2}
@@ -433,25 +478,11 @@ MonoBehaviour:
     enemyMaterial: {fileID: 0}
     props: []
     scale: 1
-    yaw: 180
+    yaw: 0
   _playerTint: {r: 1, g: 0.55, b: 0.5, a: 1}
   _enemyTint: {r: 0.6, g: 0.7, b: 0.9, a: 1}
+  _maxVisiblePerTeam: 50
   _arrowSeconds: 0.3
---- !u!4 &82857169
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 82857167}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &98430142
 GameObject:
   m_ObjectHideFlags: 0

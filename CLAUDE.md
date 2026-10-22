@@ -137,6 +137,8 @@
   **본부 Lv.1~5 진척**(본부 레벨·건물 업그레이드·생산/수확·헤르메스의 날개 가속·임무 바·기능 해금).
   설계와 숫자 고치는 법은 [`docs/progression-hq1-5.md`](docs/progression-hq1-5.md).
   **전선(전투)** — 건물이 군대를 주고, 결정론 시뮬레이션(Core)을 화면이 재생한다. [`docs/battle.md`](docs/battle.md).
-  씬은 `Olympus/Setup/전투 씬 만들기`.
+  씬은 `Olympus/Setup/전투 씬 만들기`. (스테이지 사다리는 1장으로 바꾸며 닫았다 — 코드는 남김)
+  **1장 "300 용사"** — 병영 훈련, 실시간으로 다가오는 거인, 기지 화면 안 협곡에서 300 vs 1.
+  [`docs/chapter1-300.md`](docs/chapter1-300.md). 디버그 `T` 거인 도착 / `Y` 용사 +100 / `B` 도적단. 거인 사이사이 도적 습격(2분 30초마다).
 - **다음에 이어서 할 일과 아직 안 정한 것은 [`docs/handoff-billboard.md`](docs/handoff-billboard.md)에 있다** —
   건물을 사전 렌더 판넬로 바꾸는 검토, 기지 저작 툴.

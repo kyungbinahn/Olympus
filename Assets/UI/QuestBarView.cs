@@ -86,6 +86,16 @@ namespace Olympus.UI
                 return;
             }
 
+            // 거인 임무("300 용사로 거인을 무찌르자")는 성 밖 거인 쪽으로.
+            if (view.Quest.Objective.Kind == RequirementKind.Counter
+                && view.Quest.Objective.Target != null && view.Quest.Objective.Target.StartsWith("threat."))
+            {
+                var director = Object.FindFirstObjectByType<Olympus.Game.Chapter.GiantThreatDirector>();
+                if (director != null)
+                    director.FocusGiant();
+                return;
+            }
+
             _presenter.FocusOnDef(view.Quest.FocusDefId);
         }
 

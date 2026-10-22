@@ -28,7 +28,7 @@ namespace Olympus.Core.Battle
                 {
                     UnitRecord u = units[i];
                     config.AddUnit(new UnitDef(u.unitId, u.displayNameKey, u.hp, u.attack, u.attackIntervalMs,
-                        u.range, u.moveSpeed, u.radius));
+                        u.range, u.moveSpeed, u.radius, u.splash));
                 }
             }
 
@@ -98,6 +98,7 @@ namespace Olympus.Core.Battle
         public float range = 1f;
         public float moveSpeed = 2f;
         public float radius = 0.4f;
+        public float splash;
     }
 
     [Serializable]

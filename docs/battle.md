@@ -1,5 +1,8 @@
 # 전선(전투) — 탑포스 `FIGHT` 스테이지를 그리스·로마로
 
+> **2026-10-22: 스테이지 사다리는 닫았다**(결정 C — 사건 중심). 전투 엔진·병사 모델은 1장 "300 vs 1"이 그대로 쓴다
+> ([`chapter1-300.md`](chapter1-300.md)). 그리기·재생은 `BattleArena`로 떼어 냈고 전선 씬과 기지가 같이 쓴다.
+
 작성 2026-10-20. 근거: [`topforce-early-game.md`](topforce-early-game.md) 3-1절 B(전선 스테이지 고리), 8-1절 대응표.
 진척(본부 레벨)과의 관계는 [`progression-hq1-5.md`](progression-hq1-5.md).
 

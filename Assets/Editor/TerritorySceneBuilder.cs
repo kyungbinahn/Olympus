@@ -246,6 +246,7 @@ namespace Olympus.Editor
             Wire(so, "_quests", LoadRequired<TextAsset>("Assets/Data/quests.json"));
             Wire(so, "_featureUnlocks", LoadRequired<TextAsset>("Assets/Data/function-unlock.json"));
             Wire(so, "_battle", LoadRequired<TextAsset>("Assets/Data/battle.json"));
+            Wire(so, "_chapter", LoadRequired<TextAsset>("Assets/Data/chapter1.json"));
         }
 
         /// <summary>

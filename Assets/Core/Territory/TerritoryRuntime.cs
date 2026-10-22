@@ -1,5 +1,6 @@
 using System;
 using Olympus.Core.Battle;
+using Olympus.Core.Chapter;
 using Olympus.Core.Progression;
 using Olympus.Core.Save;
 using Olympus.Core.State;
@@ -34,6 +35,9 @@ namespace Olympus.Core.Territory
         public SpeedUpService SpeedUps { get; }
         public QuestService Quests { get; }
         public BattleService Battles { get; }
+        public TrainingService Training { get; }
+        public GiantThreatService Threats { get; }
+        public RaidService Raids { get; }
 
         public TerritoryRuntime(
             GameState state,
@@ -41,7 +45,8 @@ namespace Olympus.Core.Territory
             IClock clock,
             float restorationRadius = 2f,
             ProgressionConfig progression = null,
-            BattleConfig battle = null)
+            BattleConfig battle = null,
+            ChapterConfig chapter = null)
         {
             State = state ?? throw new ArgumentNullException(nameof(state));
             Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -55,6 +60,10 @@ namespace Olympus.Core.Territory
             SpeedUps = new SpeedUpService(Store, clock, Progression);
             Quests = new QuestService(Store, Progression);
             Battles = new BattleService(Store, battle, Progression);
+            Training = new TrainingService(Store, clock, chapter, Progression);
+            Threats = new GiantThreatService(Store, clock, chapter, Progression, Battles);
+            Training.IsBlocked = () => Threats.AnyArrived;
+            Raids = new RaidService(Store, clock, chapter, Progression, Battles);
             Restoration = new RestorationMap(state.BaseOccupancy.Bounds, restorationRadius);
 
             // 건물이 바뀌면 무조건 녹지를 다시 센다. 어느 경로로 바뀌었는지 따지지 않는다 —
@@ -127,7 +136,14 @@ namespace Olympus.Core.Territory
         /// </summary>
         public int Tick()
         {
-            return Construction.CompleteFinished();
+            int completed = Construction.CompleteFinished();
+
+            // 훈련 완료와 거인 등장도 같은 박자로 — 화면마다 따로 부르면 어느 화면에서는 안 불리는 일이 생긴다(§4 함정).
+            Training.CompleteFinished();
+            Threats.Tick();
+            Raids.Tick();
+
+            return completed;
         }
 
         /// <summary>
@@ -214,6 +230,43 @@ namespace Olympus.Core.Territory
             }
 
             Store.Apply(delta);
+        }
+
+        /// <summary>다가오는 거인을 지금 도착시킨다(아직 안 보이면 먼저 보이게). 화면 확인용.</summary>
+        public bool DebugThreatArriveNow()
+        {
+            Threats.Tick();
+            ThreatDef t = Threats.Current;
+            if (t == null || Threats.Describe(t).Phase == ThreatPhase.Hidden)
+                return false;
+
+            Store.Apply(new StateDelta().WithCounter(
+                CountChange.Absolute(ChapterKeys.ThreatArrives(t.ThreatId), Clock.NowUnixMs)));
+            return true;
+        }
+
+        /// <summary>다음 도적단을 지금 걸어오게 한다(몇 초 뒤 도착). 습격 규칙이 없거나 본부가 안 열렸으면 false.</summary>
+        public bool DebugRaidSoon()
+        {
+            Raids.Tick();
+            if (Raids.Def == null || Raids.Describe().Phase == RaidPhase.Off)
+                return false;
+
+            long soon = Clock.NowUnixMs + System.Math.Max(3000L, Raids.Def.ApproachMs / 2);
+            Store.Apply(new StateDelta()
+                .WithCounter(CountChange.Absolute(RaidService.NextKey, soon))
+                .WithCounter(CountChange.Absolute(RaidService.EngagedKey, 0)));
+            return true;
+        }
+
+        public void DebugGrantTroops(int count)
+        {
+            if (Training.Def == null || count <= 0)
+                return;
+
+            Store.Apply(new StateDelta()
+                .WithCounter(CountChange.Delta(ChapterKeys.Troops(Training.Def.UnitId), count))
+                .WithCounter(CountChange.Delta(ChapterKeys.Trained, count)));
         }
 
         public void Dispose()

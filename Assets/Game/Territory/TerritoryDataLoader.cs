@@ -133,6 +133,35 @@ namespace Olympus.Game.Territory
         }
 
         /// <summary>
+        /// 1장 규칙(훈련·거인)을 읽는다. 배선이 없으면 빈 규칙 — 거인도 훈련도 없는 옛 기지로 돈다(경고만).
+        /// 모르는 병사·건물을 가리키면 여기서 터진다.
+        /// </summary>
+        public static Olympus.Core.Chapter.ChapterConfig LoadChapter(TextAsset json, BattleConfig battle, BuildingCatalog catalog)
+        {
+            if (json == null)
+            {
+                Debug.LogWarning("chapter1.json이 배선되지 않았다 — 훈련·거인 없이 돕니다. Olympus/Setup/기지 씬 만들기를 다시 누르세요.");
+                return Olympus.Core.Chapter.ChapterConfig.Empty;
+            }
+
+            var file = JsonUtility.FromJson<Olympus.Core.Chapter.ChapterFile>(json.text);
+            if (file == null)
+                throw new InvalidOperationException("장 규칙을 읽을 수 없다: " + json.name);
+
+            Olympus.Core.Chapter.ChapterConfig config = file.ToConfig();
+            List<string> problems = config.Validate(battle, catalog);
+
+            if (problems.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "장 데이터가 맞지 않는다 (" + problems.Count + "건):" + Environment.NewLine + "  - " +
+                    string.Join(Environment.NewLine + "  - ", problems));
+            }
+
+            return config;
+        }
+
+        /// <summary>
         /// 건물 아트 보정을 읽는다. 파일이 없으면 빈 표 — 보정이 없다는 뜻이고,
         /// 그때는 모든 건물이 칸에 꽉 맞는 기본 포즈로 뜬다. 여기서 터지면 안 된다.
         /// </summary>

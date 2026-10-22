@@ -11,7 +11,7 @@ namespace Olympus.UI
     /// 화면 상단 자원 표시 + 본부 줄(레벨·번영도·공사 대기열). StateStore.Changed만 듣는다 —
     /// 상태를 직접 고치지 않는다.
     ///
-    /// 식량·금은 <c>food_gold</c> 기능이 열려야(본부 Lv.5) 보인다. 탑포스가 Lv.5에서 상단 자원 바를
+    /// 식량은 <c>food</c>(본부 Lv.2), 금은 <c>gold</c>(Lv.5) 기능이 열려야 보인다. 탑포스가 Lv.5에서 상단 자원 바를
     /// "식량·철"로 바꾸는 순간과 같다 — 쓸 곳이 없는 자원을 처음부터 0으로 띄워 두면 그냥 소음이다.
     ///
     /// Start에서 구독하는 이유 — TerritoryPresenter.Awake가 Runtime을 만드는데,
@@ -57,9 +57,9 @@ namespace Olympus.UI
             _woodText.text = ResourceLabels.Of(ResourceKind.Wood) + " " + resources.Get(ResourceKind.Wood);
             _stoneText.text = ResourceLabels.Of(ResourceKind.Stone) + " " + resources.Get(ResourceKind.Stone);
 
-            bool foodGold = rt.IsFeatureUnlocked("food_gold");
-            SetLine(_foodText, foodGold, ResourceLabels.Of(ResourceKind.Food) + " " + resources.Get(ResourceKind.Food));
-            SetLine(_goldText, foodGold, ResourceLabels.Of(ResourceKind.Gold) + " " + resources.Get(ResourceKind.Gold));
+            // 식량은 거인이 보이는 본부 Lv.2부터(병사 훈련 재료), 금은 Lv.5부터 — function-unlock.json.
+            SetLine(_foodText, rt.IsFeatureUnlocked("food"), ResourceLabels.Of(ResourceKind.Food) + " " + resources.Get(ResourceKind.Food));
+            SetLine(_goldText, rt.IsFeatureUnlocked("gold"), ResourceLabels.Of(ResourceKind.Gold) + " " + resources.Get(ResourceKind.Gold));
 
             if (_hqText != null)
                 _hqText.text = HqLine(rt);

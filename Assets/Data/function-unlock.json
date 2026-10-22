@@ -1,9 +1,9 @@
 {
-    "_comment": "기능(하단 버튼 등) -> 열리는 본부 레벨. 여기 없는 기능은 처음부터 보인다. 열리기 전에는 버튼을 숨긴다.",
+    "_comment": "기능(하단 버튼 등) -> 열리는 본부 레벨. 여기 없는 기능은 처음부터 보인다. 열리기 전에는 버튼을 숨긴다. battle(전선 스테이지 사다리)은 1장 사건 중심으로 바꾸며 닫았다(99) — 코드는 남아 있다(docs/concept-gap.md 결정 C).",
     "features": [
         {
             "featureId": "battle",
-            "hqLevel": 2
+            "hqLevel": 99
         },
         {
             "featureId": "shop",
@@ -26,7 +26,11 @@
             "hqLevel": 5
         },
         {
-            "featureId": "food_gold",
+            "featureId": "food",
+            "hqLevel": 2
+        },
+        {
+            "featureId": "gold",
             "hqLevel": 5
         },
         {

@@ -128,8 +128,8 @@ namespace Olympus.Core.Battle
                     count = level > 0 ? s.FixedCount + s.CountPerLevel * level : 0;
                 }
 
-                double hp = Multiplier(def.UnitId, BattleStat.Hp);
-                double attack = Multiplier(def.UnitId, BattleStat.Attack);
+                double hp = BuffMultiplier(def.UnitId, BattleStat.Hp);
+                double attack = BuffMultiplier(def.UnitId, BattleStat.Attack);
 
                 for (int k = 0; k < count; k++)
                     army.Add(new UnitSpawn(def, hp, attack));
@@ -160,7 +160,7 @@ namespace Olympus.Core.Battle
         }
 
         /// <summary>건물 레벨이 주는 배수. 같은 능력치 강화는 더한다(곱하지 않는다 — 곱하면 후반에 폭주한다).</summary>
-        private double Multiplier(string unitId, BattleStat stat)
+        public double BuffMultiplier(string unitId, BattleStat stat)
         {
             double percent = 0.0;
 

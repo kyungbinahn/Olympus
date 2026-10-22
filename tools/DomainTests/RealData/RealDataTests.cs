@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using NUnit.Framework;
 using Olympus.Core.Battle;
+using Olympus.Core.Chapter;
 using Olympus.Core.Grid;
 using Olympus.Core.Progression;
 using Olympus.Core.State;
@@ -82,6 +83,8 @@ namespace Olympus.DomainTests.RealData
 
         private static BattleConfig Battle() => Load<BattleFile>("battle.json").ToConfig();
 
+        private static ChapterConfig Chapter() => Load<ChapterFile>("chapter1.json").ToConfig();
+
         private static ProgressionConfig Config() => ProgressionFileMapper.ToConfig(
             Load<ProgressionFile>("progression.json"),
             Load<QuestFile>("quests.json"),
@@ -99,6 +102,49 @@ namespace Olympus.DomainTests.RealData
         {
             List<string> problems = Battle().Validate(Catalog(), Config());
             Assert.That(problems, Is.Empty, string.Join("\n", problems));
+        }
+
+        [Test]
+        public void 장_데이터가_전투_건물_정의와_맞는다()
+        {
+            List<string> problems = Chapter().Validate(Battle(), Catalog());
+            Assert.That(problems, Is.Empty, string.Join(Environment.NewLine, problems));
+        }
+
+        /// <summary>
+        /// 300 vs 1의 손맛 — 300이면 이기고, 절반이면 져야 "300을 채우는" 목표가 의미를 가진다.
+        /// 본부 Lv.3(공격 +15%) 무렵 군대로 잰다. 숫자를 고치면 이 표가 바뀐다.
+        /// </summary>
+        [Test]
+        public void 거인_하나는_300이면_이기고_절반이면_진다()
+        {
+            BattleConfig battle = Battle();
+            ThreatDef t = Chapter().Threats[0];
+            UnitDef hoplite, giant;
+            battle.TryGetUnit(t.TroopUnitId, out hoplite);
+            battle.TryGetUnit(t.Enemies[0].UnitId, out giant);
+
+            var lines = new List<string>();
+            bool won300 = false, won150 = true;
+            foreach (int n in new[] { 100, 150, 200, 250, 300 })
+            {
+                var player = new List<UnitSpawn>();
+                for (int i = 0; i < n; i++) player.Add(new UnitSpawn(hoplite, 1.0, 1.15));
+                var enemy = new List<UnitSpawn> { new UnitSpawn(giant, t.Enemies[0].Multiplier, t.Enemies[0].Multiplier, t.EnemyScale) };
+
+                var sim = new BattleSimulation(player, enemy, t.TimeLimitMs, t.RowWidth, t.Spacing, t.StartDistance);
+                sim.RunToEnd();
+
+                BattleUnit g = sim.Units.First(u => u.Team == BattleTeam.Enemy);
+                lines.Add(n + "명: " + (sim.PlayerWon ? "승" : "패") + " " + (sim.ElapsedMs / 1000.0).ToString("0") + "초, 생존 " +
+                    sim.AliveCount(BattleTeam.Player) + ", 거인 체력 " + g.Hp + "/" + g.MaxHp);
+                if (n == 300) won300 = sim.PlayerWon;
+                if (n == 150) won150 = sim.PlayerWon;
+            }
+
+            TestContext.WriteLine(string.Join(Environment.NewLine, lines));
+            Assert.That(won300, Is.True, "300명이 진다: " + string.Join(Environment.NewLine, lines));
+            Assert.That(won150, Is.False, "150명으로도 이긴다: " + string.Join(Environment.NewLine, lines));
         }
 
         [Test]
@@ -134,6 +180,10 @@ namespace Olympus.DomainTests.RealData
             foreach (BuildingDef d in Catalog().All)
                 if (!keys.Contains(d.DisplayNameKey)) missing.Add(d.DisplayNameKey);
 
+            foreach (ThreatDef t in Chapter().Threats)
+                foreach (string k in new[] { t.StartStoryKey, t.WinStoryKey, t.LoseStoryKey })
+                    if (!string.IsNullOrEmpty(k) && !keys.Contains(k)) missing.Add(k);
+
             Assert.That(missing, Is.Empty, "문자열 표에 없는 키: " + string.Join(", ", missing));
         }
 
@@ -150,8 +200,12 @@ namespace Olympus.DomainTests.RealData
                 layout.Add(new BaseSlot(s.slotId, s.defId, new GridPos(s.x, s.y), s.zoneId));
 
             var clock = new ManualClock(1_000_000_000L);
-            var runtime = new TerritoryRuntime(new GameState(new SquareGrid(1f), bounds), catalog, clock, 4f, config, Battle());
+            var runtime = new TerritoryRuntime(new GameState(new SquareGrid(1f), bounds), catalog, clock, 4f, config, Battle(), Chapter());
             runtime.Initialize(layout);
+
+            // 봇은 도적 싸움을 화면으로 붙이지 않는다 — Core가 도착 뒤 저절로 결판낸 것을 센다(앱을 켜 둔 사람과 결과는 같다).
+            int raidsWon = 0, raidsLost = 0, raidTroopsLost = 0;
+            runtime.Raids.AutoResolved += o => { if (o.Won) raidsWon++; else raidsLost++; raidTroopsLost += o.TroopsLost; };
 
             long start = clock.NowUnixMs;
             var reachedAt = new Dictionary<int, double>();
@@ -166,16 +220,24 @@ namespace Olympus.DomainTests.RealData
 
                 while (runtime.Quests.TryClaim() == QuestClaimRejection.None) { }
 
-                ActGreedily(runtime);
+                // 거인이 다가오는 동안은 훈련이 먼저다 — 남는 자원으로 짓는다. (사람도 목표가 보이면 그렇게 한다.)
+                ThreatDef threat = runtime.Threats.Current;
+                bool threatActive = threat != null && runtime.Threats.Describe(threat).Phase != ThreatPhase.Hidden;
+                if (threatActive)
+                    TrainMax(runtime);
 
-                // 다음 스테이지를 이길 수 있으면 싸운다. 지는 판은 바뀌는 게 없으니 매번 시도해도 된다.
-                StageDef next = runtime.Battles.NextStage;
-                if (next != null && runtime.Battles.Fight(next.StageId).Won)
+                ActGreedily(runtime, threatActive);
+
+                if (threat != null && runtime.Threats.CanDispatch(threat.ThreatId) == ThreatRejection.None)
                 {
-                    stageLog.Add("S" + next.StageId + "@Lv" + runtime.HqLevel + " " +
-                        ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분");
-                    continue;   // 보상으로 또 할 수 있는 게 생겼다 — 시계를 돌리기 전에 다시 본다.
+                    ThreatOutcome o = runtime.Threats.Resolve(threat.ThreatId);
+                    stageLog.Add(threat.ThreatId + " " + (o.Won ? "승" : "패") + " " + o.Sent + "명(생존 " + o.Survivors + ") @Lv" +
+                        runtime.HqLevel + " " + ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분");
+                    continue;
                 }
+
+                if (threatActive && threat != null && !stageLog.Any(l => l.StartsWith("등장")))
+                    stageLog.Add("등장 " + ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분");
 
                 int hq = runtime.HqLevel;
                 if (!reachedAt.ContainsKey(hq))
@@ -189,7 +251,8 @@ namespace Olympus.DomainTests.RealData
 
             string report = string.Join(", ", reachedAt.OrderBy(p => p.Key).Select(p => "Lv." + p.Key + " " + p.Value.ToString("0.0") + "분"));
             TestContext.WriteLine("봇 진행: " + report + " / 임무 " + runtime.State.QuestIndex + "/" + config.Quests.Count);
-            TestContext.WriteLine("스테이지: " + string.Join(", ", stageLog));
+            TestContext.WriteLine("거인: " + string.Join(", ", stageLog));
+            TestContext.WriteLine("도적: 승 " + raidsWon + " / 패 " + raidsLost + ", 잃은 용사 " + raidTroopsLost);
 
             Assert.That(runtime.HqLevel, Is.EqualTo(config.MaxHqLevel), "본부 최고 레벨에 못 갔다 — " + report +
                 " / 지금 임무: " + (runtime.Quests.Current.HasQuest ? runtime.Quests.Current.Quest.QuestId : "없음"));
@@ -197,8 +260,21 @@ namespace Olympus.DomainTests.RealData
                 "임무가 남았다: " + (runtime.Quests.Current.HasQuest ? runtime.Quests.Current.Quest.QuestId : ""));
         }
 
-        /// <summary>할 수 있는 것을 전부 한다 — 본부 먼저, 그다음 싼 복구·업그레이드. 본부 공사가 길면 날개를 쓴다.</summary>
-        private static void ActGreedily(TerritoryRuntime rt)
+        private static bool IsChapterKey(string defId) =>
+            defId == "farm" || defId == "barracks" || defId == "carpentry" || defId == "timber_store";
+
+        private static void TrainMax(TerritoryRuntime rt)
+        {
+            int n = rt.Training.MaxAffordable();
+            if (n > 0)
+                rt.Training.TryStart(n);
+        }
+
+        /// <summary>
+        /// 할 수 있는 것을 전부 한다 — 본부 먼저, 그다음 싼 복구·업그레이드. 본부 공사가 길면 날개를 쓴다.
+        /// 거인이 오는 중이면 목재를 훈련 몫(다음 한 번 맡길 양)만큼 남겨 둔다.
+        /// </summary>
+        private static void ActGreedily(TerritoryRuntime rt, bool saveForTraining)
         {
             bool acted = true;
             while (acted)
@@ -224,9 +300,22 @@ namespace Olympus.DomainTests.RealData
                     if (acted) continue;
                 }
 
-                foreach (BuildingInstance b in rt.State.Buildings.OrderBy(b => b.Level).ThenBy(b => b.Id).ToList())
+                long reserveWood = 0L;
+                if (saveForTraining && rt.Training.Def != null)
+                {
+                    TrainingView tv = rt.Training.Describe();
+                    long woodPer = rt.Training.Def.CostPerUnit.Where(c => c.Kind == ResourceKind.Wood).Sum(c => c.Amount);
+                    reserveWood = woodPer * tv.BatchCap;
+                }
+
+                // 생산·훈련 건물(목공소·농장·병영)은 아끼지 않고 올린다 — 300을 빨리 채우는 길이다.
+                foreach (BuildingInstance b in rt.State.Buildings
+                    .OrderBy(b => IsChapterKey(b.DefId) ? 0 : 1).ThenBy(b => b.Level).ThenBy(b => b.Id).ToList())
                 {
                     if (b.Id == hq.Id)
+                        continue;
+
+                    if (saveForTraining && !IsChapterKey(b.DefId) && rt.State.Resources.Get(ResourceKind.Wood) < reserveWood * 2)
                         continue;
 
                     if ((b.IsRuined && rt.Construction.TryStartRepair(b.Id).Started)

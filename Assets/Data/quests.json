@@ -1,5 +1,5 @@
 {
-    "_comment": "하단 임무 바에 하나씩 뜨는 임무 체인. 순서가 곧 안내다 - 건물 복구, 업그레이드, 본부 레벨업을 번갈아 시킨다. objective.kind는 BuildingLevel / Prosperity / Counter(collect=수확 횟수, speedup=가속 사용 횟수). focusDefId는 임무 바를 눌렀을 때 카메라가 날아갈 건물. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다.",
+    "_comment": "하단 임무 바에 하나씩 뜨는 임무 체인. 순서가 곧 안내다 - 건물 복구, 업그레이드, 본부 레벨업을 번갈아 시킨다. objective.kind는 BuildingLevel / Prosperity / Counter(collect=수확 횟수, speedup=가속 사용 횟수). focusDefId는 임무 바를 눌렀을 때 카메라가 날아갈 건물. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. 1장(300 용사): 전선 스테이지 임무를 농장·병영·훈련·거인 격퇴로 바꿨다.",
     "quests": [
         {
             "questId": "q01",
@@ -111,8 +111,8 @@
             "questId": "q07",
             "titleKey": "quest.q07",
             "objective": {
-                "kind": "Counter",
-                "target": "stage",
+                "kind": "BuildingLevel",
+                "target": "farm",
                 "amount": 1
             },
             "rewardResources": [
@@ -122,7 +122,7 @@
                 }
             ],
             "rewardItems": [],
-            "focusDefId": ""
+            "focusDefId": "farm"
         },
         {
             "questId": "q08",
@@ -179,9 +179,9 @@
             "questId": "q11",
             "titleKey": "quest.q11",
             "objective": {
-                "kind": "Counter",
-                "target": "stage",
-                "amount": 2
+                "kind": "BuildingLevel",
+                "target": "barracks",
+                "amount": 1
             },
             "rewardResources": [
                 {
@@ -190,7 +190,7 @@
                 }
             ],
             "rewardItems": [],
-            "focusDefId": ""
+            "focusDefId": "barracks"
         },
         {
             "questId": "q12",
@@ -272,9 +272,9 @@
             "questId": "q16",
             "titleKey": "quest.q16",
             "objective": {
-                "kind": "BuildingLevel",
-                "target": "barracks",
-                "amount": 1
+                "kind": "Counter",
+                "target": "trained",
+                "amount": 50
             },
             "rewardResources": [
                 {
@@ -311,8 +311,8 @@
             "titleKey": "quest.q18",
             "objective": {
                 "kind": "Counter",
-                "target": "stage",
-                "amount": 4
+                "target": "trained",
+                "amount": 150
             },
             "rewardResources": [
                 {
@@ -325,7 +325,7 @@
                 }
             ],
             "rewardItems": [],
-            "focusDefId": ""
+            "focusDefId": "barracks"
         },
         {
             "questId": "q19",
@@ -383,8 +383,8 @@
             "titleKey": "quest.q22",
             "objective": {
                 "kind": "Counter",
-                "target": "stage",
-                "amount": 5
+                "target": "threat.giant_1.won",
+                "amount": 1
             },
             "rewardResources": [
                 {
@@ -501,9 +501,9 @@
             "questId": "q28",
             "titleKey": "quest.q28",
             "objective": {
-                "kind": "Counter",
-                "target": "stage",
-                "amount": 7
+                "kind": "BuildingLevel",
+                "target": "farm",
+                "amount": 2
             },
             "rewardResources": [
                 {
@@ -516,7 +516,7 @@
                 }
             ],
             "rewardItems": [],
-            "focusDefId": ""
+            "focusDefId": "farm"
         },
         {
             "questId": "q29",
@@ -577,9 +577,9 @@
             "questId": "q32",
             "titleKey": "quest.q32",
             "objective": {
-                "kind": "Counter",
-                "target": "stage",
-                "amount": 10
+                "kind": "BuildingLevel",
+                "target": "barracks",
+                "amount": 3
             },
             "rewardResources": [
                 {
@@ -592,7 +592,7 @@
                 }
             ],
             "rewardItems": [],
-            "focusDefId": ""
+            "focusDefId": "barracks"
         },
         {
             "questId": "q33",
@@ -641,7 +641,7 @@
             "titleKey": "quest.q35",
             "objective": {
                 "kind": "BuildingLevel",
-                "target": "farm",
+                "target": "fishing_hut",
                 "amount": 1
             },
             "rewardResources": [
@@ -651,7 +651,7 @@
                 }
             ],
             "rewardItems": [],
-            "focusDefId": "farm"
+            "focusDefId": "fishing_hut"
         },
         {
             "questId": "q36",
