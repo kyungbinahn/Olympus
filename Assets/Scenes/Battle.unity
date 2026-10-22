@@ -406,16 +406,8 @@ MonoBehaviour:
     model: {fileID: 919132149155446097, guid: f09534900e462c04da1b29333bc27305, type: 3}
     controller: {fileID: 9100000, guid: e6d2519b09fd87748902f4fde2a7769b, type: 2}
     material: {fileID: 2100000, guid: 47bda66593138794abd526483e44c470, type: 2}
-    enemyMaterial: {fileID: 2100000, guid: a543991bdc356064197fdf84b7437ab3, type: 2}
-    props:
-    - model: {fileID: 919132149155446097, guid: 59366f50ad0d00746b8148450d4c7390, type: 3}
-      material: {fileID: 2100000, guid: 0f09452a5f96e344ea38192d4652705d, type: 2}
-      enemyMaterial: {fileID: 2100000, guid: 2b3154c59de29144d988aa8bf995daed, type: 2}
-      socket: 0
-    - model: {fileID: 919132149155446097, guid: c9000cf11843b9c419c3154b2121ca70, type: 3}
-      material: {fileID: 2100000, guid: 162b61ef715986c40a0e165383534de6, type: 2}
-      enemyMaterial: {fileID: 2100000, guid: 8497415a1c5d2874ea9959cf1591c04c, type: 2}
-      socket: 1
+    enemyMaterial: {fileID: 0}
+    props: []
     scale: 1
     yaw: 180
   - unitId: giant_brute
@@ -424,13 +416,13 @@ MonoBehaviour:
     material: {fileID: 2100000, guid: af7db3d2847fbcb42986b0067ef14f0a, type: 2}
     enemyMaterial: {fileID: 2100000, guid: 7b46fd0aefc70b04ea4aafb5842fc429, type: 2}
     props: []
-    scale: 1.6
+    scale: 1
     yaw: 0
   - unitId: giant_slinger
     model: {fileID: 919132149155446097, guid: f09534900e462c04da1b29333bc27305, type: 3}
     controller: {fileID: 9100000, guid: e6d2519b09fd87748902f4fde2a7769b, type: 2}
     material: {fileID: 2100000, guid: 47bda66593138794abd526483e44c470, type: 2}
-    enemyMaterial: {fileID: 2100000, guid: 7b46fd0aefc70b04ea4aafb5842fc429, type: 2}
+    enemyMaterial: {fileID: 0}
     props: []
     scale: 1
     yaw: 180
@@ -438,7 +430,7 @@ MonoBehaviour:
     model: {fileID: 919132149155446097, guid: f09534900e462c04da1b29333bc27305, type: 3}
     controller: {fileID: 9100000, guid: 763dc2cea2c174a48bbdefb1fd29b543, type: 2}
     material: {fileID: 2100000, guid: 47bda66593138794abd526483e44c470, type: 2}
-    enemyMaterial: {fileID: 2100000, guid: 7b46fd0aefc70b04ea4aafb5842fc429, type: 2}
+    enemyMaterial: {fileID: 0}
     props: []
     scale: 1
     yaw: 180

@@ -280,8 +280,8 @@ namespace Olympus.Editor
             e.FindPropertyRelative("enemyMaterial").objectReferenceValue = null;
             e.FindPropertyRelative("props").arraySize = 0;
 
-            // Quaternius 모델은 -Z를 정면으로 만들었다 — 0이면 병사가 적 반대쪽을 보고 뒷걸음질 친다.
-            e.FindPropertyRelative("yaw").floatValue = 180f;
+            // 정면은 화면이 어깨로 재서 맞춘다(BattlePresenter.FaceForward) — 손 보정은 없다.
+            e.FindPropertyRelative("yaw").floatValue = 0f;
         }
 
         private static Material CreateOrLoadMaterial()

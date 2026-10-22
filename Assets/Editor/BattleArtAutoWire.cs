@@ -15,8 +15,26 @@ namespace Olympus.Editor
     ///
     /// 더해서 소품(prop_)이 이 가져오기 규칙보다 먼저 들어와 Humanoid로 잘못 가져와진 경우를 고쳐 다시 가져온다.
     /// </summary>
+    [InitializeOnLoad]
     internal sealed class BattleArtAutoWire : AssetPostprocessor
     {
+        /// <summary>
+        /// 연결 방식(<see cref="BattleSoldierSetup"/>)을 바꾸면 올린다 — 코드가 다시 읽힐 때 숫자가 다르면 저절로 다시 연결한다.
+        /// 아트 파일은 그대로인데 연결 코드만 바뀐 경우(정면 자동 맞춤 등)에도 메뉴를 누르지 않게.
+        /// </summary>
+        private const int WireVersion = 2;
+        private const string VersionFile = "Library/OlympusBattleWireVersion.txt";
+
+        static BattleArtAutoWire()
+        {
+            string have = System.IO.File.Exists(VersionFile) ? System.IO.File.ReadAllText(VersionFile).Trim() : "";
+            if (have == WireVersion.ToString() || _scheduled)
+                return;
+
+            _scheduled = true;
+            EditorApplication.delayCall += Run;
+        }
+
         private const string CharacterFolder = "Assets/Art/Characters/";
         private const string BattleScenePath = "Assets/Scenes/Battle.unity";
 
@@ -111,6 +129,7 @@ namespace Olympus.Editor
                 BattleSoldierSetup.Wire(presenter);
                 EditorSceneManager.MarkSceneDirty(scene);
                 EditorSceneManager.SaveScene(scene);
+                System.IO.File.WriteAllText(VersionFile, WireVersion.ToString());
                 Debug.Log("아트 납품을 전투 씬에 자동으로 연결했습니다.");
             }
 

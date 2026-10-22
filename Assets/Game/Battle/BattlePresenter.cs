@@ -57,9 +57,9 @@ namespace Olympus.Game.Battle
         [Tooltip("모델 크기 보정. 1이면 병사 몸 높이(반지름 × 4.5)에 맞춘다.")]
         public float scale = 1f;
 
-        [Tooltip("모델을 세로축으로 돌리는 각도(도). 모델이 정면을 어느 쪽으로 만들었는지에 따라 다르다 — " +
-                 "Quaternius 모델은 뒤(-Z)를 보고 있어서 180이다(2026-10-21, 병사들이 뒷걸음질 쳐서 발견).")]
-        public float yaw = 180f;
+        [Tooltip("사람 뼈대(Humanoid) 모델은 어깨 위치로 정면을 재서 저절로 돌린다 — 이 값은 그 위에 더하는 손 보정(도)이다. " +
+                 "뼈대가 없는 모델은 이 값만 쓴다.")]
+        public float yaw = 0f;
     }
 
     public enum BattlePhase
@@ -364,7 +364,14 @@ namespace Olympus.Game.Battle
         {
             GameObject model = Instantiate(entry.model, body);
             model.transform.localPosition = Vector3.zero;
-            model.transform.localRotation = Quaternion.Euler(0f, entry.yaw, 0f);
+            model.transform.localRotation = Quaternion.identity;
+
+            Animator animator = model.GetComponentInChildren<Animator>();
+            if (animator == null)
+                animator = model.AddComponent<Animator>();
+
+            FaceForward(model.transform, animator, body);
+            model.transform.localRotation = Quaternion.Euler(0f, entry.yaw, 0f) * model.transform.localRotation;
 
             Material bodyMaterial = !player && entry.enemyMaterial != null ? entry.enemyMaterial : entry.material;
             Renderer[] renderers = model.GetComponentsInChildren<Renderer>();
@@ -380,10 +387,6 @@ namespace Olympus.Game.Battle
             for (int i = 0; i < renderers.Length; i++)
                 modelHeight = Mathf.Max(modelHeight, renderers[i].bounds.max.y - body.position.y);
 
-            Animator animator = model.GetComponentInChildren<Animator>();
-            if (animator == null)
-                animator = model.AddComponent<Animator>();
-
             // 소품은 키를 맞추기 전에, 모델이 아직 T포즈(가져온 그대로)일 때 붙인다 — 아트가 소켓을
             // "T포즈에서 어디·어느 방향"으로 정했다. 뼈에 붙인 뒤 모델을 키우면 소품도 같이 커진다.
             AttachProps(model.transform, animator, entry, body, modelHeight, player);
@@ -397,6 +400,34 @@ namespace Olympus.Game.Battle
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             return animator;
+        }
+
+        /// <summary>
+        /// 모델의 정면을 어깨 위치로 재서 <paramref name="frame"/>의 정면(적 쪽)에 맞춘다.
+        /// 정면 = 오른 어깨 − 왼 어깨 방향 × 위. 파일마다 정면 축(+Z/-Z)이 달라서 숫자로 맞췄더니 두 번 뒤로 걸었다
+        /// (Quaternius -Z, 아트 납품물은 Blender 내보내기 축 때문에 또 반대) — 그래서 재서 돌린다.
+        /// </summary>
+        private static void FaceForward(Transform model, Animator animator, Transform frame)
+        {
+            if (animator == null || !animator.isHuman)
+                return;
+
+            Transform left = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+            Transform right = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            if (left == null || right == null)
+                return;
+
+            Vector3 across = right.position - left.position;
+            across.y = 0f;
+            if (across.sqrMagnitude < 1e-6f)
+                return;
+
+            Vector3 facing = Vector3.Cross(across, Vector3.up);
+            Vector3 want = frame.forward;
+            want.y = 0f;
+
+            float angle = Vector3.SignedAngle(facing, want, Vector3.up);
+            model.rotation = Quaternion.AngleAxis(angle, Vector3.up) * model.rotation;
         }
 
         /// <summary>
