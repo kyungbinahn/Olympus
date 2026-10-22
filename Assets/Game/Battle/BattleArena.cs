@@ -386,6 +386,15 @@ namespace Olympus.Game.Battle
             if (entry.controller != null)
                 animator.runtimeAnimatorController = entry.controller;
 
+            // 동작이 붙은 뒤에 한 번 더 잰다. Humanoid는 동작을 틀 때 몸의 정면을 Unity가 뼈대에서 다시 계산해
+            // 돌려 세우는데, 거인처럼 구부정하고 팔이 앞으로 나온 몸은 그 계산이 반대로 나와 기본 자세(T포즈)에서
+            // 맞춰 둔 정면이 첫 프레임에 뒤집혔다(2026-10-22 — 아트 쪽이 파일은 호플리테스와 같다고 확인).
+            if (animator.runtimeAnimatorController != null && animator.isHuman)
+            {
+                animator.Update(0f);
+                FaceForward(model.transform, animator, body);
+            }
+
             animator.applyRootMotion = false;
 
             // 화면 밖이면 뼈 계산을 쉰다 — 협곡 뒤쪽은 카메라에 안 잡힐 때가 많다.
