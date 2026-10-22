@@ -67,6 +67,9 @@ namespace Olympus.Game.Territory
         [Tooltip("Assets/Data/function-unlock.json — 버튼이 몇 레벨 본부에서 생기는가.")]
         [SerializeField] private TextAsset _featureUnlocks;
 
+        [Tooltip("Assets/Data/battle.json — 전선 스테이지·병사 능력치·건물이 주는 병사와 강화.")]
+        [SerializeField] private TextAsset _battle;
+
         [Header("건물 모델")]
         [Tooltip("실제 3D 모델. 여기 없는 건물은 그레이박스 큐브로 남는다 — 한 채씩 바꿔 갈 수 있다.\n\n" +
                  "완성 상태에서만 쓴다. 폐허·공사 중은 아직 전용 모델이 없어서 큐브 그대로다.")]
@@ -153,6 +156,7 @@ namespace Olympus.Game.Territory
         {
             _camera = Camera.main;
             _cameraRig = _camera != null ? _camera.GetComponent<TerritoryCamera>() : null;
+            TerritorySession.SaveEnabled = _useSaveFile;
             _clock = new SystemClock();
 
             _catalog = TerritoryDataLoader.LoadCatalog(_buildingDefs);
@@ -180,8 +184,12 @@ namespace Olympus.Game.Territory
                 ProgressionConfig progression = TerritoryDataLoader.LoadProgression(
                     _progression, _quests, _featureUnlocks, _catalog);
 
+                // 전투 규칙도 기지 런타임이 든다 — 전투 씬은 이 세션의 런타임을 빌려 쓴다
+                // (군대가 기지 건물에서 나오고, 결과도 기지 상태에 들어가므로 주인이 하나여야 한다).
+                Olympus.Core.Battle.BattleConfig battle = TerritoryDataLoader.LoadBattle(_battle, _catalog, progression);
+
                 var state = new GameState(_ground.Grid, _ground.Bounds);
-                _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius, progression);
+                _runtime = new TerritoryRuntime(state, _catalog, _clock, _restorationRadius, progression, battle);
                 TerritorySession.Adopt(_runtime);
             }
 

@@ -1,4 +1,5 @@
 using System;
+using Olympus.Core.Battle;
 using Olympus.Core.Progression;
 using Olympus.Core.Save;
 using Olympus.Core.State;
@@ -32,13 +33,15 @@ namespace Olympus.Core.Territory
         public ProductionService Production { get; }
         public SpeedUpService SpeedUps { get; }
         public QuestService Quests { get; }
+        public BattleService Battles { get; }
 
         public TerritoryRuntime(
             GameState state,
             BuildingCatalog catalog,
             IClock clock,
             float restorationRadius = 2f,
-            ProgressionConfig progression = null)
+            ProgressionConfig progression = null,
+            BattleConfig battle = null)
         {
             State = state ?? throw new ArgumentNullException(nameof(state));
             Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -51,6 +54,7 @@ namespace Olympus.Core.Territory
             Production = new ProductionService(Store, catalog, clock);
             SpeedUps = new SpeedUpService(Store, clock, Progression);
             Quests = new QuestService(Store, Progression);
+            Battles = new BattleService(Store, battle, Progression);
             Restoration = new RestorationMap(state.BaseOccupancy.Bounds, restorationRadius);
 
             // 건물이 바뀌면 무조건 녹지를 다시 센다. 어느 경로로 바뀌었는지 따지지 않는다 —

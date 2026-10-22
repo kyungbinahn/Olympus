@@ -74,8 +74,19 @@ namespace Olympus.UI
         private void OnBarClicked()
         {
             QuestView view = _presenter.Runtime.Quests.Current;
-            if (view.HasQuest)
-                _presenter.FocusOnDef(view.Quest.FocusDefId);
+            if (!view.HasQuest)
+                return;
+
+            // 전투 임무는 건물이 아니라 전선 화면으로 안내한다.
+            if (view.Quest.Objective.Kind == RequirementKind.Counter
+                && view.Quest.Objective.Target == Olympus.Core.Battle.BattleService.StageCounter)
+            {
+                if (_presenter.Runtime.Battles.IsUnlocked)
+                    Olympus.Game.SceneRouter.GoToBattle();
+                return;
+            }
+
+            _presenter.FocusOnDef(view.Quest.FocusDefId);
         }
 
         private void OnClaimClicked()

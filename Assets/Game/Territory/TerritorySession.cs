@@ -22,6 +22,12 @@ namespace Olympus.Game.Territory
 
         public static bool HasRuntime => Runtime != null;
 
+        /// <summary>
+        /// 기지 화면의 "저장 사용" 설정을 다른 화면(전투)도 따르게 넘겨 둔다. 꺼 두고 초반을 반복해서
+        /// 보는 중인데 전투 화면만 몰래 저장하면, 다음에 켤 때 엉뚱한 진행으로 시작한다.
+        /// </summary>
+        public static bool SaveEnabled { get; set; }
+
         /// <summary>이 런타임을 세션이 들고 간다. 기지에 처음 들어올 때 한 번 부른다.</summary>
         public static void Adopt(TerritoryRuntime runtime)
         {

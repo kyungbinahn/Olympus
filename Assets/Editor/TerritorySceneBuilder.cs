@@ -245,6 +245,7 @@ namespace Olympus.Editor
             Wire(so, "_progression", LoadRequired<TextAsset>("Assets/Data/progression.json"));
             Wire(so, "_quests", LoadRequired<TextAsset>("Assets/Data/quests.json"));
             Wire(so, "_featureUnlocks", LoadRequired<TextAsset>("Assets/Data/function-unlock.json"));
+            Wire(so, "_battle", LoadRequired<TextAsset>("Assets/Data/battle.json"));
         }
 
         /// <summary>
@@ -454,7 +455,7 @@ namespace Olympus.Editor
         }
 
         /// <summary>단색 무광 머티리얼. 그레이박스 전용이고, 실제 아트가 들어오면 교체된다.</summary>
-        private static Material CreateOrLoadFlatMaterial(string path, string name, Color color)
+        internal static Material CreateOrLoadFlatMaterial(string path, string name, Color color)
         {
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (existing != null)

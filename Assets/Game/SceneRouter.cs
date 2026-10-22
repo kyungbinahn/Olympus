@@ -13,11 +13,18 @@ namespace Olympus.Game
     {
         public const string TerritoryScene = "Territory";
         public const string WorldScene = "World";
+        public const string BattleScene = "Battle";
 
         /// <summary>기지 화면으로.</summary>
         public static void GoToTerritory()
         {
             SceneManager.LoadScene(TerritoryScene);
+        }
+
+        /// <summary>전선(다음 스테이지)으로. 군대와 진도는 기지 세션이 들고 있다.</summary>
+        public static void GoToBattle()
+        {
+            SceneManager.LoadScene(BattleScene);
         }
 
         /// <summary>월드맵으로.</summary>

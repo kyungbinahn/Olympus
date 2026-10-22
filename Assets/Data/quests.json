@@ -1,5 +1,5 @@
 {
-    "_comment": "하단 임무 바에 하나씩 뜨는 임무 체인. 순서가 곧 안내다 - 건물 복구, 업그레이드, 본부 레벨업을 번갈아 시킨다. objective.kind는 BuildingLevel / Prosperity / Counter(collect=수확 횟수, speedup=가속 사용 횟수). focusDefId는 임무 바를 눌렀을 때 카메라가 날아갈 건물.",
+    "_comment": "하단 임무 바에 하나씩 뜨는 임무 체인. 순서가 곧 안내다 - 건물 복구, 업그레이드, 본부 레벨업을 번갈아 시킨다. objective.kind는 BuildingLevel / Prosperity / Counter(collect=수확 횟수, speedup=가속 사용 횟수). focusDefId는 임무 바를 눌렀을 때 카메라가 날아갈 건물. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다.",
     "quests": [
         {
             "questId": "q01",
@@ -111,6 +111,23 @@
             "questId": "q07",
             "titleKey": "quest.q07",
             "objective": {
+                "kind": "Counter",
+                "target": "stage",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
+        },
+        {
+            "questId": "q08",
+            "titleKey": "quest.q08",
+            "objective": {
                 "kind": "BuildingLevel",
                 "target": "timber_store",
                 "amount": 1
@@ -125,8 +142,8 @@
             "focusDefId": "timber_store"
         },
         {
-            "questId": "q08",
-            "titleKey": "quest.q08",
+            "questId": "q09",
+            "titleKey": "quest.q09",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "mine",
@@ -142,8 +159,8 @@
             "focusDefId": "mine"
         },
         {
-            "questId": "q09",
-            "titleKey": "quest.q09",
+            "questId": "q10",
+            "titleKey": "quest.q10",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "carpentry",
@@ -159,8 +176,25 @@
             "focusDefId": "carpentry"
         },
         {
-            "questId": "q10",
-            "titleKey": "quest.q10",
+            "questId": "q11",
+            "titleKey": "quest.q11",
+            "objective": {
+                "kind": "Counter",
+                "target": "stage",
+                "amount": 2
+            },
+            "rewardResources": [
+                {
+                    "kind": "Stone",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
+        },
+        {
+            "questId": "q12",
+            "titleKey": "quest.q12",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "mason_yard",
@@ -176,8 +210,8 @@
             "focusDefId": "mason_yard"
         },
         {
-            "questId": "q11",
-            "titleKey": "quest.q11",
+            "questId": "q13",
+            "titleKey": "quest.q13",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "warehouse",
@@ -193,8 +227,8 @@
             "focusDefId": "warehouse"
         },
         {
-            "questId": "q12",
-            "titleKey": "quest.q12",
+            "questId": "q14",
+            "titleKey": "quest.q14",
             "objective": {
                 "kind": "Prosperity",
                 "target": "",
@@ -214,8 +248,8 @@
             "focusDefId": "main_hall"
         },
         {
-            "questId": "q13",
-            "titleKey": "quest.q13",
+            "questId": "q15",
+            "titleKey": "quest.q15",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "main_hall",
@@ -235,8 +269,8 @@
             "focusDefId": "main_hall"
         },
         {
-            "questId": "q14",
-            "titleKey": "quest.q14",
+            "questId": "q16",
+            "titleKey": "quest.q16",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "barracks",
@@ -256,8 +290,8 @@
             "focusDefId": "barracks"
         },
         {
-            "questId": "q15",
-            "titleKey": "quest.q15",
+            "questId": "q17",
+            "titleKey": "quest.q17",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "training_ground",
@@ -273,8 +307,29 @@
             "focusDefId": "training_ground"
         },
         {
-            "questId": "q16",
-            "titleKey": "quest.q16",
+            "questId": "q18",
+            "titleKey": "quest.q18",
+            "objective": {
+                "kind": "Counter",
+                "target": "stage",
+                "amount": 4
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 80
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
+        },
+        {
+            "questId": "q19",
+            "titleKey": "quest.q19",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "quarry",
@@ -290,8 +345,8 @@
             "focusDefId": "quarry"
         },
         {
-            "questId": "q17",
-            "titleKey": "quest.q17",
+            "questId": "q20",
+            "titleKey": "quest.q20",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "gatehouse",
@@ -307,8 +362,8 @@
             "focusDefId": "gatehouse"
         },
         {
-            "questId": "q18",
-            "titleKey": "quest.q18",
+            "questId": "q21",
+            "titleKey": "quest.q21",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "healing_house",
@@ -324,8 +379,29 @@
             "focusDefId": "healing_house"
         },
         {
-            "questId": "q19",
-            "titleKey": "quest.q19",
+            "questId": "q22",
+            "titleKey": "quest.q22",
+            "objective": {
+                "kind": "Counter",
+                "target": "stage",
+                "amount": 5
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 80
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
+        },
+        {
+            "questId": "q23",
+            "titleKey": "quest.q23",
             "objective": {
                 "kind": "Prosperity",
                 "target": "",
@@ -345,8 +421,8 @@
             "focusDefId": "main_hall"
         },
         {
-            "questId": "q20",
-            "titleKey": "quest.q20",
+            "questId": "q24",
+            "titleKey": "quest.q24",
             "objective": {
                 "kind": "Counter",
                 "target": "speedup",
@@ -367,8 +443,8 @@
             "focusDefId": "main_hall"
         },
         {
-            "questId": "q21",
-            "titleKey": "quest.q21",
+            "questId": "q25",
+            "titleKey": "quest.q25",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "main_hall",
@@ -388,8 +464,8 @@
             "focusDefId": "main_hall"
         },
         {
-            "questId": "q22",
-            "titleKey": "quest.q22",
+            "questId": "q26",
+            "titleKey": "quest.q26",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "council_hall",
@@ -405,8 +481,8 @@
             "focusDefId": "council_hall"
         },
         {
-            "questId": "q23",
-            "titleKey": "quest.q23",
+            "questId": "q27",
+            "titleKey": "quest.q27",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "ironworks",
@@ -422,8 +498,29 @@
             "focusDefId": "ironworks"
         },
         {
-            "questId": "q24",
-            "titleKey": "quest.q24",
+            "questId": "q28",
+            "titleKey": "quest.q28",
+            "objective": {
+                "kind": "Counter",
+                "target": "stage",
+                "amount": 7
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 120
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
+        },
+        {
+            "questId": "q29",
+            "titleKey": "quest.q29",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "mason_yard",
@@ -443,8 +540,8 @@
             "focusDefId": "mason_yard"
         },
         {
-            "questId": "q25",
-            "titleKey": "quest.q25",
+            "questId": "q30",
+            "titleKey": "quest.q30",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "arena",
@@ -460,8 +557,8 @@
             "focusDefId": "arena"
         },
         {
-            "questId": "q26",
-            "titleKey": "quest.q26",
+            "questId": "q31",
+            "titleKey": "quest.q31",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "shipyard",
@@ -477,8 +574,29 @@
             "focusDefId": "shipyard"
         },
         {
-            "questId": "q27",
-            "titleKey": "quest.q27",
+            "questId": "q32",
+            "titleKey": "quest.q32",
+            "objective": {
+                "kind": "Counter",
+                "target": "stage",
+                "amount": 10
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
+        },
+        {
+            "questId": "q33",
+            "titleKey": "quest.q33",
             "objective": {
                 "kind": "Prosperity",
                 "target": "",
@@ -498,8 +616,8 @@
             "focusDefId": "main_hall"
         },
         {
-            "questId": "q28",
-            "titleKey": "quest.q28",
+            "questId": "q34",
+            "titleKey": "quest.q34",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "main_hall",
@@ -519,8 +637,8 @@
             "focusDefId": "main_hall"
         },
         {
-            "questId": "q29",
-            "titleKey": "quest.q29",
+            "questId": "q35",
+            "titleKey": "quest.q35",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "farm",
@@ -536,8 +654,8 @@
             "focusDefId": "farm"
         },
         {
-            "questId": "q30",
-            "titleKey": "quest.q30",
+            "questId": "q36",
+            "titleKey": "quest.q36",
             "objective": {
                 "kind": "BuildingLevel",
                 "target": "silver_mine",

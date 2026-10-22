@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Olympus.Core.Battle;
 using Olympus.Core.Grid;
 using Olympus.Core.Progression;
 using Olympus.Core.Territory;
@@ -103,6 +104,29 @@ namespace Olympus.Game.Territory
                 throw new InvalidOperationException(
                     "진척 데이터가 맞지 않는다 (" + problems.Count + "건):\n  - " +
                     string.Join("\n  - ", problems));
+            }
+
+            return config;
+        }
+
+        /// <summary>전투 규칙을 읽고 건물·진척 데이터와 맞는지 확인한다. 어긋나면 전부 대며 터진다.</summary>
+        public static BattleConfig LoadBattle(TextAsset json, BuildingCatalog catalog, ProgressionConfig progression)
+        {
+            if (json == null)
+                throw new ArgumentNullException(nameof(json), "battle.json이 배선되지 않았다.");
+
+            BattleFile file = JsonUtility.FromJson<BattleFile>(json.text);
+            if (file == null)
+                throw new InvalidOperationException("전투 규칙을 읽을 수 없다: " + json.name);
+
+            BattleConfig config = file.ToConfig();
+            List<string> problems = config.Validate(catalog, progression);
+
+            if (problems.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "전투 데이터가 맞지 않는다 (" + problems.Count + "건):" + Environment.NewLine + "  - " +
+                    string.Join(Environment.NewLine + "  - ", problems));
             }
 
             return config;

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using NUnit.Framework;
+using Olympus.Core.Battle;
 using Olympus.Core.Grid;
 using Olympus.Core.Progression;
 using Olympus.Core.State;
@@ -79,6 +80,8 @@ namespace Olympus.DomainTests.RealData
 
         private static BuildingCatalog Catalog() => Load<BuildingDefFile>("building-defs.json").ToCatalog("building-defs.json");
 
+        private static BattleConfig Battle() => Load<BattleFile>("battle.json").ToConfig();
+
         private static ProgressionConfig Config() => ProgressionFileMapper.ToConfig(
             Load<ProgressionFile>("progression.json"),
             Load<QuestFile>("quests.json"),
@@ -88,6 +91,13 @@ namespace Olympus.DomainTests.RealData
         public void 진척_데이터가_건물_정의와_맞는다()
         {
             List<string> problems = Config().Validate(Catalog());
+            Assert.That(problems, Is.Empty, string.Join("\n", problems));
+        }
+
+        [Test]
+        public void 전투_데이터가_건물_정의와_맞는다()
+        {
+            List<string> problems = Battle().Validate(Catalog(), Config());
             Assert.That(problems, Is.Empty, string.Join("\n", problems));
         }
 
@@ -111,6 +121,16 @@ namespace Olympus.DomainTests.RealData
             foreach (SpeedUpItemDef s in config.SpeedUps)
                 if (!keys.Contains(s.DisplayNameKey)) missing.Add(s.DisplayNameKey);
 
+            BattleConfig battle = Battle();
+            foreach (UnitDef u in battle.Units)
+                if (!keys.Contains(u.DisplayNameKey)) missing.Add(u.DisplayNameKey);
+            for (int i = 1; i <= battle.StageCount; i++)
+            {
+                StageDef st;
+                battle.TryGetStage(i, out st);
+                if (!keys.Contains(st.NameKey)) missing.Add(st.NameKey);
+            }
+
             foreach (BuildingDef d in Catalog().All)
                 if (!keys.Contains(d.DisplayNameKey)) missing.Add(d.DisplayNameKey);
 
@@ -130,11 +150,12 @@ namespace Olympus.DomainTests.RealData
                 layout.Add(new BaseSlot(s.slotId, s.defId, new GridPos(s.x, s.y), s.zoneId));
 
             var clock = new ManualClock(1_000_000_000L);
-            var runtime = new TerritoryRuntime(new GameState(new SquareGrid(1f), bounds), catalog, clock, 4f, config);
+            var runtime = new TerritoryRuntime(new GameState(new SquareGrid(1f), bounds), catalog, clock, 4f, config, Battle());
             runtime.Initialize(layout);
 
             long start = clock.NowUnixMs;
             var reachedAt = new Dictionary<int, double>();
+            var stageLog = new List<string>();
             const long Step = 10_000L;     // 10초마다 한 번 화면을 보는 사람
             const long Limit = 4L * 60 * 60 * 1000;
 
@@ -146,6 +167,15 @@ namespace Olympus.DomainTests.RealData
                 while (runtime.Quests.TryClaim() == QuestClaimRejection.None) { }
 
                 ActGreedily(runtime);
+
+                // 다음 스테이지를 이길 수 있으면 싸운다. 지는 판은 바뀌는 게 없으니 매번 시도해도 된다.
+                StageDef next = runtime.Battles.NextStage;
+                if (next != null && runtime.Battles.Fight(next.StageId).Won)
+                {
+                    stageLog.Add("S" + next.StageId + "@Lv" + runtime.HqLevel + " " +
+                        ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분");
+                    continue;   // 보상으로 또 할 수 있는 게 생겼다 — 시계를 돌리기 전에 다시 본다.
+                }
 
                 int hq = runtime.HqLevel;
                 if (!reachedAt.ContainsKey(hq))
@@ -159,6 +189,7 @@ namespace Olympus.DomainTests.RealData
 
             string report = string.Join(", ", reachedAt.OrderBy(p => p.Key).Select(p => "Lv." + p.Key + " " + p.Value.ToString("0.0") + "분"));
             TestContext.WriteLine("봇 진행: " + report + " / 임무 " + runtime.State.QuestIndex + "/" + config.Quests.Count);
+            TestContext.WriteLine("스테이지: " + string.Join(", ", stageLog));
 
             Assert.That(runtime.HqLevel, Is.EqualTo(config.MaxHqLevel), "본부 최고 레벨에 못 갔다 — " + report +
                 " / 지금 임무: " + (runtime.Quests.Current.HasQuest ? runtime.Quests.Current.Quest.QuestId : "없음"));

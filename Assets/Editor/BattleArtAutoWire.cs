@@ -1,0 +1,121 @@
+using System.Linq;
+using Olympus.Game.Battle;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+namespace Olympus.Editor
+{
+    /// <summary>
+    /// 아트 납품 파일(<c>Assets/Art/Characters/</c>의 fbx·png)이 들어오거나 바뀌면 전투 씬에 저절로 다시 연결한다.
+    ///
+    /// 왜 자동인가 — 납품물을 복사해 두고 "메뉴를 누르세요"로 끝냈더니 메뉴가 안 눌린 채 플레이해서
+    /// "적용된 게 안 보인다"가 났다(2026-10-22). 파일을 넣는 것과 게임에 나오는 것 사이에 손 단계를 두지 않는다.
+    ///
+    /// 더해서 소품(prop_)이 이 가져오기 규칙보다 먼저 들어와 Humanoid로 잘못 가져와진 경우를 고쳐 다시 가져온다.
+    /// </summary>
+    internal sealed class BattleArtAutoWire : AssetPostprocessor
+    {
+        private const string CharacterFolder = "Assets/Art/Characters/";
+        private const string BattleScenePath = "Assets/Scenes/Battle.unity";
+
+        private static bool _scheduled;
+
+        private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)
+        {
+            // 연결이 만드는 파일(Generated 팀색 판, .mat, .controller)은 빼야 한다 — 안 빼면 연결 → 가져오기 → 연결로 돈다.
+            bool relevant = imported.Concat(moved).Any(IsDeliveredArt);
+            if (!relevant || _scheduled)
+                return;
+
+            _scheduled = true;
+            EditorApplication.delayCall += Run;
+        }
+
+        private static bool IsDeliveredArt(string path)
+        {
+            if (!path.StartsWith(CharacterFolder) || path.Contains("/Generated/"))
+                return false;
+            return path.EndsWith(".fbx") || path.EndsWith(".png");
+        }
+
+        [MenuItem("Olympus/Setup/전투 병사 모델 다시 연결 (씬 안 열어도 됨)", false, 122)]
+        private static void Run()
+        {
+            _scheduled = false;
+
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
+            {
+                // 플레이 중에는 씬을 열고 닫을 수 없다 — 플레이가 끝나면 다시 시도.
+                EditorApplication.playModeStateChanged -= RetryAfterPlay;
+                EditorApplication.playModeStateChanged += RetryAfterPlay;
+                return;
+            }
+
+            if (FixMisimportedProps())
+                return; // 다시 가져오기가 끝나면 OnPostprocessAllAssets가 또 부른다.
+
+            WireBattleScene();
+        }
+
+        private static void RetryAfterPlay(PlayModeStateChange change)
+        {
+            if (change != PlayModeStateChange.EnteredEditMode)
+                return;
+            EditorApplication.playModeStateChanged -= RetryAfterPlay;
+            Run();
+        }
+
+        /// <summary>소품이 Humanoid로 들어와 있으면 다시 가져온다(규칙은 <see cref="CharacterModelPostprocessor"/>). 하나라도 했으면 true.</summary>
+        private static bool FixMisimportedProps()
+        {
+            bool any = false;
+            foreach (string guid in AssetDatabase.FindAssets("t:Model", new[] { CharacterFolder.TrimEnd('/') }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!CharacterModelPostprocessor.IsProp(path))
+                    continue;
+
+                var importer = AssetImporter.GetAtPath(path) as ModelImporter;
+                if (importer == null || importer.animationType == ModelImporterAnimationType.None)
+                    continue;
+
+                Debug.Log("소품을 뼈대 없이 다시 가져옵니다: " + path);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                any = true;
+            }
+            return any;
+        }
+
+        private static void WireBattleScene()
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(BattleScenePath) == null)
+                return; // 전투 씬이 아직 없다 — "전투 씬 만들기"가 만들면서 연결한다.
+
+            Scene scene = SceneManager.GetSceneByPath(BattleScenePath);
+            bool wasOpen = scene.IsValid() && scene.isLoaded;
+            if (!wasOpen)
+                scene = EditorSceneManager.OpenScene(BattleScenePath, OpenSceneMode.Additive);
+
+            BattlePresenter presenter = scene.GetRootGameObjects()
+                .Select(go => go.GetComponentInChildren<BattlePresenter>(true))
+                .FirstOrDefault(p => p != null);
+
+            if (presenter == null)
+            {
+                Debug.LogWarning("전투 씬에 BattlePresenter가 없습니다 — Olympus/Setup/전투 씬 만들기를 다시 누르세요.");
+            }
+            else
+            {
+                BattleSoldierSetup.Wire(presenter);
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                Debug.Log("아트 납품을 전투 씬에 자동으로 연결했습니다.");
+            }
+
+            if (!wasOpen)
+                EditorSceneManager.CloseScene(scene, true);
+        }
+    }
+}

@@ -101,7 +101,7 @@ namespace Olympus.Editor
 
             CreateNavBar(
                 canvas,
-                out Button exploreButton, out Button heroesButton, out Button allianceButton,
+                out Button battleButton, out Button exploreButton, out Button heroesButton, out Button allianceButton,
                 out Button shopButton, out Button bagButton, out Button worldMapButton);
 
             Button settingsButton = CreateSettingsButton(canvas, out _);
@@ -156,6 +156,7 @@ namespace Olympus.Editor
             var so4 = new SerializedObject(chromeView);
             TerritorySceneBuilder.Wire(so4, "_presenter", presenter);
             TerritorySceneBuilder.Wire(so4, "_toast", toastView);
+            TerritorySceneBuilder.Wire(so4, "_battleButton", battleButton);
             TerritorySceneBuilder.Wire(so4, "_exploreButton", exploreButton);
             TerritorySceneBuilder.Wire(so4, "_heroesButton", heroesButton);
             TerritorySceneBuilder.Wire(so4, "_allianceButton", allianceButton);
@@ -371,7 +372,7 @@ namespace Olympus.Editor
         /// </summary>
         private static void CreateNavBar(
             RectTransform canvas,
-            out Button exploreButton, out Button heroesButton, out Button allianceButton,
+            out Button battleButton, out Button exploreButton, out Button heroesButton, out Button allianceButton,
             out Button shopButton, out Button bagButton, out Button worldMapButton)
         {
             RectTransform bar = CreatePanel(
@@ -382,19 +383,22 @@ namespace Olympus.Editor
             var neutral = new Color(0.24f, 0.22f, 0.20f);
             var highlight = new Color(0.85f, 0.65f, 0.25f);
 
-            exploreButton = CreateNavButton(bar, "ExploreButton", "탐색", 0, neutral, out _);
-            heroesButton = CreateNavButton(bar, "HeroesButton", "영웅", 1, neutral, out _);
-            allianceButton = CreateNavButton(bar, "AllianceButton", "동맹", 2, neutral, out _);
-            shopButton = CreateNavButton(bar, "ShopButton", "상점", 3, neutral, out _);
-            bagButton = CreateNavButton(bar, "BagButton", "가방", 4, neutral, out _);
-            worldMapButton = CreateNavButton(bar, "WorldMapButton", "외출", 5, highlight, out _);
+            // 전선은 붉은 색 — 싸우러 나가는 버튼이 다른 메뉴와 섞여 보이지 않게.
+            battleButton = CreateNavButton(bar, "BattleButton", "전선", 0, new Color(0.70f, 0.28f, 0.22f), out _);
+            exploreButton = CreateNavButton(bar, "ExploreButton", "탐색", 1, neutral, out _);
+            heroesButton = CreateNavButton(bar, "HeroesButton", "영웅", 2, neutral, out _);
+            allianceButton = CreateNavButton(bar, "AllianceButton", "동맹", 3, neutral, out _);
+            shopButton = CreateNavButton(bar, "ShopButton", "상점", 4, neutral, out _);
+            bagButton = CreateNavButton(bar, "BagButton", "가방", 5, neutral, out _);
+            worldMapButton = CreateNavButton(bar, "WorldMapButton", "외출", 6, highlight, out _);
         }
 
         /// <summary>내비바를 6칸으로 나눈 <paramref name="slot"/>번째 자리에 버튼을 놓는다.</summary>
         private static Button CreateNavButton(
             RectTransform bar, string name, string label, int slot, Color color, out TMP_Text labelText)
         {
-            const int slotCount = 6;
+            // 처음 배치일 뿐이다 — 열린 버튼만 남겨 고르게 다시 나누는 것은 HudChromeView가 한다.
+            const int slotCount = 7;
             float min = (float)slot / slotCount;
             float max = (float)(slot + 1) / slotCount;
 

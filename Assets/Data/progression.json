@@ -60,6 +60,11 @@
                     "kind": "Prosperity",
                     "target": "",
                     "amount": 11
+                },
+                {
+                    "kind": "Counter",
+                    "target": "stage",
+                    "amount": 2
                 }
             ],
             "costs": [
@@ -108,6 +113,11 @@
                     "kind": "BuildingLevel",
                     "target": "barracks",
                     "amount": 1
+                },
+                {
+                    "kind": "Counter",
+                    "target": "stage",
+                    "amount": 5
                 }
             ],
             "costs": [
@@ -156,6 +166,11 @@
                     "kind": "BuildingLevel",
                     "target": "mason_yard",
                     "amount": 3
+                },
+                {
+                    "kind": "Counter",
+                    "target": "stage",
+                    "amount": 10
                 }
             ],
             "costs": [

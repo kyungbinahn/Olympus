@@ -17,13 +17,14 @@ namespace Olympus.UI
     /// "준비중"으로 보여 주는 것보다 숨겼다가 레벨업 순간에 생기게 하는 편이 낫다 — 새 버튼이
     /// 생기는 것 자체가 보상이다(탑포스 Lv.4에서 HUD가 바뀌는 순간과 같은 장치).
     ///
-    /// 외출(월드맵)과 가방만 실제로 동작한다. 나머지는 기능이 생기면 onClick 배선만 바꾸면 된다.
+    /// 전선·외출(월드맵)·가방만 실제로 동작한다. 나머지는 기능이 생기면 onClick 배선만 바꾸면 된다.
     /// </summary>
     public sealed class HudChromeView : MonoBehaviour
     {
         [SerializeField] private TerritoryPresenter _presenter;
         [SerializeField] private ToastView _toast;
 
+        [SerializeField] private Button _battleButton;
         [SerializeField] private Button _exploreButton;
         [SerializeField] private Button _heroesButton;
         [SerializeField] private Button _allianceButton;
@@ -54,6 +55,10 @@ namespace Olympus.UI
             if (_worldMapButton != null)
                 _worldMapButton.onClick.AddListener(SceneRouter.GoToWorld);
 
+            if (_battleButton != null)
+                _battleButton.onClick.AddListener(SceneRouter.GoToBattle);
+
+            AddNav("battle", _battleButton);
             AddNav("explore", _exploreButton);
             AddNav("heroes", _heroesButton);
             AddNav("alliance", _allianceButton);

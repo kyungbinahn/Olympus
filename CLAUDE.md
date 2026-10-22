@@ -8,6 +8,8 @@
   - `C:\Users\user\dfw-client` — 뉴포리아. 라이브 서비스 중. Unity 2022.3.62f2.
   - 무엇을 가져올 가치가 있고 무엇을 피해야 하는지는 [`docs/reference-findings.md`](docs/reference-findings.md).
   - 경쟁작 초반 구조(방치형 → SLG 전환)와 올림푸스 대응안은 [`docs/topforce-early-game.md`](docs/topforce-early-game.md).
+- **연출·흐름의 1순위 기준은 [`docs/concept-core.md`](docs/concept-core.md)** (300·트로이·오디세이, 감정 구간별 설계).
+  탑포스 분석은 "어떻게 만드나"의 참고일 뿐이다. 지금 만든 것과의 차이·실행안은 [`docs/concept-gap.md`](docs/concept-gap.md).
 - 아트 원본은 **형제 폴더** `D:\OlympusArt`에 있다(별도 git 레포). Unity 프로젝트 안에 넣지 않는다.
   건물 로스터·화풍·프롬프트가 거기 있고, `Assets/Data/building-defs.json`의 `artCode`가 둘을 잇는다.
 - 폴더 규칙과 그 근거는 [`docs/project-layout.md`](docs/project-layout.md). **파일을 어디 둘지 헷갈리면 먼저 읽는다.**
@@ -134,5 +136,7 @@
 - 그 뒤로 더해진 것: 로컬 세이브, 기지↔월드 세션 유지, 건물 21종 실제 모델,
   **본부 Lv.1~5 진척**(본부 레벨·건물 업그레이드·생산/수확·헤르메스의 날개 가속·임무 바·기능 해금).
   설계와 숫자 고치는 법은 [`docs/progression-hq1-5.md`](docs/progression-hq1-5.md).
+  **전선(전투)** — 건물이 군대를 주고, 결정론 시뮬레이션(Core)을 화면이 재생한다. [`docs/battle.md`](docs/battle.md).
+  씬은 `Olympus/Setup/전투 씬 만들기`.
 - **다음에 이어서 할 일과 아직 안 정한 것은 [`docs/handoff-billboard.md`](docs/handoff-billboard.md)에 있다** —
   건물을 사전 렌더 판넬로 바꾸는 검토, 기지 저작 툴.
