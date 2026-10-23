@@ -222,10 +222,11 @@ namespace Olympus.Game.Battle
         /// 싸우지 않는 구경용 병사 하나(기지 밖에서 걸어오는 거인 등). 전투 병사와 같은 모델·정면 맞춤을 쓴다.
         /// 모델이 없으면 도형 병사로 세운다(animator는 null).
         /// </summary>
-        public GameObject SpawnDisplay(string unitId, bool player, float radius, Transform parent, out Animator animator)
+        public GameObject SpawnDisplay(string unitId, bool player, float radius, Transform parent, out Animator animator,
+            int pick = 0)
         {
             animator = null;
-            BattleUnitModelEntry entry = ModelFor(unitId);
+            BattleUnitModelEntry entry = ModelFor(unitId, pick);
 
             var root = new GameObject("Display_" + unitId).transform;
             root.SetParent(parent, false);
@@ -312,7 +313,7 @@ namespace Olympus.Game.Battle
 
             Animator animator = null;
             Color? tint = null;
-            BattleUnitModelEntry entry = ModelFor(u.Def.UnitId);
+            BattleUnitModelEntry entry = ModelFor(u.Def.UnitId, u.Id);
 
             // 모델 배율은 키에 곱한다 — 체력바도 같이 올라가야 거인 머리 속에 묻히지 않는다.
             if (entry != null && entry.scale > 0.01f)
@@ -603,12 +604,30 @@ namespace Olympus.Game.Battle
             return go.transform;
         }
 
-        private BattleUnitModelEntry ModelFor(string unitId)
+        /// <summary>
+        /// 그 병사 종류의 모델. 같은 unitId 칸이 여럿이면(도적 두 몸) <paramref name="pick"/>으로 번갈아 고른다 —
+        /// 병사 번호를 넘기면 같은 판에서 늘 같은 모습이다.
+        /// </summary>
+        private BattleUnitModelEntry ModelFor(string unitId, int pick = 0)
         {
+            int count = 0;
             for (int i = 0; i < _unitModels.Count; i++)
             {
                 BattleUnitModelEntry e = _unitModels[i];
                 if (e != null && e.model != null && e.unitId == unitId)
+                    count++;
+            }
+
+            if (count == 0)
+                return null;
+
+            int want = ((pick % count) + count) % count;
+            for (int i = 0; i < _unitModels.Count; i++)
+            {
+                BattleUnitModelEntry e = _unitModels[i];
+                if (e == null || e.model == null || e.unitId != unitId)
+                    continue;
+                if (want-- == 0)
                     return e;
             }
 

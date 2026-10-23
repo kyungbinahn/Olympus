@@ -482,18 +482,27 @@ namespace Olympus.Editor
         {
             Texture2D checker = CreateOrLoadCheckerTexture(texturePath, name + "Checker", light, dark);
 
+            // 지면 전용 셰이더 — 건물 풋프린트 자리를 흙바닥으로 칠한다(TerritoryGround.SetDirtPatches).
+            // 건물 에셋에 바닥이 없어서 이게 건물 밑 바닥이다. 못 찾으면 URP/Lit으로 — 흙만 안 보인다.
+            Shader shader = Shader.Find("Olympus/Ground");
+            if (shader == null)
+            {
+                Debug.LogWarning("Olympus/Ground 셰이더를 못 찾아 URP Lit으로 대체합니다 — 건물 밑 흙바닥이 안 보입니다.");
+                shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            }
+
             var existing = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
             if (existing != null)
             {
+                // 예전에 URP/Lit으로 만들어진 머티리얼도 셰이더를 갈아 끼운다. _BaseMap/_BaseColor
+                // 이름이 같아서 체커 텍스처·색은 그대로 넘어온다.
+                if (existing.shader != shader)
+                {
+                    existing.shader = shader;
+                    EditorUtility.SetDirty(existing);
+                }
                 existing.mainTexture = checker;
                 return existing;
-            }
-
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null)
-            {
-                Debug.LogWarning("URP Lit 셰이더를 못 찾아 기본 셰이더로 대체합니다.");
-                shader = Shader.Find("Standard");
             }
 
             var material = new Material(shader) { name = name };

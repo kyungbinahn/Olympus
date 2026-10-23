@@ -27,6 +27,9 @@ namespace Olympus.UI
         [SerializeField] private TMP_Text _foodText;
         [SerializeField] private TMP_Text _goldText;
 
+        [Tooltip("자원 이름(목재·석재…)을 숫자 앞에 쓴다. 아이콘이 붙으면 HUD 빌더가 끈다 — 아이콘과 이름이 겹치면 읽기만 느리다.")]
+        [SerializeField] private bool _showLabels = true;
+
         private void Start()
         {
             if (_presenter == null || _presenter.Runtime == null)
@@ -54,15 +57,21 @@ namespace Olympus.UI
             TerritoryRuntime rt = _presenter.Runtime;
             ResourcePool resources = rt.State.Resources;
 
-            _woodText.text = ResourceLabels.Of(ResourceKind.Wood) + " " + resources.Get(ResourceKind.Wood);
-            _stoneText.text = ResourceLabels.Of(ResourceKind.Stone) + " " + resources.Get(ResourceKind.Stone);
+            _woodText.text = Line(ResourceKind.Wood, resources);
+            _stoneText.text = Line(ResourceKind.Stone, resources);
 
             // 식량은 거인이 보이는 본부 Lv.2부터(병사 훈련 재료), 금은 Lv.5부터 — function-unlock.json.
-            SetLine(_foodText, rt.IsFeatureUnlocked("food"), ResourceLabels.Of(ResourceKind.Food) + " " + resources.Get(ResourceKind.Food));
-            SetLine(_goldText, rt.IsFeatureUnlocked("gold"), ResourceLabels.Of(ResourceKind.Gold) + " " + resources.Get(ResourceKind.Gold));
+            SetLine(_foodText, rt.IsFeatureUnlocked("food"), Line(ResourceKind.Food, resources));
+            SetLine(_goldText, rt.IsFeatureUnlocked("gold"), Line(ResourceKind.Gold, resources));
 
             if (_hqText != null)
                 _hqText.text = HqLine(rt);
+        }
+
+        private string Line(ResourceKind kind, ResourcePool resources)
+        {
+            string value = resources.Get(kind).ToString("N0");
+            return _showLabels ? ResourceLabels.Of(kind) + " " + value : value;
         }
 
         private static string HqLine(TerritoryRuntime rt)

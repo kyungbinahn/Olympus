@@ -162,7 +162,7 @@ namespace Olympus.Game.Chapter
                 for (int k = 0; k < group.Count; k++)
                 {
                     Animator animator;
-                    GameObject go = _arena.SpawnDisplay(group.UnitId, false, radius, transform, out animator);
+                    GameObject go = _arena.SpawnDisplay(group.UnitId, false, radius, transform, out animator, _approaching.Count);
                     if (go == null)
                         continue;
 

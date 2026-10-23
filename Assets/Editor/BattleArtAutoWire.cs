@@ -23,7 +23,7 @@ namespace Olympus.Editor
         /// 연결 방식(<see cref="BattleSoldierSetup"/>)을 바꾸면 올린다 — 코드가 다시 읽힐 때 숫자가 다르면 저절로 다시 연결한다.
         /// 아트 파일은 그대로인데 연결 코드만 바뀐 경우(정면 자동 맞춤 등)에도 메뉴를 누르지 않게.
         /// </summary>
-        private const int WireVersion = 6;
+        private const int WireVersion = 8;
         private const string VersionFile = "Library/OlympusBattleWireVersion.txt";
 
         static BattleArtAutoWire()

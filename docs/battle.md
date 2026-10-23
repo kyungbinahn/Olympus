@@ -62,6 +62,11 @@
 호플리테스와 궁수가 같은 몸이다. 그리스 병사 모델이 나오면 아래 칸만 갈아 끼운다.
 `Olympus/Setup/전투 씬 만들기`가 모델·동작·재질을 자동으로 잇는다(`BattleSoldierSetup`).
 
+**아트 납품 v2(2026-10-22 밤, 새 컨셉 화풍)**: 호플리테스(창·방패) · 거인 몹/1장 거인(뽑은 나무 몽둥이) · 돌팔매 거인 =
+바위 던지는 키클롭스 · 보스 키클롭스(몽둥이 빌림) · 도적 두 몸(덩치 두목 `bandit` + 마른 뾰족 두건 `bandit_b`, 같은 unitId 칸 둘 →
+병사 번호로 번갈아). 폴더 `Assets/Art/Characters/<Hoplite|Giant|CyclopsThrower|CyclopsBoss|Bandit|BanditB>/`.
+텍스처에 부드러운 음영이 구워져 있다(형님 선택) — 엔진 음영과 겹쳐 진해 보이면 셰이더 음영을 낮춘다. 궁수만 아직 임시 몸.
+
 **아트 납품 모델(2026-10-22)**: 호플리테스(`Assets/Art/Characters/Hoplite/`, 창·방패·볏·망토 팀색)와
 거인 몹(`Assets/Art/Characters/Giant/`, 맨손, 판정 반지름 1.1 → 키 약 5m)이 임시 몸을 대신한다. 둘 다 같은 뼈대라
 동작은 위 Quaternius 클립을 그대로 쓴다. 궁수·돌팔매 거인·키클롭스는 아직 임시 몸.

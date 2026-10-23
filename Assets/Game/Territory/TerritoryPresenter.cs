@@ -553,6 +553,8 @@ namespace Olympus.Game.Territory
                 if (_runtime.State.TryGetBuilding(c.Id, out b))
                     RefreshVisual(b);
             }
+
+            RefreshDirtPatches();
         }
 
         private void RefreshAllVisuals()
@@ -560,6 +562,27 @@ namespace Olympus.Game.Territory
             foreach (BuildingInstance b in _runtime.State.Buildings)
             {
                 RefreshVisual(b);
+            }
+
+            RefreshDirtPatches();
+        }
+
+        /// <summary>
+        /// 건물이 선 칸을 흙바닥으로. 폐허·공사 중·완성 모두 — 자리가 잡힌 땅이라는 표시다.
+        /// 건물 에셋에는 바닥이 없으므로(아트 규칙) 이게 건물 밑 바닥 역할을 한다.
+        /// </summary>
+        private void RefreshDirtPatches()
+        {
+            _ground.SetDirtPatches(DirtPatches());
+        }
+
+        private IEnumerable<(GridPos, GridFootprint)> DirtPatches()
+        {
+            foreach (BuildingInstance b in _runtime.State.Buildings)
+            {
+                BuildingDef def;
+                if (_catalog.TryGet(b.DefId, out def))
+                    yield return (b.Anchor, def.Footprint);
             }
         }
 

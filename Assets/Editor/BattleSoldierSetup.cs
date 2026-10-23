@@ -25,11 +25,6 @@ namespace Olympus.Editor
         private const string AnimPath = Folder + "/UAL1_Standard.fbx";
         private const string TexturePath = Folder + "/T_Superhero_Male_Dark.png";
 
-        /// <summary>아트 세션이 만든 호플리테스(2026-10-21 납품). 있으면 hoplite 칸은 이걸로 선다.</summary>
-        private const string HopliteFolder = "Assets/Art/Characters/Hoplite";
-
-        /// <summary>아트 세션이 만든 거인 몹(2026-10-21 납품, 키 7.5m). 호플리테스와 뼈 이름이 같다.</summary>
-        private const string GiantFolder = "Assets/Art/Characters/Giant";
 
         /// <summary>
         /// 아군 팀색 — 영화 300의 붉은 망토. 거인은 피부·용암색이라 붉어도 섞이지 않는다.
@@ -86,20 +81,32 @@ namespace Olympus.Editor
             SerializedProperty list = so.FindProperty("_unitModels");
             list.arraySize = 0;
 
-            if (!AddHoplite(list, melee))
+            // 아트 납품(2026-10-22 v2, 새 컨셉 화풍). 파일이 없으면 맨몸 임시 모델로 선다.
+            // 무기 소품은 전부 "오른손에 쥐고 T포즈에서 앞을 향함" — 창과 같은 소켓이다(납품 규칙: 피벗 = 쥐는 점, 날 = +Z).
+            if (!AddDelivered(list, "hoplite", "Hoplite", "hoplite", melee,
+                    ("prop_spear", PropSocket.SpearRightHand), ("prop_aspis", PropSocket.ShieldLeftForearm)))
                 Add(list, "hoplite", body, melee, material);
+
             Add(list, "archer", body, ranged, material);
-            if (!AddGiant(list, brute, "giant_brute"))
+
+            // 거인 몹과 1장 "300 vs 1"의 거인은 같은 몸이다(키는 판정 반지름에서 — 몹 약 5m, 1장 거인 약 7m). 뽑은 나무 몽둥이.
+            if (!AddDelivered(list, "giant_brute", "Giant", "giant_brute", brute, ("prop_club", PropSocket.SpearRightHand)))
                 Add(list, "giant_brute", body, brute, material);
-
-            // 1장 "300 vs 1"의 거인 — 같은 몸, 판정 반지름(1.6)이 커서 약 7m로 선다.
-            if (!AddGiant(list, brute, "giant_chieftain"))
+            if (!AddDelivered(list, "giant_chieftain", "Giant", "giant_brute", brute, ("prop_club", PropSocket.SpearRightHand)))
                 Add(list, "giant_chieftain", body, brute, material);
-            Add(list, "giant_slinger", body, ranged, material);
 
-            // 도적 — 전용 모델이 오기 전까지는 칸을 비워 도형 병사(두건 + 짧은 칼)로 선다. 맨몸 임시 모델은
-            // 마을 수비대와 똑같은 몸이라 누가 도적인지 안 보였다(2026-10-22). 아트 납품이 오면 AddGiant처럼 붙인다.
-            Add(list, "cyclops", body, brute, material);
+            // 돌팔매 거인 = 바위 던지는 키클롭스. 바위는 두 손으로 드는 것이지만 지금은 오른손 소켓에 단다.
+            if (!AddDelivered(list, "giant_slinger", "CyclopsThrower", "cyclops_thrower", ranged, ("prop_boulder", PropSocket.SpearRightHand)))
+                Add(list, "giant_slinger", body, ranged, material);
+
+            // 보스 키클롭스 — 맨손으로 납품됐다. 거인 몽둥이를 같이 쥐여 준다(몸에 맞춰 같이 커진다).
+            if (!AddDelivered(list, "cyclops", "CyclopsBoss", "cyclops_boss", brute, ("../Giant/prop_club", PropSocket.SpearRightHand)))
+                Add(list, "cyclops", body, brute, material);
+
+            // 도적은 두 몸을 섞는다(형님 결정 — 덩치 큰 두목형 + 마른 뾰족 두건). 같은 unitId 칸이 둘이면
+            // 화면이 병사 번호로 번갈아 고른다(BattleArena.ModelFor). 납품이 없으면 칸을 비워 도형 병사로 선다.
+            AddDelivered(list, "bandit", "Bandit", "bandit", melee, ("prop_bandit_cleaver", PropSocket.SpearRightHand));
+            AddDelivered(list, "bandit", "BanditB", "bandit_b", melee, ("prop_bandit_dagger", PropSocket.SpearRightHand));
 
             // 아군 = 300의 붉은색(호플리테스 팀색과 맞춘다), 적 = 돌빛 푸른색. 임시 몸(궁수·거인)에 덧칠되는 색이다.
             SerializedProperty playerTint = so.FindProperty("_playerTint");
@@ -111,51 +118,22 @@ namespace Olympus.Editor
             Debug.Log("전투 병사 모델을 연결했습니다 — 클립 " + clips.Count + "개 중 대기·행군·공격·쓰러짐을 씁니다.");
         }
 
+        private const string CharactersRoot = "Assets/Art/Characters";
+
         /// <summary>
-        /// 아트 세션의 호플리테스를 붙인다 — 몸·창·방패, 진영별 팀색 판. 파일이 없으면 false(임시 몸으로 선다).
-        /// 정면이 처음부터 Unity +Z라 돌리지 않는다(yaw 0).
+        /// 아트 세션 납품 한 벌을 붙인다 — 몸 + 소품, 진영별 팀색 판. 몸 파일이 없으면 false.
+        /// 정면은 화면이 발끝으로 재서 맞추므로 돌리지 않는다(yaw 0). 키는 판정 반지름에서 나온다(scale 1).
+        /// 소품 이름에 "../폴더/"를 붙이면 다른 납품 폴더의 소품을 빌린다.
         /// </summary>
-        private static bool AddHoplite(SerializedProperty list, RuntimeAnimatorController controller)
+        private static bool AddDelivered(SerializedProperty list, string unitId, string folderName, string baseName,
+            RuntimeAnimatorController controller, params (string name, PropSocket socket)[] props)
         {
-            var model = AssetDatabase.LoadAssetAtPath<GameObject>(HopliteFolder + "/hoplite.fbx");
+            string folder = CharactersRoot + "/" + folderName;
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(folder + "/" + baseName + ".fbx");
             if (model == null)
                 return false;
 
-            Material[] bodyMats = TeamMaterials(HopliteFolder, "hoplite");
-            GameObject spear = AssetDatabase.LoadAssetAtPath<GameObject>(HopliteFolder + "/prop_spear.fbx");
-            GameObject shield = AssetDatabase.LoadAssetAtPath<GameObject>(HopliteFolder + "/prop_aspis.fbx");
-
-            int i = list.arraySize;
-            list.arraySize = i + 1;
-            SerializedProperty e = list.GetArrayElementAtIndex(i);
-            e.FindPropertyRelative("unitId").stringValue = "hoplite";
-            e.FindPropertyRelative("model").objectReferenceValue = model;
-            e.FindPropertyRelative("controller").objectReferenceValue = controller;
-            e.FindPropertyRelative("material").objectReferenceValue = bodyMats[0];
-            e.FindPropertyRelative("enemyMaterial").objectReferenceValue = bodyMats[1];
-            e.FindPropertyRelative("scale").floatValue = 1f;
-            e.FindPropertyRelative("yaw").floatValue = 0f;
-
-            SerializedProperty props = e.FindPropertyRelative("props");
-            props.arraySize = 0;
-            AddProp(props, spear, "prop_spear", PropSocket.SpearRightHand);
-            AddProp(props, shield, "prop_aspis", PropSocket.ShieldLeftForearm);
-
-            Debug.Log("호플리테스(아트 납품) 모델을 연결했습니다 — 창 " + (spear != null) + ", 방패 " + (shield != null));
-            return true;
-        }
-
-        /// <summary>
-        /// 아트 세션의 거인 몹을 붙인다. 정면 +Z(yaw 0). 몽둥이는 아직 소품으로 안 나와서 맨손 — 동작도 주먹 치기.
-        /// 팀색 마스크가 비어 있다(거인은 적으로만 나온다) — 진영별 판은 같은 원색이 된다.
-        /// </summary>
-        private static bool AddGiant(SerializedProperty list, RuntimeAnimatorController controller, string unitId)
-        {
-            var model = AssetDatabase.LoadAssetAtPath<GameObject>(GiantFolder + "/giant_brute.fbx");
-            if (model == null)
-                return false;
-
-            Material[] mats = TeamMaterials(GiantFolder, "giant_brute");
+            Material[] bodyMats = TeamMaterials(folder, baseName);
 
             int i = list.arraySize;
             list.arraySize = i + 1;
@@ -163,24 +141,41 @@ namespace Olympus.Editor
             e.FindPropertyRelative("unitId").stringValue = unitId;
             e.FindPropertyRelative("model").objectReferenceValue = model;
             e.FindPropertyRelative("controller").objectReferenceValue = controller;
-            e.FindPropertyRelative("material").objectReferenceValue = mats[0];
-            e.FindPropertyRelative("enemyMaterial").objectReferenceValue = mats[1];
-            // 키는 판정 반지름(battle.json, 거인 1.1)에서 나온다 — 약 5m, 호플리테스의 2.7배. 센 거인은 배수만큼 더 커진다.
-            // 그림만 따로 키우면 판정보다 몸이 커서 떼로 겹쳐 보였다(2026-10-22).
+            e.FindPropertyRelative("material").objectReferenceValue = bodyMats[0];
+            e.FindPropertyRelative("enemyMaterial").objectReferenceValue = bodyMats[1];
             e.FindPropertyRelative("scale").floatValue = 1f;
             e.FindPropertyRelative("yaw").floatValue = 0f;
-            e.FindPropertyRelative("props").arraySize = 0;
 
-            Debug.Log("거인(아트 납품) 모델을 연결했습니다 — " + unitId);
+            SerializedProperty propList = e.FindPropertyRelative("props");
+            propList.arraySize = 0;
+            var attached = new List<string>();
+            foreach ((string name, PropSocket socket) in props)
+            {
+                string propFolder = folder;
+                string propName = name;
+                if (name.StartsWith("../"))
+                {
+                    int slash = name.LastIndexOf('/');
+                    propFolder = CharactersRoot + "/" + name.Substring(3, slash - 3);
+                    propName = name.Substring(slash + 1);
+                }
+
+                GameObject prop = AssetDatabase.LoadAssetAtPath<GameObject>(propFolder + "/" + propName + ".fbx");
+                if (prop == null)
+                    continue;
+
+                AddProp(propList, prop, propFolder, propName, socket);
+                attached.Add(propName);
+            }
+
+            Debug.Log("아트 납품 모델을 연결했습니다 — " + unitId + " (" + baseName + ")" +
+                      (attached.Count > 0 ? ", 소품 " + string.Join(", ", attached) : ""));
             return true;
         }
 
-        private static void AddProp(SerializedProperty props, GameObject model, string baseName, PropSocket socket)
+        private static void AddProp(SerializedProperty props, GameObject model, string folder, string baseName, PropSocket socket)
         {
-            if (model == null)
-                return;
-
-            Material[] mats = TeamMaterials(HopliteFolder, baseName);
+            Material[] mats = TeamMaterials(folder, baseName);
             int i = props.arraySize;
             props.arraySize = i + 1;
             SerializedProperty p = props.GetArrayElementAtIndex(i);

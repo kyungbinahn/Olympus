@@ -444,7 +444,11 @@ MonoBehaviour:
     controller: {fileID: 9100000, guid: 763dc2cea2c174a48bbdefb1fd29b543, type: 2}
     material: {fileID: 2100000, guid: af7db3d2847fbcb42986b0067ef14f0a, type: 2}
     enemyMaterial: {fileID: 2100000, guid: 7b46fd0aefc70b04ea4aafb5842fc429, type: 2}
-    props: []
+    props:
+    - model: {fileID: 919132149155446097, guid: b91f00fe4eb7daa4aadab21849a3042e, type: 3}
+      material: {fileID: 2100000, guid: 0b58b6d1e18fe4349a19f452aac00637, type: 2}
+      enemyMaterial: {fileID: 2100000, guid: d56df745cfb73ae49b4def7e5d2e08d8, type: 2}
+      socket: 0
     scale: 1
     yaw: 0
   - unitId: giant_chieftain
@@ -452,31 +456,59 @@ MonoBehaviour:
     controller: {fileID: 9100000, guid: 763dc2cea2c174a48bbdefb1fd29b543, type: 2}
     material: {fileID: 2100000, guid: af7db3d2847fbcb42986b0067ef14f0a, type: 2}
     enemyMaterial: {fileID: 2100000, guid: 7b46fd0aefc70b04ea4aafb5842fc429, type: 2}
-    props: []
+    props:
+    - model: {fileID: 919132149155446097, guid: b91f00fe4eb7daa4aadab21849a3042e, type: 3}
+      material: {fileID: 2100000, guid: 0b58b6d1e18fe4349a19f452aac00637, type: 2}
+      enemyMaterial: {fileID: 2100000, guid: d56df745cfb73ae49b4def7e5d2e08d8, type: 2}
+      socket: 0
     scale: 1
     yaw: 0
   - unitId: giant_slinger
-    model: {fileID: 919132149155446097, guid: f09534900e462c04da1b29333bc27305, type: 3}
+    model: {fileID: 919132149155446097, guid: c733e70bcce85b14e9d3a35c10d81dd0, type: 3}
     controller: {fileID: 9100000, guid: e6d2519b09fd87748902f4fde2a7769b, type: 2}
-    material: {fileID: 2100000, guid: 47bda66593138794abd526483e44c470, type: 2}
-    enemyMaterial: {fileID: 0}
-    props: []
-    scale: 1
-    yaw: 0
-  - unitId: bandit
-    model: {fileID: 919132149155446097, guid: f09534900e462c04da1b29333bc27305, type: 3}
-    controller: {fileID: 9100000, guid: 32e468243dc872148880dca28e3c432f, type: 2}
-    material: {fileID: 2100000, guid: 47bda66593138794abd526483e44c470, type: 2}
-    enemyMaterial: {fileID: 0}
-    props: []
+    material: {fileID: 2100000, guid: 57b32575d552d5b45aeb3fad0b024cce, type: 2}
+    enemyMaterial: {fileID: 2100000, guid: b4b822aec47aae14985d7f5bed72d2e2, type: 2}
+    props:
+    - model: {fileID: 919132149155446097, guid: 49f6f11e688981f41b6d2998c4e93061, type: 3}
+      material: {fileID: 2100000, guid: f3c6fe9060c002c4b8caa5c8e27c6419, type: 2}
+      enemyMaterial: {fileID: 2100000, guid: fd63524b4bd8c2e40b2812d70678c39f, type: 2}
+      socket: 0
     scale: 1
     yaw: 0
   - unitId: cyclops
-    model: {fileID: 919132149155446097, guid: f09534900e462c04da1b29333bc27305, type: 3}
+    model: {fileID: 919132149155446097, guid: 9423868a6178b7342840e4559994dc14, type: 3}
     controller: {fileID: 9100000, guid: 763dc2cea2c174a48bbdefb1fd29b543, type: 2}
-    material: {fileID: 2100000, guid: 47bda66593138794abd526483e44c470, type: 2}
-    enemyMaterial: {fileID: 0}
-    props: []
+    material: {fileID: 2100000, guid: 3d6ba14beec4e6c478e6cf2ec4f98136, type: 2}
+    enemyMaterial: {fileID: 2100000, guid: 1364d21720634d84e8afbf9ef3f394f5, type: 2}
+    props:
+    - model: {fileID: 919132149155446097, guid: b91f00fe4eb7daa4aadab21849a3042e, type: 3}
+      material: {fileID: 2100000, guid: 0b58b6d1e18fe4349a19f452aac00637, type: 2}
+      enemyMaterial: {fileID: 2100000, guid: d56df745cfb73ae49b4def7e5d2e08d8, type: 2}
+      socket: 0
+    scale: 1
+    yaw: 0
+  - unitId: bandit
+    model: {fileID: 919132149155446097, guid: 2a4cb84504ec2e5468db0fb36483216f, type: 3}
+    controller: {fileID: 9100000, guid: 32e468243dc872148880dca28e3c432f, type: 2}
+    material: {fileID: 2100000, guid: a9327c12f598aba47aa932631a9c6ef5, type: 2}
+    enemyMaterial: {fileID: 2100000, guid: 1b1b91df3f35c304591d59a21fb31f4b, type: 2}
+    props:
+    - model: {fileID: 919132149155446097, guid: 61e03529262bf7041a150aa2c67f5a1b, type: 3}
+      material: {fileID: 2100000, guid: cee519df8dee38f4c8a42ee2c03ccefb, type: 2}
+      enemyMaterial: {fileID: 2100000, guid: 1f1cedb1fb9438244b5c4eb013627dae, type: 2}
+      socket: 0
+    scale: 1
+    yaw: 0
+  - unitId: bandit
+    model: {fileID: 919132149155446097, guid: cfd8fd2a9799b4a4bba4539a1bb61a74, type: 3}
+    controller: {fileID: 9100000, guid: 32e468243dc872148880dca28e3c432f, type: 2}
+    material: {fileID: 2100000, guid: fd197e5f766580e43a2df79df6463a7b, type: 2}
+    enemyMaterial: {fileID: 2100000, guid: 4d6b954852bc4574e961a8381976cad5, type: 2}
+    props:
+    - model: {fileID: 919132149155446097, guid: bc5ad10682cb1404f887eed1fa999239, type: 3}
+      material: {fileID: 2100000, guid: 5108581eaa0f39d4b958ce9e0a0bd2a6, type: 2}
+      enemyMaterial: {fileID: 2100000, guid: 8c5b03d5f66e2f34aac3b711d73ab9d9, type: 2}
+      socket: 0
     scale: 1
     yaw: 0
   _playerTint: {r: 1, g: 0.55, b: 0.5, a: 1}

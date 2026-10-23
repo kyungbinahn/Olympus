@@ -122,6 +122,7 @@ namespace Olympus.Editor
             TerritorySceneBuilder.Wire(so1, "_stoneText", stoneText);
             TerritorySceneBuilder.Wire(so1, "_foodText", foodText);
             TerritorySceneBuilder.Wire(so1, "_goldText", goldText);
+            so1.FindProperty("_showLabels").boolValue = Icon("icon_res_wood") == null;
             so1.ApplyModifiedPropertiesWithoutUndo();
 
             var infoView = controller.AddComponent<BuildingInfoPanelView>();
@@ -228,18 +229,27 @@ namespace Olympus.Editor
             parts.BannerButton = parts.Banner.gameObject.AddComponent<Button>();
             parts.BannerButton.targetGraphic = parts.Banner.GetComponent<Image>();
 
+            // 왼쪽 거인 초상화 — 있으면 글자를 그만큼 밀어낸다.
+            bool portrait = AddIcon(parts.Banner, "portrait_giant_brute_framed_256", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+                new Vector2(8f, 0f), 128f) != null;
+            float textLeft = portrait ? 148f : 24f;
+
             parts.BannerTitle = CreateText(parts.Banner, "Title", "", 36, FontStyles.Bold, TextColor,
                 TextAlignmentOptions.MidlineLeft, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 1f),
-                new Vector2(24f, -14f), new Vector2(-300f, 56f));
+                new Vector2(textLeft, -14f), new Vector2(-276f - textLeft, 56f));
             parts.BannerTitle.richText = true;
             parts.BannerDetail = CreateText(parts.Banner, "Detail", "", 28, FontStyles.Normal, TextColor,
                 TextAlignmentOptions.MidlineLeft, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 0f),
-                new Vector2(24f, 14f), new Vector2(-300f, 52f));
+                new Vector2(textLeft, 14f), new Vector2(-276f - textLeft, 52f));
+            if (AddIcon(parts.BannerDetail.transform, "icon_soldier", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, 42f) != null)
+                parts.BannerDetail.margin = new Vector4(46f, 0f, 0f, 0f);
             parts.BannerDetail.richText = true;
 
             parts.DispatchButton = CreateButton(parts.Banner, "DispatchButton", "협곡으로 출정!", out parts.DispatchLabel,
                 anchorMin: new Vector2(1f, 0.5f), anchorMax: new Vector2(1f, 0.5f), pivot: new Vector2(1f, 0.5f),
                 anchoredPos: new Vector2(-16f, 0f), sizeDelta: new Vector2(260f, 100f), fillColor: danger, labelFontSize: 28);
+            if (AddIcon(parts.DispatchButton.transform, "icon_march", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(6f, 0f), 64f) != null)
+                parts.DispatchLabel.margin = new Vector4(64f, 0f, 0f, 0f);
             parts.Banner.gameObject.SetActive(false);
 
             // 정보 패널(380 높이) 바로 위.
@@ -361,21 +371,27 @@ namespace Olympus.Editor
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0.5f, 1f),
                 anchoredPos: new Vector2(0f, -8f), sizeDelta: new Vector2(-32f, 40f));
 
-            woodText = CreateResourceCell(panel, "WoodText", "목재 0", 0, 0);
-            foodText = CreateResourceCell(panel, "FoodText", "식량 0", 1, 0);
-            stoneText = CreateResourceCell(panel, "StoneText", "석재 0", 0, 1);
-            goldText = CreateResourceCell(panel, "GoldText", "금 0", 1, 1);
+            woodText = CreateResourceCell(panel, "WoodText", "목재 0", 0, 0, "icon_res_wood");
+            foodText = CreateResourceCell(panel, "FoodText", "식량 0", 1, 0, "icon_res_food");
+            stoneText = CreateResourceCell(panel, "StoneText", "석재 0", 0, 1, "icon_res_stone");
+            goldText = CreateResourceCell(panel, "GoldText", "금 0", 1, 1, "icon_res_gold");
 
             return panel;
         }
 
-        private static TMP_Text CreateResourceCell(RectTransform panel, string name, string text, int column, int row)
+        private static TMP_Text CreateResourceCell(RectTransform panel, string name, string text, int column, int row, string icon)
         {
-            return CreateText(
+            TMP_Text t = CreateText(
                 panel, name, text, 30, FontStyles.Normal, TextColor, TextAlignmentOptions.MidlineLeft,
                 anchorMin: new Vector2(column * 0.5f, 1f), anchorMax: new Vector2(column * 0.5f + 0.5f, 1f),
                 pivot: new Vector2(0.5f, 1f),
                 anchoredPos: new Vector2(0f, -52f - row * 44f), sizeDelta: new Vector2(-32f, 40f));
+
+            // 아이콘은 글자의 자식 — ResourceBarView가 글자를 숨기면(식량·금 잠김) 아이콘도 같이 숨는다.
+            if (AddIcon(t.transform, icon, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(-4f, 0f), 44f) != null)
+                t.margin = new Vector4(48f, 0f, 0f, 0f);
+
+            return t;
         }
 
         /// <summary>
@@ -477,6 +493,10 @@ namespace Olympus.Editor
                     anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0f, 0f), pivot: new Vector2(0f, 0f),
                     anchoredPos: new Vector2(20f + i * 124f, 16f), sizeDelta: new Vector2(112f, 64f),
                     fillColor: new Color(0.55f, 0.42f, 0.70f), labelFontSize: 20);
+
+                string[] wings = { "icon_speedup_1m", "icon_speedup_5m", "icon_speedup_15m" };
+                if (AddIcon(speedUpButtons[i].transform, wings[i], new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(2f, 0f), 52f) != null)
+                    speedUpLabels[i].margin = new Vector4(46f, 0f, 0f, 0f);
             }
 
             return panel;
@@ -548,6 +568,37 @@ namespace Olympus.Editor
                 anchoredPos: Vector2.zero, sizeDelta: new Vector2(-40f, 0f));
 
             return panel;
+        }
+
+        private const string IconFolder = "Assets/Art/UI/Icons/";
+
+        /// <summary>아트 납품 아이콘(투명 PNG → 스프라이트). 아직 없으면 null — 그 자리는 글자만 남는다.</summary>
+        internal static Sprite Icon(string name)
+        {
+            return AssetDatabase.LoadAssetAtPath<Sprite>(IconFolder + name + ".png");
+        }
+
+        /// <summary>부모 안 왼쪽(또는 지정 위치)에 아이콘을 하나 놓는다. 스프라이트가 없으면 아무것도 안 만든다.</summary>
+        internal static Image AddIcon(Transform parent, string spriteName, Vector2 anchor, Vector2 pivot, Vector2 pos, float size)
+        {
+            Sprite sprite = Icon(spriteName);
+            if (sprite == null)
+                return null;
+
+            var go = new GameObject("Icon_" + spriteName, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
+            rect.pivot = pivot;
+            rect.anchoredPosition = pos;
+            rect.sizeDelta = new Vector2(size, size);
+
+            Image image = go.AddComponent<Image>();
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;   // 아이콘이 버튼 클릭을 가로채지 않게.
+            return image;
         }
 
         internal static RectTransform CreatePanel(
