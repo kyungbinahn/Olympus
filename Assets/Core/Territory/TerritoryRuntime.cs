@@ -38,6 +38,7 @@ namespace Olympus.Core.Territory
         public TrainingService Training { get; }
         public GiantThreatService Threats { get; }
         public RaidService Raids { get; }
+        public FrontlineService Frontline { get; }
 
         public TerritoryRuntime(
             GameState state,
@@ -64,6 +65,7 @@ namespace Olympus.Core.Territory
             Threats = new GiantThreatService(Store, clock, chapter, Progression, Battles);
             Training.IsBlocked = () => Threats.AnyArrived;
             Raids = new RaidService(Store, clock, chapter, Progression, Battles);
+            Frontline = new FrontlineService(Store, clock, chapter, Progression, Battles);
             Restoration = new RestorationMap(state.BaseOccupancy.Bounds, restorationRadius);
 
             // 건물이 바뀌면 무조건 녹지를 다시 센다. 어느 경로로 바뀌었는지 따지지 않는다 —
@@ -127,6 +129,9 @@ namespace Olympus.Core.Territory
         /// <summary>지금 진행을 저장 형태로 뜬다.</summary>
         public SaveFile CaptureSave()
         {
+            // 쌓인 전선 전리품을 넣고 저장한다 — 안 그러면 마지막 정산 뒤 몇 초 치가 사라진다.
+            Frontline.SettleNow();
+
             return SaveMapper.Capture(State, Clock.NowUnixMs);
         }
 
@@ -142,6 +147,7 @@ namespace Olympus.Core.Territory
             Training.CompleteFinished();
             Threats.Tick();
             Raids.Tick();
+            Frontline.Tick();
 
             return completed;
         }
@@ -272,6 +278,7 @@ namespace Olympus.Core.Territory
         public void Dispose()
         {
             Store.Changed -= OnStateChanged;
+            Frontline.Dispose();
         }
     }
 }

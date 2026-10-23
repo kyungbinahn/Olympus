@@ -13,6 +13,7 @@ namespace Olympus.Core.Chapter
         public TrainingRecord training;
         public List<ThreatRecord> threats = new List<ThreatRecord>();
         public RaidRecord raids;
+        public FrontlineRecord frontline;
 
         public ChapterConfig ToConfig()
         {
@@ -52,6 +53,26 @@ namespace Olympus.Core.Chapter
                 }
             }
 
+            if (frontline != null && frontline.outposts != null && frontline.outposts.Count > 0)
+            {
+                var outposts = new List<OutpostDef>();
+                for (int i = 0; i < frontline.outposts.Count; i++)
+                {
+                    OutpostRecord o = frontline.outposts[i];
+                    var items = new List<ItemGrant>();
+                    if (o.rewardItems != null)
+                    {
+                        for (int k = 0; k < o.rewardItems.Count; k++)
+                            items.Add(new ItemGrant(o.rewardItems[k].itemId, o.rewardItems[k].amount));
+                    }
+
+                    outposts.Add(new OutpostDef(o.outpostId, o.nameKey, o.hp, o.resist, o.minHqLevel, o.enemyUnitId,
+                        DataParse.Costs(o.rewardResources, "전초기지 " + o.outpostId), items, o.storyKey));
+                }
+
+                config.SetFrontline(new FrontlineDef(outposts, DataParse.Costs(frontline.lootPerThousand, "전선 전리품")));
+            }
+
             if (raids != null && raids.waves != null && raids.waves.Count > 0)
             {
                 var waves = new List<RaidWave>();
@@ -75,6 +96,27 @@ namespace Olympus.Core.Chapter
 
             return config;
         }
+    }
+
+    [Serializable]
+    public sealed class FrontlineRecord
+    {
+        public List<ResourceCostRecord> lootPerThousand = new List<ResourceCostRecord>();
+        public List<OutpostRecord> outposts = new List<OutpostRecord>();
+    }
+
+    [Serializable]
+    public sealed class OutpostRecord
+    {
+        public string outpostId;
+        public string nameKey;
+        public long hp;
+        public long resist;
+        public int minHqLevel;
+        public string enemyUnitId;
+        public List<ResourceCostRecord> rewardResources = new List<ResourceCostRecord>();
+        public List<ItemRecord> rewardItems = new List<ItemRecord>();
+        public string storyKey;
     }
 
     [Serializable]

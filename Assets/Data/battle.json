@@ -1,5 +1,5 @@
 {
-    "_comment": "전선 스테이지(성문 밖 거인의 잔당). 근거는 docs/battle.md. 아군은 건물에서 나온다(army: defId를 비우면 기본 수비대, 아니면 그 건물 레벨마다 countPerLevel명). buffs: 그 건물 레벨마다 능력치 %. stages는 1번부터 차례로, multiplier는 그 적의 체력·공격 배수. 스테이지는 한 번 깨면 끝(보상도 한 번).",
+    "_comment": "전선 스테이지(성문 밖 거인의 잔당). 근거는 docs/battle.md. 아군은 건물에서 나온다(army: 아니면 그 건물 레벨마다 countPerLevel명). buffs: 그 건물 레벨마다 능력치 %. stages는 1번부터 차례로, multiplier는 그 적의 체력·공격 배수. 스테이지는 한 번 깨면 끝(보상도 한 번). 막사(barracks)가 서야 군대가 생긴다 — 첫 4명 + 레벨마다 2명(2026-10-23 형님: 폐허 마을에 막사를 지어 거병).",
     "timeLimitMs": 90000,
     "units": [
         {
@@ -76,15 +76,9 @@
     ],
     "army": [
         {
-            "defId": "",
-            "unitId": "hoplite",
-            "fixedCount": 4,
-            "countPerLevel": 0
-        },
-        {
             "defId": "barracks",
             "unitId": "hoplite",
-            "fixedCount": 0,
+            "fixedCount": 4,
             "countPerLevel": 2
         },
         {

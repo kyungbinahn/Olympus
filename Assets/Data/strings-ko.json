@@ -86,7 +86,7 @@
         },
         {
             "key": "story.hq1",
-            "text": "본부에 다시 불이 켜졌다. 폐허가 된 폴리스를 하나씩 되살리자."
+            "text": "도적이 들끓는 어두운 세상, 약탈은 일상이 되었다. 막사에 모인 장정들과 함께 — 이 폐허 마을에서 거병한다."
         },
         {
             "key": "story.hq2",
@@ -395,6 +395,58 @@
         {
             "key": "unit.bandit",
             "text": "도적"
+        },
+        {
+            "key": "quest.q03b",
+            "text": "성문 밖 도적 소굴을 무너뜨려라"
+        },
+        {
+            "key": "quest.q15b",
+            "text": "도적 요새를 무너뜨려라"
+        },
+        {
+            "key": "outpost.bandit_den",
+            "text": "도적 소굴"
+        },
+        {
+            "key": "outpost.bandit_fort",
+            "text": "도적 요새"
+        },
+        {
+            "key": "outpost.giant_camp",
+            "text": "거인 진영"
+        },
+        {
+            "key": "outpost.giant_fort",
+            "text": "거인 성채"
+        },
+        {
+            "key": "outpost.cyclops_lair",
+            "text": "키클롭스 소굴"
+        },
+        {
+            "key": "story.outpost.bandit_den",
+            "text": "도적 소굴이 무너졌다! 갇혀 있던 마을 사람들이 풀려났다. 하지만 북쪽 길목에 더 큰 도적 요새가 버티고 있다."
+        },
+        {
+            "key": "story.outpost.bandit_fort",
+            "text": "도적 요새를 함락했다! 그런데 무너진 성벽 너머로 땅이 울린다… 거인들의 진영이다."
+        },
+        {
+            "key": "story.outpost.giant_camp",
+            "text": "거인 진영을 무너뜨렸다. 거인들이 성채로 물러난다 — 더 강한 놈들이 기다린다."
+        },
+        {
+            "key": "story.outpost.giant_fort",
+            "text": "거인 성채를 함락했다! 산 너머 키클롭스의 울음이 들린다."
+        },
+        {
+            "key": "story.outpost.cyclops_lair",
+            "text": "키클롭스 소굴까지 정리했다. 이제 더 넓은 세상으로 나아갈 때다."
+        },
+        {
+            "key": "quest.q00",
+            "text": "폐허 마을에 막사를 세워 군사를 일으키자"
         }
     ]
 }

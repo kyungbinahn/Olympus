@@ -91,6 +91,25 @@ namespace Olympus.Editor
                 MaterialFolder + "/CanyonFloor.mat", "CanyonFloor", new Color(0.55f, 0.48f, 0.36f)));
             rso.ApplyModifiedPropertiesWithoutUndo();
 
+            // 성문 밖 상시 전선 — 볼거리 병사는 도적 쪽 재생 부분의 모델 목록을 빌린다(같은 모델·정면 맞춤).
+            FrontlineDirector front = root.GetComponent<FrontlineDirector>();
+            if (front == null)
+                front = root.AddComponent<FrontlineDirector>();
+
+            var fso = new SerializedObject(front);
+            TerritorySceneBuilder.Wire(fso, "_presenter", presenter);
+            TerritorySceneBuilder.Wire(fso, "_arena", raidArena);
+            TerritorySceneBuilder.Wire(fso, "_giant", director);
+            TerritorySceneBuilder.Wire(fso, "_outpostWoodMaterial", TerritorySceneBuilder.CreateOrLoadFlatMaterial(
+                MaterialFolder + "/OutpostWood.mat", "OutpostWood", new Color(0.45f, 0.32f, 0.20f)));
+            TerritorySceneBuilder.Wire(fso, "_outpostStoneMaterial", TerritorySceneBuilder.CreateOrLoadFlatMaterial(
+                MaterialFolder + "/OutpostStone.mat", "OutpostStone", new Color(0.45f, 0.42f, 0.40f)));
+            TerritorySceneBuilder.Wire(fso, "_hpBackMaterial", TerritorySceneBuilder.CreateOrLoadFlatMaterial(
+                MaterialFolder + "/OutpostHpBack.mat", "OutpostHpBack", new Color(0.10f, 0.10f, 0.10f)));
+            TerritorySceneBuilder.Wire(fso, "_hpFillMaterial", TerritorySceneBuilder.CreateOrLoadFlatMaterial(
+                MaterialFolder + "/OutpostHpFill.mat", "OutpostHpFill", new Color(0.85f, 0.25f, 0.20f)));
+            fso.ApplyModifiedPropertiesWithoutUndo();
+
             TroopGarrisonView garrison = root.GetComponent<TroopGarrisonView>();
             if (garrison == null)
                 garrison = root.AddComponent<TroopGarrisonView>();

@@ -162,6 +162,11 @@ namespace Olympus.Core.Chapter
 
         public void SetRaids(RaidDef raids) => Raids = raids;
 
+        /// <summary>성문 밖 상시 전선. 없으면 null.</summary>
+        public FrontlineDef Frontline { get; private set; }
+
+        public void SetFrontline(FrontlineDef frontline) => Frontline = frontline;
+
         public ChapterConfig(TrainingDef training)
         {
             Training = training;
@@ -224,6 +229,18 @@ namespace Olympus.Core.Chapter
                 {
                     if (battle == null || !battle.TryGetUnit(t.Enemies[k].UnitId, out unit))
                         problems.Add(t.ThreatId + ": 모르는 적 '" + t.Enemies[k].UnitId + "'");
+                }
+            }
+
+            if (Frontline != null)
+            {
+                for (int i = 0; i < Frontline.Outposts.Count; i++)
+                {
+                    OutpostDef o = Frontline.Outposts[i];
+                    if (!string.IsNullOrEmpty(o.EnemyUnitId) && (battle == null || !battle.TryGetUnit(o.EnemyUnitId, out unit)))
+                        problems.Add("전초기지 " + o.OutpostId + ": 모르는 적 '" + o.EnemyUnitId + "'");
+                    if (i > 0 && o.MinHqLevel < Frontline.Outposts[i - 1].MinHqLevel)
+                        problems.Add("전초기지 " + o.OutpostId + ": 앞 기지보다 낮은 본부 레벨에 열린다");
                 }
             }
 

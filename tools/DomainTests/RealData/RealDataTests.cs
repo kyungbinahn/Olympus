@@ -204,10 +204,13 @@ namespace Olympus.DomainTests.RealData
             runtime.Initialize(layout);
 
             // 봇은 도적 싸움을 화면으로 붙이지 않는다 — Core가 도착 뒤 저절로 결판낸 것을 센다(앱을 켜 둔 사람과 결과는 같다).
+            long start = clock.NowUnixMs;
+            var frontLog = new List<string>();
+            runtime.Frontline.OutpostDestroyed += o => frontLog.Add(o.OutpostId + "@Lv" + runtime.HqLevel + " " +
+                ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분");
             int raidsWon = 0, raidsLost = 0, raidTroopsLost = 0;
             runtime.Raids.AutoResolved += o => { if (o.Won) raidsWon++; else raidsLost++; raidTroopsLost += o.TroopsLost; };
 
-            long start = clock.NowUnixMs;
             var reachedAt = new Dictionary<int, double>();
             var stageLog = new List<string>();
             const long Step = 10_000L;     // 10초마다 한 번 화면을 보는 사람
@@ -252,6 +255,7 @@ namespace Olympus.DomainTests.RealData
             string report = string.Join(", ", reachedAt.OrderBy(p => p.Key).Select(p => "Lv." + p.Key + " " + p.Value.ToString("0.0") + "분"));
             TestContext.WriteLine("봇 진행: " + report + " / 임무 " + runtime.State.QuestIndex + "/" + config.Quests.Count);
             TestContext.WriteLine("거인: " + string.Join(", ", stageLog));
+            TestContext.WriteLine("전선: " + string.Join(", ", frontLog) + " / 화력 " + runtime.Frontline.Power());
             TestContext.WriteLine("도적: 승 " + raidsWon + " / 패 " + raidsLost + ", 잃은 용사 " + raidTroopsLost);
 
             Assert.That(runtime.HqLevel, Is.EqualTo(config.MaxHqLevel), "본부 최고 레벨에 못 갔다 — " + report +

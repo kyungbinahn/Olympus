@@ -1,5 +1,5 @@
 {
-    "_comment": "1장 \"300 용사\"(docs/chapter1-300.md). training: 병영에서 병사를 기르는 규칙(한 명 비용·시간, 한 번에 맡길 수, 레벨당 빨라짐 %). threats: 실시간으로 다가오는 거인 — startHqLevel이 되면 보이고 approachMs 뒤에 도착. 도착 전 goalTroops를 채우면 먼저 출정, 도착하면 가진 병사로 싸운다. 지면 retryMs 뒤 다시 온다. raids: 도적 습격 — startHqLevel부터 intervalMs마다 온다(도착 approachMs 전부터 성 밖에 보임). 마을 수비대(militia) + 기른 용사 최대 defenderCap명이 막는다. 지면 목재·석재 lossPercent% 빼앗김. waves는 본부 레벨 이하 가장 높은 줄.",
+    "_comment": "1장 \"300 용사\"(docs/chapter1-300.md). training: 병영에서 병사를 기르는 규칙(한 명 비용·시간, 한 번에 맡길 수, 레벨당 빨라짐 %). threats: 실시간으로 다가오는 거인 — startHqLevel이 되면 보이고 approachMs 뒤에 도착. 도착 전 goalTroops를 채우면 먼저 출정, 도착하면 가진 병사로 싸운다. 지면 retryMs 뒤 다시 온다. raids: 도적 습격 — startHqLevel부터 intervalMs마다 온다(도착 approachMs 전부터 성 밖에 보임). 마을 수비대(militia) + 기른 용사 최대 defenderCap명이 막는다. 지면 목재·석재 lossPercent% 빼앗김. waves는 본부 레벨 이하 가장 높은 줄. frontline: 성문 밖 상시 전선(docs/hq1-5-frontline.md) — 건물이 주는 군대의 초당 화력에서 기지의 버팀(resist)을 뺀 만큼 체력(hp)이 깎인다. 피해 1000마다 lootPerThousand 전리품. raids는 전선으로 대체해 닫았다(startHqLevel 99).",
     "training": {
         "unitId": "hoplite",
         "barracksDefId": "barracks",
@@ -64,7 +64,7 @@
         }
     ],
     "raids": {
-        "startHqLevel": 1,
+        "startHqLevel": 99,
         "firstDelayMs": 45000,
         "intervalMs": 150000,
         "approachMs": 20000,
@@ -192,6 +192,164 @@
                         "amount": 120
                     }
                 ]
+            }
+        ]
+    },
+    "frontline": {
+        "lootPerThousand": [
+            {
+                "kind": "Wood",
+                "amount": 4
+            },
+            {
+                "kind": "Stone",
+                "amount": 3
+            }
+        ],
+        "outposts": [
+            {
+                "outpostId": "bandit_den",
+                "nameKey": "outpost.bandit_den",
+                "hp": 15000,
+                "resist": 20,
+                "minHqLevel": 1,
+                "enemyUnitId": "bandit",
+                "rewardResources": [
+                    {
+                        "kind": "Wood",
+                        "amount": 300
+                    },
+                    {
+                        "kind": "Stone",
+                        "amount": 200
+                    }
+                ],
+                "rewardItems": [
+                    {
+                        "itemId": "hermes_wing_1m",
+                        "amount": 3
+                    }
+                ],
+                "storyKey": "story.outpost.bandit_den"
+            },
+            {
+                "outpostId": "bandit_fort",
+                "nameKey": "outpost.bandit_fort",
+                "hp": 30000,
+                "resist": 50,
+                "minHqLevel": 2,
+                "enemyUnitId": "bandit",
+                "rewardResources": [
+                    {
+                        "kind": "Wood",
+                        "amount": 600
+                    },
+                    {
+                        "kind": "Stone",
+                        "amount": 450
+                    },
+                    {
+                        "kind": "Food",
+                        "amount": 200
+                    }
+                ],
+                "rewardItems": [
+                    {
+                        "itemId": "hermes_wing_5m",
+                        "amount": 2
+                    }
+                ],
+                "storyKey": "story.outpost.bandit_fort"
+            },
+            {
+                "outpostId": "giant_camp",
+                "nameKey": "outpost.giant_camp",
+                "hp": 100000,
+                "resist": 300,
+                "minHqLevel": 3,
+                "enemyUnitId": "giant_brute",
+                "rewardResources": [
+                    {
+                        "kind": "Wood",
+                        "amount": 1200
+                    },
+                    {
+                        "kind": "Stone",
+                        "amount": 900
+                    },
+                    {
+                        "kind": "Food",
+                        "amount": 400
+                    }
+                ],
+                "rewardItems": [
+                    {
+                        "itemId": "hermes_wing_5m",
+                        "amount": 3
+                    }
+                ],
+                "storyKey": "story.outpost.giant_camp"
+            },
+            {
+                "outpostId": "giant_fort",
+                "nameKey": "outpost.giant_fort",
+                "hp": 200000,
+                "resist": 400,
+                "minHqLevel": 4,
+                "enemyUnitId": "giant_brute",
+                "rewardResources": [
+                    {
+                        "kind": "Wood",
+                        "amount": 2000
+                    },
+                    {
+                        "kind": "Stone",
+                        "amount": 1500
+                    },
+                    {
+                        "kind": "Food",
+                        "amount": 800
+                    },
+                    {
+                        "kind": "Gold",
+                        "amount": 50
+                    }
+                ],
+                "rewardItems": [
+                    {
+                        "itemId": "hermes_wing_15m",
+                        "amount": 1
+                    }
+                ],
+                "storyKey": "story.outpost.giant_fort"
+            },
+            {
+                "outpostId": "cyclops_lair",
+                "nameKey": "outpost.cyclops_lair",
+                "hp": 400000,
+                "resist": 700,
+                "minHqLevel": 5,
+                "enemyUnitId": "giant_slinger",
+                "rewardResources": [
+                    {
+                        "kind": "Wood",
+                        "amount": 3000
+                    },
+                    {
+                        "kind": "Stone",
+                        "amount": 2500
+                    },
+                    {
+                        "kind": "Food",
+                        "amount": 1500
+                    },
+                    {
+                        "kind": "Gold",
+                        "amount": 150
+                    }
+                ],
+                "rewardItems": [],
+                "storyKey": "story.outpost.cyclops_lair"
             }
         ]
     }

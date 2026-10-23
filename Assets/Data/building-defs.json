@@ -157,7 +157,7 @@
                     "amount": 30
                 }
             ],
-            "unlockHqLevel": 2
+            "unlockHqLevel": 0
         },
         {
             "defId": "training_ground",

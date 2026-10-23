@@ -2,6 +2,23 @@
     "_comment": "하단 임무 바에 하나씩 뜨는 임무 체인. 순서가 곧 안내다 - 건물 복구, 업그레이드, 본부 레벨업을 번갈아 시킨다. objective.kind는 BuildingLevel / Prosperity / Counter(collect=수확 횟수, speedup=가속 사용 횟수). focusDefId는 임무 바를 눌렀을 때 카메라가 날아갈 건물. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. 1장(300 용사): 전선 스테이지 임무를 농장·병영·훈련·거인 격퇴로 바꿨다.",
     "quests": [
         {
+            "questId": "q00",
+            "titleKey": "quest.q00",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "barracks",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "barracks"
+        },
+        {
             "questId": "q01",
             "titleKey": "quest.q01",
             "objective": {
@@ -85,6 +102,27 @@
             ],
             "rewardItems": [],
             "focusDefId": "quarry"
+        },
+        {
+            "questId": "q03b",
+            "titleKey": "quest.q03b",
+            "objective": {
+                "kind": "Counter",
+                "target": "front.outpost",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 80
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
         },
         {
             "questId": "q06",
@@ -246,6 +284,27 @@
             ],
             "rewardItems": [],
             "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q15b",
+            "titleKey": "quest.q15b",
+            "objective": {
+                "kind": "Counter",
+                "target": "front.outpost",
+                "amount": 2
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
         },
         {
             "questId": "q15",

@@ -35,6 +35,11 @@
                     "kind": "Prosperity",
                     "target": "",
                     "amount": 3
+                },
+                {
+                    "kind": "Counter",
+                    "target": "front.outpost",
+                    "amount": 1
                 }
             ],
             "costs": [],
@@ -60,6 +65,11 @@
                     "kind": "Prosperity",
                     "target": "",
                     "amount": 11
+                },
+                {
+                    "kind": "Counter",
+                    "target": "front.outpost",
+                    "amount": 2
                 }
             ],
             "costs": [
@@ -160,6 +170,11 @@
                 {
                     "kind": "BuildingLevel",
                     "target": "mason_yard",
+                    "amount": 3
+                },
+                {
+                    "kind": "Counter",
+                    "target": "front.outpost",
                     "amount": 3
                 }
             ],
