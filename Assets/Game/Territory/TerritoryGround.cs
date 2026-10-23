@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Olympus.Core.Grid;
 using Olympus.Core.Territory;
@@ -165,15 +166,104 @@ namespace Olympus.Game.Territory
             return transform.TransformPoint(new Vector3(w.X, y, w.Z));
         }
 
-        private void OnDestroy()
+        // ── 흙바닥 마스크 ─────────────────────────────────────────────
+        // 건물 에셋에는 바닥이 없다(OlympusArt/background/art-direction.md — 바닥은 따로 만든다).
+        // 대신 건물이 서 있는 풋프린트만큼 지면을 흙으로 바꾼다. 칸 하나당 1픽셀 마스크를
+        // 굽고 Olympus/Ground 셰이더가 그걸 읽는다. 지면 메쉬·서브메쉬(황폐/녹지)는 그대로라
+        // 복구 표현과 서로 간섭하지 않는다.
+
+        private static readonly int DirtMaskId = Shader.PropertyToID("_OlympusDirtMask");
+        private static readonly int DirtMaskRectId = Shader.PropertyToID("_OlympusDirtMaskRect");
+        private static readonly int DirtCellSizeId = Shader.PropertyToID("_OlympusDirtCellSize");
+
+        private Texture2D _dirtMask;
+        private byte[] _dirtPixels;
+
+        /// <summary>
+        /// 건물이 선 자리를 흙바닥으로 칠한다. 넘긴 풋프린트 전체가 이번 상태다 —
+        /// 빠진 건물 자리는 원래 지면으로 돌아간다. 건물 상태가 바뀔 때만 부르면 된다.
+        /// </summary>
+        public void SetDirtPatches(IEnumerable<(GridPos anchor, GridFootprint footprint)> patches)
         {
-            if (_mesh == null)
+            EnsureGrid();
+            EnsureDirtMask();
+
+            System.Array.Clear(_dirtPixels, 0, _dirtPixels.Length);
+
+            if (patches != null)
+            {
+                foreach (var (anchor, footprint) in patches)
+                {
+                    foreach (GridPos cell in footprint.CellsAt(anchor))
+                    {
+                        if (!_bounds.Contains(cell))
+                            continue;
+
+                        int px = cell.X - _bounds.MinX;
+                        int py = cell.Y - _bounds.MinY;
+                        _dirtPixels[py * _bounds.Width + px] = 255;
+                    }
+                }
+            }
+
+            _dirtMask.SetPixelData(_dirtPixels, 0);
+            _dirtMask.Apply(false, false);
+            PushDirtGlobals();
+        }
+
+        private void EnsureDirtMask()
+        {
+            if (_dirtMask != null && _dirtMask.width == _bounds.Width && _dirtMask.height == _bounds.Height)
                 return;
 
+            if (_dirtMask != null)
+                DestroyObject(_dirtMask);
+
+            _dirtMask = new Texture2D(_bounds.Width, _bounds.Height, TextureFormat.R8, false, true)
+            {
+                name = "OlympusDirtMask",
+                // 바이리니어가 핵심 — 칸 경계에서 정확히 0.5가 나와야 셰이더가 사각형을 자른다.
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.DontSave,
+            };
+            _dirtPixels = new byte[_bounds.Width * _bounds.Height];
+        }
+
+        private void PushDirtGlobals()
+        {
+            // 마스크 텍셀 중심 = 칸 중심이 되도록, 덮는 범위는 최소 칸의 바깥 코너부터 잡는다.
+            WorldXZ minCenter = _grid.CellToWorld(new GridPos(_bounds.MinX, _bounds.MinY));
+            float half = _grid.CellSize * 0.5f;
+            Vector3 minCorner = transform.TransformPoint(new Vector3(minCenter.X - half, 0f, minCenter.Z - half));
+
+            float sizeX = _bounds.Width * _grid.CellSize;
+            float sizeZ = _bounds.Height * _grid.CellSize;
+
+            Shader.SetGlobalTexture(DirtMaskId, _dirtMask);
+            Shader.SetGlobalVector(DirtMaskRectId, new Vector4(minCorner.x, minCorner.z, 1f / sizeX, 1f / sizeZ));
+            Shader.SetGlobalFloat(DirtCellSizeId, _grid.CellSize);
+        }
+
+        private static void DestroyObject(Object o)
+        {
             if (Application.isPlaying)
-                Destroy(_mesh);
+                Destroy(o);
             else
-                DestroyImmediate(_mesh);
+                DestroyImmediate(o);
+        }
+
+        private void OnDestroy()
+        {
+            if (_dirtMask != null)
+            {
+                // 전역에 남겨 두면 다음 씬의 지면이 지워진 텍스처를 읽는다.
+                Shader.SetGlobalVector(DirtMaskRectId, Vector4.zero);
+                DestroyObject(_dirtMask);
+            }
+
+            if (_mesh != null)
+                DestroyObject(_mesh);
         }
     }
 }

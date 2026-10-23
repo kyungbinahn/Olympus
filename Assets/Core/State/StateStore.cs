@@ -39,6 +39,16 @@ namespace Olympus.Core.State
 
             ApplyResources(delta.Resources);
             ApplyBuildings(delta.Buildings);
+            ApplyCounts(State.Items, delta.Items);
+            ApplyCounts(State.Counters, delta.Counters);
+
+            if (delta.QuestIndex.HasValue)
+            {
+                if (delta.QuestIndex.Value < 0)
+                    throw new InvalidOperationException("임무 번호가 음수다: " + delta.QuestIndex.Value);
+
+                State.QuestIndex = delta.QuestIndex.Value;
+            }
 
             if (delta.ServerTimeUnixMs.HasValue)
                 State.LastKnownServerTimeUnixMs = delta.ServerTimeUnixMs.Value;
@@ -59,6 +69,17 @@ namespace Olympus.Core.State
                     State.Resources.SetAbsolute(c.Kind, c.Value);
                 else
                     State.Resources.Add(c.Kind, c.Value);
+            }
+        }
+
+        private static void ApplyCounts(CountPool pool, List<CountChange> changes)
+        {
+            if (changes == null)
+                return;
+
+            for (int i = 0; i < changes.Count; i++)
+            {
+                pool.Apply(changes[i]);
             }
         }
 
@@ -102,7 +123,8 @@ namespace Olympus.Core.State
                     ". 델타를 만들기 전에 GridOccupancy.Check로 확인해야 한다.");
 
             var building = new BuildingInstance(
-                c.Id, c.DefId, c.Anchor, c.Footprint, c.Phase, c.Level, c.ConstructionEndsAtUnixMs);
+                c.Id, c.DefId, c.Anchor, c.Footprint, c.Phase, c.Level, c.ConstructionEndsAtUnixMs,
+                c.ProductionAnchorUnixMs);
 
             State.MutableBuildings.Add(c.Id, building);
 
@@ -137,6 +159,7 @@ namespace Olympus.Core.State
             building.Phase = c.Phase;
             building.Level = c.Level;
             building.ConstructionEndsAtUnixMs = c.ConstructionEndsAtUnixMs;
+            building.ProductionAnchorUnixMs = c.ProductionAnchorUnixMs;
         }
 
         private void ApplyBuildingRemove(BuildingChange c)

@@ -1,152 +1,152 @@
 {
-    "baseSize":  48,
-    "slots":  [
-                  {
-                      "slotId":  1,
-                      "defId":  "main_hall",
-                      "x":  -3,
-                      "y":  -3,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  2,
-                      "defId":  "war_engine_yard",
-                      "x":  -3,
-                      "y":  -10,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  3,
-                      "defId":  "arena",
-                      "x":  -10,
-                      "y":  -3,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  4,
-                      "defId":  "training_ground",
-                      "x":  4,
-                      "y":  -3,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  5,
-                      "defId":  "shipyard",
-                      "x":  -3,
-                      "y":  -24,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  6,
-                      "defId":  "timber_store",
-                      "x":  -2,
-                      "y":  4,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  7,
-                      "defId":  "mason_yard",
-                      "x":  -8,
-                      "y":  4,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  8,
-                      "defId":  "barracks",
-                      "x":  4,
-                      "y":  4,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  9,
-                      "defId":  "farm",
-                      "x":  4,
-                      "y":  -9,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  10,
-                      "defId":  "council_hall",
-                      "x":  -9,
-                      "y":  -9,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  11,
-                      "defId":  "warehouse",
-                      "x":  -2,
-                      "y":  10,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  12,
-                      "defId":  "quarry",
-                      "x":  11,
-                      "y":  -2,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  13,
-                      "defId":  "gatehouse",
-                      "x":  -9,
-                      "y":  10,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  14,
-                      "defId":  "fishing_hut",
-                      "x":  4,
-                      "y":  -24,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  15,
-                      "defId":  "silver_mine",
-                      "x":  -12,
-                      "y":  4,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  16,
-                      "defId":  "healing_house",
-                      "x":  10,
-                      "y":  4,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  17,
-                      "defId":  "hidden_cove",
-                      "x":  -7,
-                      "y":  -24,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  18,
-                      "defId":  "ironworks",
-                      "x":  4,
-                      "y":  10,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  19,
-                      "defId":  "carpentry",
-                      "x":  10,
-                      "y":  -7,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  20,
-                      "defId":  "mine",
-                      "x":  -1,
-                      "y":  -14,
-                      "zoneId":  0
-                  },
-                  {
-                      "slotId":  21,
-                      "defId":  "notice_stele",
-                      "x":  4,
-                      "y":  -11,
-                      "zoneId":  0
-                  }
-              ]
+    "baseSize": 48,
+    "slots": [
+        {
+            "slotId": 1,
+            "defId": "main_hall",
+            "x": 1,
+            "y": -1,
+            "zoneId": 0
+        },
+        {
+            "slotId": 2,
+            "defId": "war_engine_yard",
+            "x": -15,
+            "y": -14,
+            "zoneId": 0
+        },
+        {
+            "slotId": 3,
+            "defId": "arena",
+            "x": -19,
+            "y": 2,
+            "zoneId": 0
+        },
+        {
+            "slotId": 4,
+            "defId": "training_ground",
+            "x": 0,
+            "y": -17,
+            "zoneId": 0
+        },
+        {
+            "slotId": 5,
+            "defId": "shipyard",
+            "x": 11,
+            "y": -24,
+            "zoneId": 0
+        },
+        {
+            "slotId": 6,
+            "defId": "timber_store",
+            "x": 13,
+            "y": -8,
+            "zoneId": 0
+        },
+        {
+            "slotId": 7,
+            "defId": "mason_yard",
+            "x": -7,
+            "y": 3,
+            "zoneId": 0
+        },
+        {
+            "slotId": 8,
+            "defId": "barracks",
+            "x": 9,
+            "y": -16,
+            "zoneId": 0
+        },
+        {
+            "slotId": 9,
+            "defId": "farm",
+            "x": 3,
+            "y": -10,
+            "zoneId": 0
+        },
+        {
+            "slotId": 10,
+            "defId": "council_hall",
+            "x": -13,
+            "y": 8,
+            "zoneId": 0
+        },
+        {
+            "slotId": 11,
+            "defId": "warehouse",
+            "x": 4,
+            "y": 9,
+            "zoneId": 0
+        },
+        {
+            "slotId": 12,
+            "defId": "quarry",
+            "x": 11,
+            "y": -2,
+            "zoneId": 0
+        },
+        {
+            "slotId": 13,
+            "defId": "gatehouse",
+            "x": -17,
+            "y": -19,
+            "zoneId": 0
+        },
+        {
+            "slotId": 14,
+            "defId": "fishing_hut",
+            "x": 4,
+            "y": -24,
+            "zoneId": 0
+        },
+        {
+            "slotId": 15,
+            "defId": "silver_mine",
+            "x": 12,
+            "y": 11,
+            "zoneId": 0
+        },
+        {
+            "slotId": 16,
+            "defId": "healing_house",
+            "x": 9,
+            "y": 4,
+            "zoneId": 0
+        },
+        {
+            "slotId": 17,
+            "defId": "hidden_cove",
+            "x": -11,
+            "y": 18,
+            "zoneId": 0
+        },
+        {
+            "slotId": 18,
+            "defId": "ironworks",
+            "x": -7,
+            "y": -3,
+            "zoneId": 0
+        },
+        {
+            "slotId": 19,
+            "defId": "carpentry",
+            "x": -11,
+            "y": -5,
+            "zoneId": 0
+        },
+        {
+            "slotId": 20,
+            "defId": "mine",
+            "x": 15,
+            "y": 9,
+            "zoneId": 0
+        },
+        {
+            "slotId": 21,
+            "defId": "notice_stele",
+            "x": -3,
+            "y": -8,
+            "zoneId": 0
+        }
+    ]
 }

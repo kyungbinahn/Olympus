@@ -50,6 +50,14 @@ namespace Olympus.Core.State
         /// </summary>
         public long ConstructionEndsAtUnixMs { get; internal set; }
 
+        /// <summary>
+        /// 생산이 이 시각부터 쌓이기 시작했다(유닉스 밀리초) — 마지막으로 수확했거나
+        /// 공사가 끝난 시각. 쌓인 양을 "매 초 더하기"로 들고 있지 않고 이 시각과 지금의 차로
+        /// 계산한다. 공사 타이머와 같은 이유다: 앱을 꺼 둔 동안에도 쌓이고, 서버 시각으로
+        /// 바꿔도 계산식이 그대로다. 생산 건물이 아니면 의미가 없다.
+        /// </summary>
+        public long ProductionAnchorUnixMs { get; internal set; }
+
         internal BuildingInstance(
             int id,
             string defId,
@@ -57,7 +65,8 @@ namespace Olympus.Core.State
             GridFootprint footprint,
             BuildingPhase phase,
             int level,
-            long constructionEndsAtUnixMs)
+            long constructionEndsAtUnixMs,
+            long productionAnchorUnixMs)
         {
             Id = id;
             DefId = defId;
@@ -66,6 +75,7 @@ namespace Olympus.Core.State
             Phase = phase;
             Level = level;
             ConstructionEndsAtUnixMs = constructionEndsAtUnixMs;
+            ProductionAnchorUnixMs = productionAnchorUnixMs;
         }
 
         public bool IsRuined => Phase == BuildingPhase.Ruined;

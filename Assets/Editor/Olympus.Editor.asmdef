@@ -4,7 +4,10 @@
     "references": [
         "Olympus.Core",
         "Olympus.Game",
-        "Olympus.UI"
+        "Olympus.UI",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

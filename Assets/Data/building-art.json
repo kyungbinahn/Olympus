@@ -1,0 +1,172 @@
+{
+    "buildings": [
+        {
+            "defId": "main_hall",
+            "yaw": -46.565181732177737,
+            "scale": 1.3985344171524048,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "war_engine_yard",
+            "yaw": -58.842350006103519,
+            "scale": 0.9201660752296448,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "arena",
+            "yaw": 0.0000032751586331869477,
+            "scale": 1.424299955368042,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "training_ground",
+            "yaw": -31.775867462158204,
+            "scale": 1.3405749797821046,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "shipyard",
+            "yaw": -26.986539840698243,
+            "scale": 1.2517335414886475,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "timber_store",
+            "yaw": 0.0000032751586331869477,
+            "scale": 1.0,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "mason_yard",
+            "yaw": -62.5464973449707,
+            "scale": 1.3217040300369263,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "barracks",
+            "yaw": -20.889877319335939,
+            "scale": 1.2775498628616334,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "farm",
+            "yaw": 0.0000032751586331869477,
+            "scale": 1.0,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "council_hall",
+            "yaw": 88.61927795410156,
+            "scale": 1.022757649421692,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "warehouse",
+            "yaw": -71.36711120605469,
+            "scale": 1.232653260231018,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "quarry",
+            "yaw": 0.0000032751586331869477,
+            "scale": 1.0,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "gatehouse",
+            "yaw": 0.0000032751586331869477,
+            "scale": 1.0,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "fishing_hut",
+            "yaw": 0.0000032751586331869477,
+            "scale": 1.5303000211715699,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "silver_mine",
+            "yaw": 0.0000032751586331869477,
+            "scale": 1.0,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "healing_house",
+            "yaw": -76.52764892578125,
+            "scale": 1.1932259798049927,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "hidden_cove",
+            "yaw": -96.25360107421875,
+            "scale": 1.0984731912612916,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "ironworks",
+            "yaw": -77.00568389892578,
+            "scale": 1.1884928941726685,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "carpentry",
+            "yaw": -18.023780822753908,
+            "scale": 1.254217267036438,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "mine",
+            "yaw": -47.100135803222659,
+            "scale": 1.4019670486450196,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        },
+        {
+            "defId": "notice_stele",
+            "yaw": 0.0000032751586331869477,
+            "scale": 1.0,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 0.0
+        }
+    ]
+}

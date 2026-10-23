@@ -1,0 +1,674 @@
+{
+    "_comment": "하단 임무 바에 하나씩 뜨는 임무 체인. 순서가 곧 안내다 - 건물 복구, 업그레이드, 본부 레벨업을 번갈아 시킨다. objective.kind는 BuildingLevel / Prosperity / Counter(collect=수확 횟수, speedup=가속 사용 횟수). focusDefId는 임무 바를 눌렀을 때 카메라가 날아갈 건물. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. Counter stage = 깬 전선 스테이지 중 가장 높은 번호. focusDefId가 빈 전투 임무는 임무 바를 누르면 전선 화면으로 간다. 1장(300 용사): 전선 스테이지 임무를 농장·병영·훈련·거인 격퇴로 바꿨다.",
+    "quests": [
+        {
+            "questId": "q01",
+            "titleKey": "quest.q01",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "main_hall",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 50
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q02",
+            "titleKey": "quest.q02",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "notice_stele",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 30
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "notice_stele"
+        },
+        {
+            "questId": "q03",
+            "titleKey": "quest.q03",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "carpentry",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 40
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "carpentry"
+        },
+        {
+            "questId": "q04",
+            "titleKey": "quest.q04",
+            "objective": {
+                "kind": "Counter",
+                "target": "collect",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Stone",
+                    "amount": 40
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "carpentry"
+        },
+        {
+            "questId": "q05",
+            "titleKey": "quest.q05",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "quarry",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 40
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "quarry"
+        },
+        {
+            "questId": "q06",
+            "titleKey": "quest.q06",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "main_hall",
+                "amount": 2
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 80
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q07",
+            "titleKey": "quest.q07",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "farm",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "farm"
+        },
+        {
+            "questId": "q08",
+            "titleKey": "quest.q08",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "timber_store",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 50
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "timber_store"
+        },
+        {
+            "questId": "q09",
+            "titleKey": "quest.q09",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "mine",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 50
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "mine"
+        },
+        {
+            "questId": "q10",
+            "titleKey": "quest.q10",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "carpentry",
+                "amount": 2
+            },
+            "rewardResources": [
+                {
+                    "kind": "Stone",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "carpentry"
+        },
+        {
+            "questId": "q11",
+            "titleKey": "quest.q11",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "barracks",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Stone",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "barracks"
+        },
+        {
+            "questId": "q12",
+            "titleKey": "quest.q12",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "mason_yard",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "mason_yard"
+        },
+        {
+            "questId": "q13",
+            "titleKey": "quest.q13",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "warehouse",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Stone",
+                    "amount": 50
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "warehouse"
+        },
+        {
+            "questId": "q14",
+            "titleKey": "quest.q14",
+            "objective": {
+                "kind": "Prosperity",
+                "target": "",
+                "amount": 11
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 80
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q15",
+            "titleKey": "quest.q15",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "main_hall",
+                "amount": 3
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 120
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q16",
+            "titleKey": "quest.q16",
+            "objective": {
+                "kind": "Counter",
+                "target": "trained",
+                "amount": 50
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 80
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "barracks"
+        },
+        {
+            "questId": "q17",
+            "titleKey": "quest.q17",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "training_ground",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "training_ground"
+        },
+        {
+            "questId": "q18",
+            "titleKey": "quest.q18",
+            "objective": {
+                "kind": "Counter",
+                "target": "trained",
+                "amount": 150
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 80
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "barracks"
+        },
+        {
+            "questId": "q19",
+            "titleKey": "quest.q19",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "quarry",
+                "amount": 3
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "quarry"
+        },
+        {
+            "questId": "q20",
+            "titleKey": "quest.q20",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "gatehouse",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Stone",
+                    "amount": 80
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "gatehouse"
+        },
+        {
+            "questId": "q21",
+            "titleKey": "quest.q21",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "healing_house",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 80
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "healing_house"
+        },
+        {
+            "questId": "q22",
+            "titleKey": "quest.q22",
+            "objective": {
+                "kind": "Counter",
+                "target": "threat.giant_1.won",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 80
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
+        },
+        {
+            "questId": "q23",
+            "titleKey": "quest.q23",
+            "objective": {
+                "kind": "Prosperity",
+                "target": "",
+                "amount": 20
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 150
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 120
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q24",
+            "titleKey": "quest.q24",
+            "objective": {
+                "kind": "Counter",
+                "target": "speedup",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_5m",
+                    "amount": 2
+                }
+            ],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q25",
+            "titleKey": "quest.q25",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "main_hall",
+                "amount": 4
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q26",
+            "titleKey": "quest.q26",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "council_hall",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Stone",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "council_hall"
+        },
+        {
+            "questId": "q27",
+            "titleKey": "quest.q27",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "ironworks",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "ironworks"
+        },
+        {
+            "questId": "q28",
+            "titleKey": "quest.q28",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "farm",
+                "amount": 2
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 120
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "farm"
+        },
+        {
+            "questId": "q29",
+            "titleKey": "quest.q29",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "mason_yard",
+                "amount": 3
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 150
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "mason_yard"
+        },
+        {
+            "questId": "q30",
+            "titleKey": "quest.q30",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "arena",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "arena"
+        },
+        {
+            "questId": "q31",
+            "titleKey": "quest.q31",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "shipyard",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "shipyard"
+        },
+        {
+            "questId": "q32",
+            "titleKey": "quest.q32",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "barracks",
+                "amount": 3
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "barracks"
+        },
+        {
+            "questId": "q33",
+            "titleKey": "quest.q33",
+            "objective": {
+                "kind": "Prosperity",
+                "target": "",
+                "amount": 30
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q34",
+            "titleKey": "quest.q34",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "main_hall",
+                "amount": 5
+            },
+            "rewardResources": [
+                {
+                    "kind": "Food",
+                    "amount": 200
+                },
+                {
+                    "kind": "Gold",
+                    "amount": 30
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q35",
+            "titleKey": "quest.q35",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "fishing_hut",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Food",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "fishing_hut"
+        },
+        {
+            "questId": "q36",
+            "titleKey": "quest.q36",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "silver_mine",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Gold",
+                    "amount": 30
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "silver_mine"
+        }
+    ]
+}
