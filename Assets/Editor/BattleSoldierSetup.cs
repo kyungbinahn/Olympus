@@ -319,15 +319,33 @@ namespace Olympus.Editor
 
         /// <summary>
         /// 대기 ↔ 행군(Speed), 아무 때나 공격(Attack) 뒤 대기로, 아무 때나 쓰러짐(Die, 끝에서 멈춤).
-        /// 매번 새로 짓는다 — 손으로 고칠 값이 없고, 클립 이름이 바뀌면 다시 지으면 된다.
+        /// 매번 내용을 새로 짓는다 — 손으로 고칠 값이 없고, 클립 이름이 바뀌면 다시 지으면 된다.
+        ///
+        /// ⚠️ 파일을 지우고 새로 만들지 않는다. 기지 씬은 이 연결을 무대 둘(Chapter·Raids)에 연달아 하는데,
+        /// 지웠다 만들면 두 번째 연결이 첫 번째 무대가 물고 있던 컨트롤러를 지워 그 무대 병사가 전부 동작 없이
+        /// T포즈로 미끄러졌다(2026-10-26 — 씬 파일에 controller: {fileID: 0}로 저장돼 있었다).
+        /// 같은 자산을 비우고 다시 채우면 물고 있는 참조가 그대로 산다.
         /// </summary>
         private static RuntimeAnimatorController BuildController(string name, List<AnimationClip> clips,
             string attackClip, string attackClipB)
         {
             string path = Folder + "/" + name + ".controller";
-            AssetDatabase.DeleteAsset(path);
 
-            AnimatorController c = AnimatorController.CreateAnimatorControllerAtPath(path);
+            AnimatorController c = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            if (c == null)
+            {
+                c = AnimatorController.CreateAnimatorControllerAtPath(path);
+            }
+            else
+            {
+                c.parameters = new AnimatorControllerParameter[0];
+                AnimatorStateMachine old = c.layers[0].stateMachine;
+                foreach (AnimatorStateTransition t in old.anyStateTransitions)
+                    old.RemoveAnyStateTransition(t);
+                foreach (ChildAnimatorState s in old.states)
+                    old.RemoveState(s.state);
+            }
+
             c.AddParameter("Speed", AnimatorControllerParameterType.Float);
             c.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
             c.AddParameter("Die", AnimatorControllerParameterType.Trigger);
@@ -373,6 +391,7 @@ namespace Olympus.Editor
             die.duration = 0.05f;
             die.canTransitionToSelf = false;
 
+            EditorUtility.SetDirty(c);
             AssetDatabase.SaveAssets();
             return c;
         }

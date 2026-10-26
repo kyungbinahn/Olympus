@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEngine;
 
 namespace Olympus.Editor
 {
@@ -39,6 +40,85 @@ namespace Olympus.Editor
             importer.materialImportMode = ModelImporterMaterialImportMode.None;
             importer.importCameras = false;
             importer.importLights = false;
+
+            FixUalMapping(importer);
+        }
+
+        /// <summary>
+        /// UAL 뼈대(아트 납품 병사 전부 — Quaternius UAL 65본, 이름 같음) 연결표. 자동 연결이 맞게 잡은 거인·키클롭스·도적B와 같다.
+        /// 골반은 pelvis다 — 호플리테스·도적은 자동 연결이 발밑 기준 뼈(root)를 골반으로 잡아 두었다.
+        /// </summary>
+        private static readonly (string bone, string human)[] UalMap =
+        {
+            ("pelvis", "Hips"), ("spine_01", "Spine"), ("spine_02", "Chest"), ("spine_03", "UpperChest"),
+            ("neck_01", "Neck"), ("Head", "Head"),
+            ("thigh_l", "LeftUpperLeg"), ("calf_l", "LeftLowerLeg"), ("foot_l", "LeftFoot"), ("ball_l", "LeftToes"),
+            ("thigh_r", "RightUpperLeg"), ("calf_r", "RightLowerLeg"), ("foot_r", "RightFoot"), ("ball_r", "RightToes"),
+            ("clavicle_l", "LeftShoulder"), ("upperarm_l", "LeftUpperArm"), ("lowerarm_l", "LeftLowerArm"), ("hand_l", "LeftHand"),
+            ("clavicle_r", "RightShoulder"), ("upperarm_r", "RightUpperArm"), ("lowerarm_r", "RightLowerArm"), ("hand_r", "RightHand"),
+            ("thumb_01_l", "Left Thumb Proximal"), ("thumb_02_l", "Left Thumb Intermediate"), ("thumb_03_l", "Left Thumb Distal"),
+            ("index_01_l", "Left Index Proximal"), ("index_02_l", "Left Index Intermediate"), ("index_03_l", "Left Index Distal"),
+            ("pinky_01_l", "Left Little Proximal"), ("pinky_02_l", "Left Little Intermediate"), ("pinky_03_l", "Left Little Distal"),
+            ("thumb_01_r", "Right Thumb Proximal"), ("thumb_02_r", "Right Thumb Intermediate"), ("thumb_03_r", "Right Thumb Distal"),
+            ("index_01_r", "Right Index Proximal"), ("index_02_r", "Right Index Intermediate"), ("index_03_r", "Right Index Distal"),
+            ("pinky_01_r", "Right Little Proximal"), ("pinky_02_r", "Right Little Intermediate"), ("pinky_03_r", "Right Little Distal"),
+        };
+
+        // 이 부위가 엉뚱한 뼈에 붙었으면 자동 연결이 틀린 것이다.
+        private static readonly string[] CoreParts = { "Hips", "Head", "LeftHand", "RightHand", "LeftFoot", "RightFoot", "LeftUpperArm", "RightUpperArm" };
+
+        /// <summary>
+        /// Unity 자동 연결은 몸 비율로 뼈를 짐작한다. 도적(키 작고 배낭)에서는 손을 엄지 끝마디로, 엄지를 새끼손가락으로 잡아
+        /// 아바타가 깨졌고 — 사람형이 아니게 되어 동작도 무기도 안 붙은 채 T포즈로 서 있었다(2026-10-26, 촬영 부스로 확인).
+        /// 뼈 이름이 정해진 UAL이니 짐작이 틀렸을 때만 표대로 바로잡는다(맞게 잡힌 모델은 건드리지 않는다).
+        /// 뼈대 목록(skeleton)은 첫 가져오기에서 Unity가 채운 것을 그대로 쓴다 — 처음 들어온 파일은 가져오기가 한 번 더 필요하다.
+        /// </summary>
+        private static void FixUalMapping(ModelImporter importer)
+        {
+            HumanDescription d = importer.humanDescription;
+            if (d.skeleton == null || d.skeleton.Length == 0)
+                return;
+
+            var names = new System.Collections.Generic.HashSet<string>();
+            foreach (SkeletonBone b in d.skeleton)
+                names.Add(b.name);
+            if (!names.Contains("pelvis") || !names.Contains("hand_l") || !names.Contains("hand_r"))
+                return;   // UAL 뼈대가 아니다
+
+            var want = new System.Collections.Generic.Dictionary<string, string>();
+            foreach ((string ualBone, string ualHuman) in UalMap)
+                want[ualHuman] = ualBone;
+
+            bool wrong = false;
+            foreach (string part in CoreParts)
+            {
+                string have = null;
+                if (d.human != null)
+                {
+                    foreach (HumanBone h in d.human)
+                    {
+                        if (h.humanName == part)
+                            have = h.boneName;
+                    }
+                }
+                if (have != want[part])
+                    wrong = true;
+            }
+
+            if (!wrong)
+                return;
+
+            var human = new HumanBone[UalMap.Length];
+            for (int i = 0; i < UalMap.Length; i++)
+            {
+                var limit = new HumanLimit();
+                limit.useDefaultValues = true;
+                human[i] = new HumanBone { boneName = UalMap[i].bone, humanName = UalMap[i].human, limit = limit };
+            }
+
+            d.human = human;
+            importer.humanDescription = d;
+            UnityEngine.Debug.Log("사람형 뼈대 연결을 UAL 표대로 바로잡았습니다: " + importer.assetPath);
         }
 
         private void OnPreprocessAnimation()

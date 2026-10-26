@@ -390,9 +390,16 @@ namespace Olympus.Game.Battle
             // 동작이 붙은 뒤에 한 번 더 잰다. Humanoid는 동작을 틀 때 몸의 정면을 Unity가 뼈대에서 다시 계산해
             // 돌려 세우는데, 거인처럼 구부정하고 팔이 앞으로 나온 몸은 그 계산이 반대로 나와 기본 자세(T포즈)에서
             // 맞춰 둔 정면이 첫 프레임에 뒤집혔다(2026-10-22 — 아트 쪽이 파일은 호플리테스와 같다고 확인).
+            //
+            // ⚠️ 이 맞춤이 실제로 동작 자세를 재려면 두 가지가 필요하다(2026-10-26, 촬영 부스로 확인 — 없으면 T포즈를
+            // 다시 재고 끝나서, 호플리테스가 동작이 걸리는 순간 뒤로 돌아 뒷걸음질했다):
+            //  1) 컬링을 잠깐 끈다. 방금 세운 모델은 한 번도 화면에 안 그려져 "안 보임"이라 Animator가 뼈 계산을 건너뛴다.
+            //  2) 0초가 아니라 시간을 조금 흘린다. Update(0)은 자세를 바꾸지 않았다.
             if (animator.runtimeAnimatorController != null && animator.isHuman)
             {
-                animator.Update(0f);
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                animator.Rebind();
+                animator.Update(1f / 30f);
                 FaceForward(model.transform, animator, body);
             }
 
@@ -514,7 +521,11 @@ namespace Olympus.Game.Battle
 
                 // 크기는 건드리지 않는다 — 몸과 같은 내보내기 도구에서 나와 단위가 이미 같다.
                 // 아래 SetParent가 월드 크기를 지키고, 그 뒤 몸을 키우면 소품도 같이 커진다.
-                GameObject prop = Instantiate(p.model, position, rotation);
+                //
+                // 회전에 소품 원본의 회전을 곱한다. Blender FBX는 축 변환(X -90°)이 소품 맨 위 오브젝트의 회전으로
+                // 들어오는데, 그걸 덮어쓰면 아트가 정한 "앞 = Unity +Z"가 "앞 = -Y"로 틀어진다 — 창이 날을 아래로 하고
+                // 수직으로 서고 방패가 팔 끝 쪽을 봤다(2026-10-26, 촬영 부스로 확인).
+                GameObject prop = Instantiate(p.model, position, rotation * p.model.transform.localRotation);
 
                 Material m = !player && p.enemyMaterial != null ? p.enemyMaterial : p.material;
                 if (m != null)
