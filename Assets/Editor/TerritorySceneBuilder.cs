@@ -23,6 +23,17 @@ namespace Olympus.Editor
         private const string DevastatedTexturePath = "Assets/Settings/GridCheckerDevastated.asset";
         private const string RestoredTexturePath = "Assets/Settings/GridCheckerRestored.asset";
 
+        // 실제 지면 아트(OlympusArt/background/gen-ground.sh → make_tileable.py). 있으면 체커 대신 쓴다.
+        private const string DevastatedArtPath = "Assets/Art/Ground/Ground_Devastated.png";
+        private const string RestoredArtPath = "Assets/Art/Ground/Ground_Restored.png";
+        private const string DirtArtPath = "Assets/Art/Ground/Ground_Dirt.png";
+
+        // 지면 텍스처 한 장이 덮는 칸 수. 8칸이면 황폐 지면의 풀 자국이 줄지어 보여서 12칸.
+        private const float GroundArtCellsPerTile = 12f;
+        private const float GroundArtMacroStrength = 0.08f;
+        // 흙 텍스처는 6칸에 한 장 (셰이더 _DirtTiling은 "칸당 반복 수").
+        private const float DirtArtTilingPerCell = 1f / 6f;
+
         // 황폐 — 마르고 갈라진 땅. 배경 아트 디렉션의 "누렇게 마른 목초, 갈라진 땅".
         private static readonly Color DevastatedLight = new Color(0.60f, 0.55f, 0.42f);
         private static readonly Color DevastatedDark = new Color(0.52f, 0.47f, 0.36f);
@@ -42,12 +53,23 @@ namespace Olympus.Editor
             EnsureFolder("Assets/Settings");
 
             Material devastated = CreateOrLoadGroundMaterial(
-                DevastatedMaterialPath, DevastatedTexturePath, "GroundDevastated",
+                DevastatedMaterialPath, DevastatedTexturePath, DevastatedArtPath, "GroundDevastated",
                 DevastatedLight, DevastatedDark);
 
             Material restored = CreateOrLoadGroundMaterial(
-                RestoredMaterialPath, RestoredTexturePath, "GroundRestored",
+                RestoredMaterialPath, RestoredTexturePath, RestoredArtPath, "GroundRestored",
                 RestoredLight, RestoredDark);
+
+            // 지면 셰이더는 녹지를 마스크로 섞어서 그린다(TerritoryGround) — 황폐 머티리얼 하나가
+            // 녹지 텍스처도 알아야 한다. 체커든 아트든 녹지 머티리얼의 텍스처를 그대로 넘긴다.
+            foreach (Material m in new[] { devastated, restored })
+            {
+                if (m.HasProperty("_RestoredMap"))
+                {
+                    m.SetTexture("_RestoredMap", restored.mainTexture);
+                    EditorUtility.SetDirty(m);
+                }
+            }
 
             // 씬 파일이 이미 있으면 그 씬을 그대로 연다(새로 밀지 않는다) — 아래
             // FindOrCreate* 들이 이미 있는 오브젝트는 손대지 않고 넘어간다. 그래서
@@ -478,7 +500,7 @@ namespace Olympus.Editor
         }
 
         private static Material CreateOrLoadGroundMaterial(
-            string materialPath, string texturePath, string name, Color light, Color dark)
+            string materialPath, string texturePath, string artPath, string name, Color light, Color dark)
         {
             Texture2D checker = CreateOrLoadCheckerTexture(texturePath, name + "Checker", light, dark);
 
@@ -501,12 +523,13 @@ namespace Olympus.Editor
                     existing.shader = shader;
                     EditorUtility.SetDirty(existing);
                 }
-                existing.mainTexture = checker;
+                ApplyGroundTexture(existing, checker, artPath);
+                EditorUtility.SetDirty(existing);
                 return existing;
             }
 
             var material = new Material(shader) { name = name };
-            material.mainTexture = checker;
+            ApplyGroundTexture(material, checker, artPath);
 
             // 그레이박스 지면 — 광택 없이 무광. 아트가 들어오면 이 머티리얼을 교체한다.
             if (material.HasProperty("_Smoothness"))
@@ -516,6 +539,29 @@ namespace Olympus.Editor
 
             AssetDatabase.CreateAsset(material, materialPath);
             return material;
+        }
+
+        /// <summary>
+        /// 지면 아트가 있으면 월드 좌표로 여러 칸에 한 장씩 깐다. 없으면 체커를 칸당 한 장(메쉬 UV)으로.
+        /// 체커는 칸 경계를 보여 주려고 칸마다 반복해야 하지만, 실제 아트를 그렇게 깔면 격자가 보인다.
+        /// </summary>
+        private static void ApplyGroundTexture(Material material, Texture2D checker, string artPath)
+        {
+            var art = AssetDatabase.LoadAssetAtPath<Texture2D>(artPath);
+            var dirt = AssetDatabase.LoadAssetAtPath<Texture2D>(DirtArtPath);
+
+            material.mainTexture = art != null ? art : checker;
+            material.color = Color.white;
+            if (material.HasProperty("_BaseWorldTiling"))
+                material.SetFloat("_BaseWorldTiling", art != null ? GroundArtCellsPerTile : 0f);
+            if (material.HasProperty("_BaseMacroStrength"))
+                material.SetFloat("_BaseMacroStrength", art != null ? GroundArtMacroStrength : 0f);
+
+            if (dirt != null && material.HasProperty("_DirtMap"))
+            {
+                material.SetTexture("_DirtMap", dirt);
+                material.SetFloat("_DirtTiling", DirtArtTilingPerCell);
+            }
         }
 
         /// <summary>

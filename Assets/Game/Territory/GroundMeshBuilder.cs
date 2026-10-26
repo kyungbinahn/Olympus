@@ -34,21 +34,29 @@ namespace Olympus.Game.Territory
         /// 나뉜다 — 머티리얼 두 장이면 셰이더 작업 없이 두 지면이 한 메쉬에서 그려진다.
         /// null이면 전부 황폐로 둔다.
         ///
-        /// 칸 경계가 각져 보이는 것이 이 방식의 한계다. 부드럽게 번지는 연출이 필요해지면
-        /// 복구도를 칸 하나당 1픽셀인 마스크 텍스처로 만들고 Shader Graph에서 두 지면을
-        /// 블렌딩하면 된다 — 실제 아트가 들어오는 시점의 작업이다.
+        /// 칸 경계가 각져 보이는 것이 이 방식의 한계다. 그래서 지면 셰이더(Olympus/Ground)가
+        /// 녹지를 마스크로 섞을 수 있으면 <see cref="TerritoryGround"/>가 null을 넘겨 나누지 않고,
+        /// 녹지는 칸당 1픽셀 마스크로 부드럽게 그린다. 이 분기는 셰이더를 못 쓸 때의 대체 경로다.
+        /// </param>
+        /// <param name="outerMargin">
+        /// 기지 밖으로 이어 깔 지면 폭(월드). 성문 밖 전선·거인 협곡·도적이 기지 밖에서 나오는데
+        /// 그 아래가 비어 있으면 허공을 걷는다. 칸은 아니고(건설·선택 안 됨) 황폐 서브메쉬에 붙는다.
+        /// 지면 셰이더가 월드 좌표로 텍스처를 깔아서 기지 안과 이음매 없이 이어진다.
         /// </param>
         public static Mesh Build(
             GridRect bounds,
             SquareGrid grid,
             System.Func<GridPos, bool> isRestored = null,
-            string meshName = "TerritoryGround")
+            string meshName = "TerritoryGround",
+            float outerMargin = 0f)
         {
             if (grid == null)
                 throw new System.ArgumentNullException(nameof(grid));
 
             int cellCount = bounds.CellCount;
-            int vertexCount = cellCount * 4;
+            // 바깥 띠: 네 변에 칸 하나당 쿼드 하나 + 모서리 4개.
+            int ringQuads = outerMargin > 0f ? 2 * bounds.Width + 2 * bounds.Height + 4 : 0;
+            int vertexCount = (cellCount + ringQuads) * 4;
 
             if (vertexCount > MaxVertices)
             {
@@ -108,6 +116,9 @@ namespace Olympus.Game.Territory
                 }
             }
 
+            if (ringQuads > 0)
+                v = AddOuterRing(bounds, grid, outerMargin, vertices, uv, normals, devastated, v);
+
             var mesh = new Mesh { name = meshName };
             mesh.vertices = vertices;
             mesh.uv = uv;
@@ -121,6 +132,83 @@ namespace Olympus.Game.Territory
             mesh.RecalculateBounds();
 
             return mesh;
+        }
+
+        /// <summary>
+        /// 기지 둘레에 바깥 지면 띠를 붙인다. 안쪽 가장자리는 기지 칸 하나마다 쿼드 하나로 잘라
+        /// 기지 칸의 정점과 정확히 같은 자리에서 만나게 한다 — 긴 쿼드 한 장으로 붙이면 T자 이음매가
+        /// 생겨 경계를 따라 바닥 너머 배경색이 점점이 새어 보인다.
+        /// </summary>
+        private static int AddOuterRing(
+            GridRect bounds, SquareGrid grid, float margin,
+            Vector3[] vertices, Vector2[] uv, Vector3[] normals,
+            System.Collections.Generic.List<int> triangles, int v)
+        {
+            float half = grid.CellSize * 0.5f;
+            int maxX = bounds.MaxXExclusive - 1;
+            int maxY = bounds.MaxYExclusive - 1;
+
+            // 기지 바깥 테두리 — 칸 정점과 같은 식(중심 ± 반칸)으로 구해 값이 비트 단위로 같게 한다.
+            float inMinX = grid.CellToWorld(new GridPos(bounds.MinX, bounds.MinY)).X - half;
+            float inMaxX = grid.CellToWorld(new GridPos(maxX, bounds.MinY)).X + half;
+            float inMinZ = grid.CellToWorld(new GridPos(bounds.MinX, bounds.MinY)).Z - half;
+            float inMaxZ = grid.CellToWorld(new GridPos(bounds.MinX, maxY)).Z + half;
+            float outMinX = inMinX - margin, outMaxX = inMaxX + margin;
+            float outMinZ = inMinZ - margin, outMaxZ = inMaxZ + margin;
+
+            // 아래·위 변
+            for (int x = bounds.MinX; x <= maxX; x++)
+            {
+                float cx = grid.CellToWorld(new GridPos(x, bounds.MinY)).X;
+                v = AddQuad(cx - half, outMinZ, cx + half, inMinZ, grid.CellSize, vertices, uv, normals, triangles, v);
+                v = AddQuad(cx - half, inMaxZ, cx + half, outMaxZ, grid.CellSize, vertices, uv, normals, triangles, v);
+            }
+
+            // 왼·오른 변
+            for (int y = bounds.MinY; y <= maxY; y++)
+            {
+                float cz = grid.CellToWorld(new GridPos(bounds.MinX, y)).Z;
+                v = AddQuad(outMinX, cz - half, inMinX, cz + half, grid.CellSize, vertices, uv, normals, triangles, v);
+                v = AddQuad(inMaxX, cz - half, outMaxX, cz + half, grid.CellSize, vertices, uv, normals, triangles, v);
+            }
+
+            // 모서리 4개
+            v = AddQuad(outMinX, outMinZ, inMinX, inMinZ, grid.CellSize, vertices, uv, normals, triangles, v);
+            v = AddQuad(inMaxX, outMinZ, outMaxX, inMinZ, grid.CellSize, vertices, uv, normals, triangles, v);
+            v = AddQuad(outMinX, inMaxZ, inMinX, outMaxZ, grid.CellSize, vertices, uv, normals, triangles, v);
+            v = AddQuad(inMaxX, inMaxZ, outMaxX, outMaxZ, grid.CellSize, vertices, uv, normals, triangles, v);
+
+            return v;
+        }
+
+        /// <summary>
+        /// 수평 쿼드 하나. 정점 순서·감김은 기지 칸과 같다. UV는 칸 단위 월드 좌표라
+        /// 체커(메쉬 UV) 모드에서도 칸 무늬가 기지 안과 맞물려 이어진다.
+        /// </summary>
+        private static int AddQuad(
+            float x0, float z0, float x1, float z1, float cellSize,
+            Vector3[] vertices, Vector2[] uv, Vector3[] normals,
+            System.Collections.Generic.List<int> triangles, int v)
+        {
+            vertices[v + 0] = new Vector3(x0, 0f, z0);
+            vertices[v + 1] = new Vector3(x0, 0f, z1);
+            vertices[v + 2] = new Vector3(x1, 0f, z1);
+            vertices[v + 3] = new Vector3(x1, 0f, z0);
+
+            for (int i = 0; i < 4; i++)
+            {
+                uv[v + i] = new Vector2(vertices[v + i].x / cellSize + 0.5f, vertices[v + i].z / cellSize + 0.5f);
+                normals[v + i] = Vector3.up;
+            }
+
+            triangles.Add(v + 0);
+            triangles.Add(v + 1);
+            triangles.Add(v + 2);
+            triangles.Add(v + 0);
+            triangles.Add(v + 2);
+            triangles.Add(v + 3);
+
+            return v + 4;
         }
 
         /// <summary>

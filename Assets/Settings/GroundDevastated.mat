@@ -26,7 +26,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: aad77c8c6cf8a2c4f9eb648cea8b5e4b, type: 2}
+        m_Texture: {fileID: 2800000, guid: bd9ef85227534415a736440b63d05af5, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
@@ -45,12 +45,16 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _DirtMap:
+        m_Texture: {fileID: 2800000, guid: 7d5a3ca2634c446788dea8036640018a, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _EmissionMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: aad77c8c6cf8a2c4f9eb648cea8b5e4b, type: 2}
+        m_Texture: {fileID: 2800000, guid: bd9ef85227534415a736440b63d05af5, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -63,6 +67,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _ParallaxMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RestoredMap:
+        m_Texture: {fileID: 2800000, guid: 273aa2d5b16c43568f461a13b1bef64f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
@@ -86,6 +94,9 @@ Material:
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
+    - _BaseMacroScale: 0.07
+    - _BaseMacroStrength: 0.08
+    - _BaseWorldTiling: 12
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
@@ -95,6 +106,12 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
+    - _DirtBlotchScale: 0.6
+    - _DirtEdgeNoise: 0.22
+    - _DirtEdgeNoiseScale: 0.9
+    - _DirtEdgeSoftness: 0.3
+    - _DirtGrow: 0.3
+    - _DirtTiling: 0.16666667
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
@@ -106,6 +123,9 @@ Material:
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
+    - _RestoreEdgeNoise: 0.14
+    - _RestoreEdgeNoiseScale: 0.45
+    - _RestoreEdgeSoftness: 0.18
     - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
@@ -118,7 +138,10 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _DirtColor: {r: 0.54999995, g: 0.41999996, b: 0.28999996, a: 1}
+    - _DirtColorDark: {r: 0.45999992, g: 0.33999997, b: 0.22999996, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _RestoredColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

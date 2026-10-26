@@ -23,6 +23,10 @@ namespace Olympus.Game.Territory
                  "시작 규모 30~40채에 맞춰 48로 잡았다. 데이터 값이라 조정 자유롭다.")]
         [SerializeField] private int _baseSize = 48;
 
+        [Tooltip("기지 밖으로 이어 깔 지면 폭(월드). 성문 밖 전선(마지막 전초기지가 성문에서 약 76m)·" +
+                 "거인 협곡·도적이 기지 밖에서 나오고, 카메라가 그쪽까지 따라가도 바닥이 끊기지 않을 만큼.")]
+        [SerializeField] private float _outerMargin = 160f;
+
         private SquareGrid _grid;
         private GridRect _bounds;
         private Mesh _mesh;
@@ -91,7 +95,18 @@ namespace Olympus.Game.Territory
         {
             // 버전 정수 하나를 비교한다. 집합을 매 프레임 대조하지 않으려고 둔 장치다.
             if (_restoration != null && _restoration.Version != _builtRestorationVersion)
-                Rebuild();
+            {
+                // 블렌딩 모드면 메쉬는 그대로 두고 마스크만 다시 굽는다.
+                if (UsesBlendedRestoration())
+                {
+                    BakeRestoreMask(true);
+                    _builtRestorationVersion = _restoration.Version;
+                }
+                else
+                {
+                    Rebuild();
+                }
+            }
         }
 
         /// <summary>지면 메쉬를 다시 만든다. 기지가 확장되거나 녹지가 번지면 다시 부른다.</summary>
@@ -109,13 +124,27 @@ namespace Olympus.Game.Territory
                     DestroyImmediate(_mesh);
             }
 
+            // 지면 셰이더가 녹지를 마스크로 섞을 수 있으면 메쉬를 서브메쉬로 나누지 않는다 —
+            // 나누면 경계가 칸 단위로 각진다. 못 섞는 머티리얼(URP/Lit 대체 등)이면 예전처럼 나눈다.
+            bool blend = UsesBlendedRestoration();
             System.Func<GridPos, bool> isRestored =
-                _restoration != null ? (System.Func<GridPos, bool>)_restoration.IsRestored : null;
+                (!blend && _restoration != null) ? (System.Func<GridPos, bool>)_restoration.IsRestored : null;
 
-            _mesh = GroundMeshBuilder.Build(_bounds, _grid, isRestored);
+            _mesh = GroundMeshBuilder.Build(_bounds, _grid, isRestored, "TerritoryGround", _outerMargin);
             GetComponent<MeshFilter>().sharedMesh = _mesh;
 
             _builtRestorationVersion = _restoration != null ? _restoration.Version : -1;
+            BakeRestoreMask(blend);
+        }
+
+        private static readonly int RestoredMapId = Shader.PropertyToID("_RestoredMap");
+
+        /// <summary>첫 머티리얼(황폐)이 녹지 텍스처를 받아 마스크로 섞을 수 있는가.</summary>
+        private bool UsesBlendedRestoration()
+        {
+            var meshRenderer = GetComponent<MeshRenderer>();
+            Material material = meshRenderer != null ? meshRenderer.sharedMaterial : null;
+            return material != null && material.HasProperty(RestoredMapId);
         }
 
         /// <summary>
@@ -169,15 +198,24 @@ namespace Olympus.Game.Territory
         // ── 흙바닥 마스크 ─────────────────────────────────────────────
         // 건물 에셋에는 바닥이 없다(OlympusArt/background/art-direction.md — 바닥은 따로 만든다).
         // 대신 건물이 서 있는 풋프린트만큼 지면을 흙으로 바꾼다. 칸 하나당 1픽셀 마스크를
-        // 굽고 Olympus/Ground 셰이더가 그걸 읽는다. 지면 메쉬·서브메쉬(황폐/녹지)는 그대로라
-        // 복구 표현과 서로 간섭하지 않는다.
+        // 굽고 Olympus/Ground 셰이더가 그걸 읽는다.
+        //
+        // 녹지(복구)도 같은 방식이다 — 칸당 1픽셀 마스크를 한 번 흐려서 넣으면 셰이더가 두 지면을
+        // 부드러운 경계로 섞는다. 두 마스크는 같은 격자 범위라 사각형(Rect) 전역을 같이 쓴다.
 
         private static readonly int DirtMaskId = Shader.PropertyToID("_OlympusDirtMask");
-        private static readonly int DirtMaskRectId = Shader.PropertyToID("_OlympusDirtMaskRect");
+        private static readonly int RestoreMaskId = Shader.PropertyToID("_OlympusRestoreMask");
+        private static readonly int GroundMaskRectId = Shader.PropertyToID("_OlympusGroundMaskRect");
+        private static readonly int RestoreBlendId = Shader.PropertyToID("_OlympusRestoreBlend");
         private static readonly int DirtCellSizeId = Shader.PropertyToID("_OlympusDirtCellSize");
 
         private Texture2D _dirtMask;
         private byte[] _dirtPixels;
+        private Texture2D _restoreMask;
+        private byte[] _restorePixels;
+        private float[] _restoreRaw;
+        private float[] _restoreTemp;
+        private bool _restoreBlendOn;
 
         /// <summary>
         /// 건물이 선 자리를 흙바닥으로 칠한다. 넘긴 풋프린트 전체가 이번 상태다 —
@@ -186,7 +224,7 @@ namespace Olympus.Game.Territory
         public void SetDirtPatches(IEnumerable<(GridPos anchor, GridFootprint footprint)> patches)
         {
             EnsureGrid();
-            EnsureDirtMask();
+            EnsureMasks();
 
             System.Array.Clear(_dirtPixels, 0, _dirtPixels.Length);
 
@@ -208,29 +246,101 @@ namespace Olympus.Game.Territory
 
             _dirtMask.SetPixelData(_dirtPixels, 0);
             _dirtMask.Apply(false, false);
-            PushDirtGlobals();
+            PushMaskGlobals();
         }
 
-        private void EnsureDirtMask()
+        /// <summary>
+        /// 녹지 마스크를 굽는다. 칸당 0/1을 [1 2 1] 필터로 가로·세로 한 번씩 흐린다 — 그대로 쓰면
+        /// 0.5 등고선이 칸 계단을 따라가고, 이만큼 흐리면 둥글어진다(더 흐리면 경계가 뿌옇게 번진다).
+        /// blend가 거짓이면 전부 0이고 셰이더도 섞지 않는다(서브메쉬가 녹지를 그린다).
+        /// </summary>
+        private void BakeRestoreMask(bool blend)
         {
-            if (_dirtMask != null && _dirtMask.width == _bounds.Width && _dirtMask.height == _bounds.Height)
+            EnsureGrid();
+            EnsureMasks();
+
+            int w = _bounds.Width;
+            int h = _bounds.Height;
+
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    bool restored = blend && _restoration != null &&
+                                    _restoration.IsRestored(new GridPos(_bounds.MinX + x, _bounds.MinY + y));
+                    _restoreRaw[y * w + x] = restored ? 1f : 0f;
+                }
+            }
+
+            // 가로
+            for (int y = 0; y < h; y++)
+            {
+                int row = y * w;
+                for (int x = 0; x < w; x++)
+                {
+                    float l = _restoreRaw[row + Mathf.Max(x - 1, 0)];
+                    float r = _restoreRaw[row + Mathf.Min(x + 1, w - 1)];
+                    _restoreTemp[row + x] = (l + 2f * _restoreRaw[row + x] + r) * 0.25f;
+                }
+            }
+
+            // 세로
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    float d = _restoreTemp[Mathf.Max(y - 1, 0) * w + x];
+                    float u = _restoreTemp[Mathf.Min(y + 1, h - 1) * w + x];
+                    float v = (d + 2f * _restoreTemp[y * w + x] + u) * 0.25f;
+                    _restorePixels[y * w + x] = (byte)Mathf.RoundToInt(v * 255f);
+                }
+            }
+
+            _restoreMask.SetPixelData(_restorePixels, 0);
+            _restoreMask.Apply(false, false);
+            _restoreBlendOn = blend;
+            PushMaskGlobals();
+        }
+
+        private void EnsureMasks()
+        {
+            if (_dirtMask != null && _dirtMask.width == _bounds.Width && _dirtMask.height == _bounds.Height &&
+                _restoreMask != null)
                 return;
 
             if (_dirtMask != null)
                 DestroyObject(_dirtMask);
+            if (_restoreMask != null)
+                DestroyObject(_restoreMask);
 
-            _dirtMask = new Texture2D(_bounds.Width, _bounds.Height, TextureFormat.R8, false, true)
+            _dirtMask = CreateMask("OlympusDirtMask");
+            _restoreMask = CreateMask("OlympusRestoreMask");
+
+            int count = _bounds.Width * _bounds.Height;
+            _dirtPixels = new byte[count];
+            _restorePixels = new byte[count];
+            _restoreRaw = new float[count];
+            _restoreTemp = new float[count];
+        }
+
+        private Texture2D CreateMask(string maskName)
+        {
+            var mask = new Texture2D(_bounds.Width, _bounds.Height, TextureFormat.R8, false, true)
             {
-                name = "OlympusDirtMask",
-                // 바이리니어가 핵심 — 칸 경계에서 정확히 0.5가 나와야 셰이더가 사각형을 자른다.
+                name = maskName,
+                // 녹지는 바이리니어로 읽는다(칸 중심=텍셀 중심). 흙은 셰이더가 칸 값을 직접 Load해서 필터 무관.
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Clamp,
                 hideFlags = HideFlags.DontSave,
             };
-            _dirtPixels = new byte[_bounds.Width * _bounds.Height];
+
+            // 새 텍스처의 초기 내용은 정해져 있지 않다 — 0으로 비워 두고 시작한다.
+            mask.SetPixelData(new byte[_bounds.Width * _bounds.Height], 0);
+            mask.Apply(false, false);
+            return mask;
         }
 
-        private void PushDirtGlobals()
+        private void PushMaskGlobals()
         {
             // 마스크 텍셀 중심 = 칸 중심이 되도록, 덮는 범위는 최소 칸의 바깥 코너부터 잡는다.
             WorldXZ minCenter = _grid.CellToWorld(new GridPos(_bounds.MinX, _bounds.MinY));
@@ -240,9 +350,13 @@ namespace Olympus.Game.Territory
             float sizeX = _bounds.Width * _grid.CellSize;
             float sizeZ = _bounds.Height * _grid.CellSize;
 
+            // 두 마스크를 항상 같이 넣는다 — 사각형만 들어가고 한쪽 텍스처가 비어 있으면 셰이더가
+            // 기본 회색 텍스처를 읽어 지면 전체가 반쯤 흙/녹지가 된다.
             Shader.SetGlobalTexture(DirtMaskId, _dirtMask);
-            Shader.SetGlobalVector(DirtMaskRectId, new Vector4(minCorner.x, minCorner.z, 1f / sizeX, 1f / sizeZ));
+            Shader.SetGlobalTexture(RestoreMaskId, _restoreMask);
+            Shader.SetGlobalVector(GroundMaskRectId, new Vector4(minCorner.x, minCorner.z, 1f / sizeX, 1f / sizeZ));
             Shader.SetGlobalFloat(DirtCellSizeId, _grid.CellSize);
+            Shader.SetGlobalFloat(RestoreBlendId, _restoreBlendOn ? 1f : 0f);
         }
 
         private static void DestroyObject(Object o)
@@ -255,12 +369,17 @@ namespace Olympus.Game.Territory
 
         private void OnDestroy()
         {
-            if (_dirtMask != null)
+            if (_dirtMask != null || _restoreMask != null)
             {
                 // 전역에 남겨 두면 다음 씬의 지면이 지워진 텍스처를 읽는다.
-                Shader.SetGlobalVector(DirtMaskRectId, Vector4.zero);
-                DestroyObject(_dirtMask);
+                Shader.SetGlobalVector(GroundMaskRectId, Vector4.zero);
+                Shader.SetGlobalFloat(RestoreBlendId, 0f);
             }
+
+            if (_dirtMask != null)
+                DestroyObject(_dirtMask);
+            if (_restoreMask != null)
+                DestroyObject(_restoreMask);
 
             if (_mesh != null)
                 DestroyObject(_mesh);
