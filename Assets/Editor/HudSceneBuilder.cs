@@ -26,7 +26,7 @@ namespace Olympus.Editor
         private static readonly Color DimTextColor = new Color(0.78f, 0.76f, 0.68f);
         private static readonly Color WarnColor = new Color(0.95f, 0.45f, 0.40f);
 
-        // 확정 시안(OlympusArt/ui/out/HUD-mockup-v6-3dicons.png)의 색 — compose_v6_icons.py와 같은 값.
+        // 확정 시안(OlympusArt/ui/out/HUD-mockup-v9-normal.png)의 색·배치 — compose_v7.py와 같은 값.
         private static readonly Color InkColor = new Color(0.36f, 0.20f, 0.13f);
         private static readonly Color InkDimColor = new Color(0.50f, 0.35f, 0.22f);
         private static readonly Color CreamTextColor = new Color(0.98f, 0.93f, 0.83f);
@@ -36,13 +36,26 @@ namespace Olympus.Editor
         /// <summary>하단 탭 줄 높이 — 시안 176(탭 칸 160 + 위아래 여유).</summary>
         private const float NavBarHeight = 176f;
 
-        /// <summary>임무 바(양피지)는 탭 줄 바로 위에 붙는다 — 시안에서 둘 사이 틈이 거의 없다.</summary>
-        private const float QuestBarBottom = NavBarHeight + 4f;
-        private const float QuestBarHeight = 110f;
+        /// <summary>임무 바(양피지) — 시안 v9: 높이 100, 탭 줄 위로 12 띄운다.</summary>
+        private const float QuestBarBottom = NavBarHeight + 12f;
+        private const float QuestBarHeight = 100f;
 
-        /// <summary>전선 띠 — 위협 띠(y 206~306)와 그 원형 액자 아래 끝(y 320) 바로 밑.</summary>
-        private const float FrontlineTop = 324f;
-        private const float FrontlineHeight = 44f;
+        /// <summary>전선 띠 — 위협 띠(y 182~282)와 그 원형 액자 아래 끝(y 296) 바로 밑.</summary>
+        private const float FrontlineTop = 308f;
+        private const float FrontlineHeight = 56f;
+
+        /// <summary>왼쪽 열 칸(공사·훈련) — 시안 v9: 100×108, 전선 띠 아래 16부터 120 간격.</summary>
+        private const float LeftTileTop = FrontlineTop + FrontlineHeight + 16f;
+
+        /// <summary>
+        /// 아트 아이콘 PNG는 사방에 12/256씩 여백이 있다 — 프레임 안쪽 면을 "꽉 채우려면" 안쪽 폭을 이 비율로 나눈다
+        /// (compose_v7.py의 0.906·0.047과 같은 값). 시안 규칙: 아이콘은 프레임 밖으로 나가지 않는다.
+        /// </summary>
+        private const float IconInkFraction = 0.906f;
+        private const float IconMarginFraction = 0.047f;
+
+        /// <summary>v9 탭 프레임(frame_tab)의 9-slice 테두리 px — 화면 금테 두께로 나눠 배수를 정한다.</summary>
+        private const float TabFrameBorderPx = 44f;
 
         /// <summary>스킨 조각은 2배 해상도로 그렸다(make_hud_skin.py) — 이 배수로 줄여야 테두리가 시안 두께가 된다.</summary>
         private const float SkinScale = 2f;
@@ -182,10 +195,10 @@ namespace Olympus.Editor
             ChapterHudParts chapterParts = CreateChapterHud(canvas);
             FrontlineParts front = CreateFrontlineStrip(canvas);
 
-            // 오른쪽 위 원형 버튼 줄 — 설정, 그 아래 우편·특가(자리만).
-            Button settingsButton = CreateRoundButton(canvas, "SettingsButton", "icon_settings", "설정", new Vector2(-20f, -20f), 88f);
-            Button mailButton = CreateRoundButton(canvas, "MailButton", "icon_mail", "우편", new Vector2(-16f, -140f), 96f);
-            Button offerButton = CreateRoundButton(canvas, "OfferButton", "icon_offer", "특가", new Vector2(-16f, -246f), 96f);
+            // 오른쪽 위 원형 버튼 줄 — 설정(92), 그 아래 우편·특가(84, 자리만). 시안 v9: 세 버튼 중심이 오른쪽 끝에서 60.
+            Button settingsButton = CreateRoundButton(canvas, "SettingsButton", "icon_settings", "설정", new Vector2(-14f, -14f), 92f);
+            Button mailButton = CreateRoundButton(canvas, "MailButton", "icon_mail", "우편", new Vector2(-18f, -124f), 84f);
+            Button offerButton = CreateRoundButton(canvas, "OfferButton", "icon_offer", "특가", new Vector2(-18f, -220f), 84f);
             RectTransform toastPanel = CreateToast(canvas, out TMP_Text toastText);
 
             var controller = new GameObject("HudController");
@@ -309,9 +322,8 @@ namespace Olympus.Editor
         }
 
         /// <summary>
-        /// 성문 밖 전선 띠 — 위협 띠 바로 아래 얇은 한 줄(600×44): 적 기지 이름 · 체력 바 · 무너지기까지.
-        /// 위협 띠의 원형 액자 아래 끝(y=320)을 피해서 앉는다. 아직 전용 시안이 없어 짙은 판 + 금테로 둔다
-        /// (아이콘 icon_outpost가 오면 이름 앞에 붙인다).
+        /// 성문 밖 전선 띠 — 시안 v9: 위협 띠 아래 한 줄(700×56, 금테 + 짙은 갈색 strip_front): 전진기지 아이콘(띠 안쪽에 꽉 차게) ·
+        /// 적 기지 이름 · 체력 바 · 무너지기까지. 위협 띠의 원형 액자 아래 끝(y=296)을 피해서 앉는다.
         /// </summary>
         private static FrontlineParts CreateFrontlineStrip(RectTransform canvas)
         {
@@ -319,21 +331,21 @@ namespace Olympus.Editor
             RectTransform strip = CreatePanel(
                 canvas, "FrontlineStrip",
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(20f, -FrontlineTop), sizeDelta: new Vector2(600f, FrontlineHeight));
+                anchoredPos: new Vector2(20f, -FrontlineTop), sizeDelta: new Vector2(700f, FrontlineHeight), skin: "strip_front");
             parts.Root = strip.gameObject;
             parts.Button = MakeButton(strip.GetComponent<Image>());
 
-            bool icon = AddIcon(strip, "icon_outpost", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(8f, 0f), 36f) != null;
-            float nameLeft = icon ? 48f : 16f;
+            bool icon = AddIcon(strip, "icon_outpost", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(4f, 0f), FrontlineHeight - 4f) != null;
+            float nameLeft = icon ? 60f : 16f;
 
-            parts.Name = CreateText(strip, "Name", "", 20, FontStyles.Bold, CreamTextColor, TextAlignmentOptions.MidlineLeft,
+            parts.Name = CreateText(strip, "Name", "", 22, FontStyles.Bold, CreamTextColor, TextAlignmentOptions.MidlineLeft,
                 anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 0.5f),
-                anchoredPos: new Vector2(nameLeft, 0f), sizeDelta: new Vector2(180f - nameLeft + 16f, 0f));
+                anchoredPos: new Vector2(nameLeft, 0f), sizeDelta: new Vector2(176f - nameLeft - 4f, 0f));
 
             // 체력 바: 짙은 바탕 + 붉은 채움(금 게이지 그림에 붉은빛을 곱한다 — 적의 체력이라 아군 금색과 구분).
             RectTransform bar = CreatePanel(strip, "Bar",
                 anchorMin: new Vector2(0f, 0.5f), anchorMax: new Vector2(0f, 0.5f), pivot: new Vector2(0f, 0.5f),
-                anchoredPos: new Vector2(196f, 0f), sizeDelta: new Vector2(200f, 18f), skin: "gauge_track",
+                anchoredPos: new Vector2(176f, 0f), sizeDelta: new Vector2(264f, 18f), skin: "gauge_track",
                 fallbackColor: new Color(0.27f, 0.09f, 0.08f));
             bar.GetComponent<Image>().raycastTarget = false;
             parts.BarRoot = bar.gameObject;
@@ -347,14 +359,14 @@ namespace Olympus.Editor
             if (Skin("gauge_fill") != null)
                 fill.color = new Color(1f, 0.50f, 0.42f);
 
-            parts.Status = CreateText(strip, "Status", "", 20, FontStyles.Bold, CreamTextColor, TextAlignmentOptions.MidlineRight,
-                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(1f, 0.5f),
-                anchoredPos: new Vector2(-16f, 0f), sizeDelta: new Vector2(-420f, 0f));
+            parts.Status = CreateText(strip, "Status", "", 20, FontStyles.Bold, CreamTextColor, TextAlignmentOptions.MidlineLeft,
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0f, 0.5f),
+                anchoredPos: new Vector2(454f, 0f), sizeDelta: new Vector2(-470f, 0f));
 
             // 밀릴 때: 바와 남은 시간을 비키고 이 경고가 그 자리를 다 쓴다. 짙은 판 위라 경고 빨강이 읽힌다.
             parts.Warning = CreateText(strip, "Warning", "", 20, FontStyles.Bold, new Color(1f, 0.48f, 0.42f), TextAlignmentOptions.MidlineLeft,
                 anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0f, 0.5f),
-                anchoredPos: new Vector2(196f, 0f), sizeDelta: new Vector2(-212f, 0f));
+                anchoredPos: new Vector2(176f, 0f), sizeDelta: new Vector2(-192f, 0f));
             parts.Warning.gameObject.SetActive(false);
 
             parts.Root.SetActive(false);
@@ -394,13 +406,13 @@ namespace Olympus.Editor
             var parts = new ChapterHudParts();
             var blue = new Color(0.30f, 0.42f, 0.62f);
 
-            // 위협 띠 — 시안 v5b: 띠 600×100(원형 액자가 왼쪽에 반쯤 걸친다), 액자 지름 128.
-            // 띠 자체는 액자 중심(x=84)에서 시작하고, 액자는 띠의 자식으로 왼쪽 바깥에 걸어 둔다 —
+            // 위협 띠 — 시안 v9: 띠 x 78~640, y 182~282(원형 액자가 왼쪽에 반쯤 걸친다), 액자 지름 128.
+            // 띠 자체는 액자 중심(x=78)에서 시작하고, 액자는 띠의 자식으로 왼쪽 바깥에 걸어 둔다 —
             // 자식이 나중에 그려지므로 액자가 띠 테두리를 덮는다.
             parts.Banner = CreatePanel(
                 canvas, "ChapterBanner",
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(84f, -206f), sizeDelta: new Vector2(536f, 100f), skin: "band_crimson");
+                anchoredPos: new Vector2(78f, -182f), sizeDelta: new Vector2(562f, 100f), skin: "band_crimson");
             parts.BannerButton = parts.Banner.gameObject.AddComponent<Button>();
             parts.BannerButton.targetGraphic = parts.Banner.GetComponent<Image>();
 
@@ -594,9 +606,9 @@ namespace Olympus.Editor
         }
 
         /// <summary>
-        /// 왼쪽 위 상태창 — 시안 v5b(폭 480): 월계관 Lv 배지, 그 오른쪽 돌판에 번영도, 아래 자원 칸 2열
-        /// (목재|식량, 석재|금). 식량·금은 본부 Lv.2·5에 생기므로(ResourceBarView) 그 전에는 오른쪽 열이 비어 있다.
-        /// 배지를 맨 나중에 만든다 — 돌판 왼쪽 끝을 배지가 덮어야 시안처럼 보인다.
+        /// 왼쪽 위 상태창 — 시안 v9: 월계관 Lv 배지(136) 오른쪽에 대리석 칩 3행 2열
+        /// (번영도|전투력, 목재|식량, 석재|금). 게임에 전투력 값이 없어 그 칸은 비운다.
+        /// 식량·금은 본부 Lv.2·5에 생기므로(ResourceBarView) 그 전에는 오른쪽 열이 비어 있다.
         /// </summary>
         private static ResourceBarParts CreateResourceBar(RectTransform canvas)
         {
@@ -604,60 +616,60 @@ namespace Olympus.Editor
             RectTransform root = CreateRect(
                 canvas, "ResourceBar",
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(24f, -24f), sizeDelta: new Vector2(480f, 156f));
+                anchoredPos: Vector2.zero, sizeDelta: new Vector2(540f, 170f));
 
-            RectTransform plate = CreatePanel(
-                root, "StatusPlate",
-                anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(96f, -14f), sizeDelta: new Vector2(380f, 46f), skin: "panel_stone");
-            plate.GetComponent<Image>().raycastTarget = false;
+            parts.ProsperityText = CreateResourceChip(root, "Prosperity", 0, 0, "icon_prosperity", out _);
+            parts.Wood = CreateResourceChip(root, "Wood", 0, 1, "icon_res_wood", out _);
+            parts.Food = CreateResourceChip(root, "Food", 1, 1, "icon_res_food", out parts.FoodCell);
+            parts.Stone = CreateResourceChip(root, "Stone", 0, 2, "icon_res_stone", out _);
+            parts.Gold = CreateResourceChip(root, "Gold", 1, 2, "icon_res_gold", out parts.GoldCell);
 
-            parts.ProsperityText = CreateText(
-                plate, "ProsperityText", "번영도 0", 22, FontStyles.Bold, CreamTextColor, TextAlignmentOptions.MidlineLeft,
-                anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0f, 0.5f),
-                anchoredPos: new Vector2(40f, 0f), sizeDelta: new Vector2(-52f, 0f));
-
-            parts.Wood = CreateResourceCell(root, "Wood", 0, 0, "icon_res_wood", out _);
-            parts.Food = CreateResourceCell(root, "Food", 1, 0, "icon_res_food", out parts.FoodCell);
-            parts.Stone = CreateResourceCell(root, "Stone", 0, 1, "icon_res_stone", out _);
-            parts.Gold = CreateResourceCell(root, "Gold", 1, 1, "icon_res_gold", out parts.GoldCell);
-
-            // 월계관 배지 — 원판 중심은 그림의 (71, 68)/151×168 자리(make_hud_skin.py가 찍어 준다).
-            const float badgeH = 132f;
-            Image badge = AddIcon(root, "badge_level", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(4f, -2f),
-                new Vector2(badgeH * 151f / 168f, badgeH));
-            Transform levelParent = badge != null ? badge.transform : (Transform)plate;
-            Vector2 levelPos = badge != null ? new Vector2(71f / 151f * badge.rectTransform.sizeDelta.x, -68f / 168f * badgeH) : new Vector2(-30f, -23f);
+            // 월계관 배지 — 원판 중심은 그림의 (134, 129)/272 자리(tools/hud-art/import_hud_v9.py가 찍어 준다).
+            const float badgeSize = 136f;
+            Vector2 badgePos = new Vector2(10f, -12f);
+            Sprite badgeSprite = Skin("frame_badge_lv");
+            if (badgeSprite != null)
+                AddImage(root, "LevelBadge", badgeSprite, new Vector2(0f, 1f), new Vector2(0f, 1f), badgePos, new Vector2(badgeSize, badgeSize));
 
             parts.LevelText = CreateText(
-                levelParent, "LevelText", "Lv.0", 28, FontStyles.Bold, CreamTextColor, TextAlignmentOptions.Midline,
+                root, "LevelText", "Lv.0", 32, FontStyles.Bold, InkColor, TextAlignmentOptions.Midline,
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0.5f, 0.5f),
-                anchoredPos: levelPos, sizeDelta: new Vector2(84f, 40f));
+                anchoredPos: badgePos + new Vector2(134f / 272f * badgeSize, -129f / 272f * badgeSize), sizeDelta: new Vector2(110f, 44f));
+            Outline(parts.LevelText, Color.white);
 
             return parts;
         }
 
         /// <summary>
-        /// 자원 칸 하나 — 크림 대리석 칸(168×40) + 왼쪽에 반쯤 걸친 아이콘 + 가운데 숫자.
-        /// 아이콘과 글자가 칸의 자식이라 ResourceBarView가 칸을 숨기면(식량·금 잠김) 통째로 숨는다.
+        /// 자원 칩 하나(158×40) — 양 끝이 반원인 대리석 알약, 아이콘은 왼쪽 원 안에 꽉 차게(밖으로 안 나감), 숫자는 나머지 가운데.
+        /// 아이콘과 글자가 칩의 자식이라 ResourceBarView가 칩을 숨기면(식량·금 잠김) 통째로 숨는다.
         /// </summary>
-        private static TMP_Text CreateResourceCell(RectTransform root, string name, int column, int row, string icon, out GameObject cell)
+        private static TMP_Text CreateResourceChip(RectTransform root, string name, int column, int row, string icon, out GameObject cell)
         {
-            RectTransform panel = CreatePanel(
+            const float w = 158f, h = 40f;
+            RectTransform chip = CreatePanel(
                 root, name + "Cell",
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(126f + column * 176f, -66f - row * 48f), sizeDelta: new Vector2(168f, 40f),
-                skin: "panel_cream", fallbackColor: PanelBackground);
-            panel.GetComponent<Image>().raycastTarget = false;
-            cell = panel.gameObject;
+                anchoredPos: new Vector2(170f + column * (w + 30f), -20f - row * 48f), sizeDelta: new Vector2(w, h),
+                skin: "frame_chip", fallbackColor: PanelBackground);
+            Image bg = chip.GetComponent<Image>();
+            bg.raycastTarget = false;
+            FitCapsToHeight(bg, h);
+            cell = chip.gameObject;
 
-            bool hasIcon = AddIcon(panel, icon, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(-6f, 0f), 46f) != null;
+            bool hasIcon = AddIcon(chip, icon, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(3f, 0f), h - 2f) != null;
 
             TMP_Text t = CreateText(
-                panel, name + "Text", "0", 24, FontStyles.Bold, hasIcon ? InkColor : TextColor, TextAlignmentOptions.Midline,
+                chip, name + "Text", "0", 24, FontStyles.Bold, hasIcon ? InkColor : TextColor, TextAlignmentOptions.Midline,
                 anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
                 anchoredPos: Vector2.zero, sizeDelta: Vector2.zero);
-            t.margin = new Vector4(hasIcon ? 36f : 8f, 0f, 8f, 0f);
+            t.margin = new Vector4(hasIcon ? h : 8f, 0f, 6f, 0f);
+
+            // 칩은 한 줄짜리라 숫자가 길어지면(10,000,000) 두 줄로 꺾이는 대신 글자를 줄인다.
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.enableAutoSizing = true;
+            t.fontSizeMin = 14f;
+            t.fontSizeMax = 24f;
             return t;
         }
 
@@ -665,56 +677,77 @@ namespace Olympus.Editor
         private static void CreateQueueTile(RectTransform canvas, out GameObject tile, out TMP_Text text)
         {
             RectTransform t = CreateLeftTile(canvas, "QueueTile", 0);
-            AddIcon(t, "icon_build", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -2f), 74f);
-            text = CreateTileLabel(t, "0/0");
+            AddTileIcon(t, "icon_build", 100f, 108f, LeftTileGold);
+            text = CreateTileLabel(t, "0/0", 22, 18f);
             tile = t.gameObject;
             tile.SetActive(false);
         }
 
-        /// <summary>왼쪽 열 2번 칸 — 훈련 진행(투구 + 진행 고리 + 남은 시간). 훈련이 도는 동안 ChapterHudView가 켠다.</summary>
+        /// <summary>
+        /// 왼쪽 열 2번 칸 — 훈련 진행(투구 + 남은 시간, 칸 바로 밑에 진행 바). 훈련이 도는 동안 ChapterHudView가 켠다.
+        /// 진행 바는 칸의 자식이라 칸과 같이 숨는다(칸 밖에 그려져도 자식이면 함께 꺼진다).
+        /// </summary>
         private static void CreateTrainTile(RectTransform canvas, ChapterHudParts parts)
         {
             RectTransform t = CreateLeftTile(canvas, "TrainTile", 1);
+            AddTileIcon(t, "icon_soldier", 100f, 108f, LeftTileGold);
+            parts.TrainTileTime = CreateTileLabel(t, "0:00", 22, 18f);
 
-            Sprite ringSprite = Skin("ring");
-            if (ringSprite != null)
-            {
-                Image back = AddImage(t, "RingBack", ringSprite, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -6f), new Vector2(70f, 70f));
-                back.color = new Color(0.36f, 0.20f, 0.13f, 0.25f);
+            RectTransform track = CreatePanel(t, "Progress",
+                anchorMin: new Vector2(0.5f, 0f), anchorMax: new Vector2(0.5f, 0f), pivot: new Vector2(0.5f, 1f),
+                anchoredPos: new Vector2(0f, -4f), sizeDelta: new Vector2(80f, 12f), skin: "gauge_track",
+                fallbackColor: new Color(0.16f, 0.10f, 0.07f));
+            track.GetComponent<Image>().raycastTarget = false;
 
-                parts.TrainTileRing = AddImage(t, "Ring", ringSprite, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -6f), new Vector2(70f, 70f));
-                parts.TrainTileRing.color = new Color(0.55f, 0.70f, 0.30f);
-                parts.TrainTileRing.type = Image.Type.Filled;
-                parts.TrainTileRing.fillMethod = Image.FillMethod.Radial360;
-                parts.TrainTileRing.fillOrigin = (int)Image.Origin360.Top;
-                parts.TrainTileRing.fillClockwise = true;
-                parts.TrainTileRing.fillAmount = 0.3f;
-            }
+            // 채움은 Filled(가로)로 — ChapterHudView가 fillAmount만 바꾼다. 6px 높이라 9-slice 끝이 안 보여서 늘림 그림이어도 된다.
+            Sprite fillSprite = Skin("gauge_fill") ?? RoundedPanelSprite;
+            parts.TrainTileRing = AddImage(track, "Fill", fillSprite, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(74f, 6f));
+            parts.TrainTileRing.type = Image.Type.Filled;
+            parts.TrainTileRing.fillMethod = Image.FillMethod.Horizontal;
+            parts.TrainTileRing.fillOrigin = (int)Image.OriginHorizontal.Left;
+            parts.TrainTileRing.fillAmount = 0.3f;
 
-            AddIcon(t, "icon_soldier", new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -41f), 50f);
-            parts.TrainTileTime = CreateTileLabel(t, "0:00");
             parts.TrainTile = t.gameObject;
             parts.TrainTile.SetActive(false);
         }
 
-        /// <summary>왼쪽 열 칸(96×108) — 전선 띠 아래부터 아래로 116씩.</summary>
+        /// <summary>왼쪽 열 칸의 금테 두께(화면 단위) — 시안: 높이 140 이하 칸은 15, 하단 탭(164)은 22.</summary>
+        private const float LeftTileGold = 15f;
+        private const float NavTileGold = 22f;
+
+        /// <summary>왼쪽 열 칸(100×108) — 금테 대리석 타일(frame_tab), 전선 띠 아래부터 120씩.</summary>
         private static RectTransform CreateLeftTile(RectTransform canvas, string name, int index)
         {
             RectTransform t = CreatePanel(
                 canvas, name,
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(20f, -(FrontlineTop + FrontlineHeight + 12f) - index * 116f), sizeDelta: new Vector2(96f, 108f),
-                skin: "panel_cream");
-            t.GetComponent<Image>().raycastTarget = false;
+                anchoredPos: new Vector2(20f, -LeftTileTop - index * 120f), sizeDelta: new Vector2(100f, 108f),
+                skin: "frame_tab", fallbackColor: new Color(0.24f, 0.22f, 0.20f));
+            Image bg = t.GetComponent<Image>();
+            bg.raycastTarget = false;
+            FitTabFrame(bg, LeftTileGold);
             return t;
         }
 
-        private static TMP_Text CreateTileLabel(RectTransform tile, string text)
+        /// <summary>
+        /// 탭 타일 아이콘 — 금테 안쪽 면을 꽉 채운다(시안 v9 규칙: 프레임 밖으로 안 나감). 아이콘 PNG 여백만큼
+        /// 키우고 위로 당겨서 그림 자체가 안쪽 면 위 끝에 닿게 한다. 라벨은 아이콘 아래쪽에 겹쳐 쓴다.
+        /// </summary>
+        private static Image AddTileIcon(RectTransform tile, string icon, float tileW, float tileH, float gold)
         {
-            return CreateText(
-                tile, "Label", text, 20, FontStyles.Bold, InkColor, TextAlignmentOptions.Midline,
-                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(0.5f, 0f),
-                anchoredPos: new Vector2(0f, 6f), sizeDelta: new Vector2(0f, 26f));
+            float s = (Mathf.Min(tileW, tileH) - 2f * gold) / IconInkFraction;
+            return AddIcon(tile, icon, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -(gold - s * IconMarginFraction)), s);
+        }
+
+        /// <summary>타일 라벨 — 짙은 갈색 글자에 흰 테두리. 아이콘 위에 겹치므로 테두리가 있어야 읽힌다.</summary>
+        private static TMP_Text CreateTileLabel(RectTransform tile, string text, int fontSize, float centerFromBottom)
+        {
+            TMP_Text label = CreateText(
+                tile, "Label", text, fontSize, FontStyles.Bold, InkColor, TextAlignmentOptions.Midline,
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(0.5f, 0.5f),
+                anchoredPos: new Vector2(0f, centerFromBottom), sizeDelta: new Vector2(0f, fontSize + 12f));
+            Outline(label, Color.white);
+            return label;
         }
 
         /// <summary>
@@ -736,25 +769,27 @@ namespace Olympus.Editor
             barButton = bar.gameObject.AddComponent<Button>();
             barButton.targetGraphic = bar.GetComponent<Image>();
 
-            bool scroll = AddIcon(bar, "icon_quest", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f),
-                new Vector2(100f, 80f)) != null;
+            // 두루마리 아이콘은 양피지 높이 안에 꽉 차게(시안 v9: 100 정사각).
+            bool scroll = AddIcon(bar, "icon_quest", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(10f, 0f),
+                QuestBarHeight) != null;
             float textLeft = scroll ? 136f : 28f;
+            const float claimRight = 44f, claimW = 176f;
+            float textRight = claimRight + claimW + 16f;
 
             title = CreateText(
                 bar, "TitleText", "", 28, FontStyles.Bold, parchment ? InkColor : TextColor, TextAlignmentOptions.MidlineLeft,
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(textLeft, -14f), sizeDelta: new Vector2(-textLeft - 236f, 42f));
+                anchoredPos: new Vector2(textLeft, -12f), sizeDelta: new Vector2(-textLeft - textRight, 42f));
 
             progress = CreateText(
                 bar, "ProgressText", "", 22, FontStyles.Normal, parchment ? InkDimColor : DimTextColor, TextAlignmentOptions.MidlineLeft,
                 anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(0f, 0f),
-                anchoredPos: new Vector2(textLeft, 16f), sizeDelta: new Vector2(-textLeft - 236f, 34f));
+                anchoredPos: new Vector2(textLeft, 12f), sizeDelta: new Vector2(-textLeft - textRight, 34f));
 
             claimButton = CreateButton(
                 bar, "ClaimButton", "받기", out _,
                 anchorMin: new Vector2(1f, 0.5f), anchorMax: new Vector2(1f, 0.5f), pivot: new Vector2(1f, 0.5f),
-                anchoredPos: new Vector2(-40f, 0f), sizeDelta: new Vector2(168f, 64f),
-                fillColor: ClaimGreen);
+                anchoredPos: new Vector2(-claimRight, 0f), sizeDelta: new Vector2(claimW, 72f), labelFontSize: 30);
 
             return bar;
         }
@@ -874,34 +909,44 @@ namespace Olympus.Editor
             float min = (float)slot / slotCount;
             float max = (float)(slot + 1) / slotCount;
 
+            // 시안 v9: 금테 대리석 타일(높이 164), 아이콘은 금테 안쪽 면을 꽉 채우고 이름은 그 아래쪽에 흰 테두리 글자로 겹친다.
+            const float tileH = NavBarHeight - 12f;
             RectTransform tile = CreatePanel(
                 bar, name,
                 anchorMin: new Vector2(min, 0f), anchorMax: new Vector2(max, 1f), pivot: new Vector2(0.5f, 0.5f),
-                anchoredPos: new Vector2(0f, -2f), sizeDelta: new Vector2(-12f, -20f),
-                skin: "panel_cream", fallbackColor: new Color(0.24f, 0.22f, 0.20f));
-            Button button = MakeButton(tile.GetComponent<Image>());
-            bool cream = Skin("panel_cream") != null;
+                anchoredPos: Vector2.zero, sizeDelta: new Vector2(-10f, -12f),
+                skin: "frame_tab", fallbackColor: new Color(0.24f, 0.22f, 0.20f));
+            Image bg = tile.GetComponent<Image>();
+            FitTabFrame(bg, NavTileGold);
+            Button button = MakeButton(bg);
+            bool marble = Skin("frame_tab") != null;
 
-            // 아이콘은 칸 위쪽에 정사각으로 — 칸 폭이 줄어도(탭이 늘면) 같은 크기를 유지한다.
-            bool hasIcon = icon != null && AddIcon(tile, icon, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -2f), 108f) != null;
+            // 아이콘 크기는 칸 높이로 정한다 — 칸 폭은 열린 탭 수에 따라 바뀌지만(HudChromeView) 높이는 그대로다.
+            bool hasIcon = icon != null && AddTileIcon(tile, icon, tileH, tileH, NavTileGold) != null;
 
-            TMP_Text text = CreateText(
-                tile, "Label", label, 28, FontStyles.Bold, cream ? InkColor : TextColor,
-                hasIcon ? TextAlignmentOptions.Bottom : TextAlignmentOptions.Midline,
-                anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
-                anchoredPos: Vector2.zero, sizeDelta: Vector2.zero);
-            text.margin = new Vector4(0f, 0f, 0f, hasIcon ? 6f : 0f);
+            if (hasIcon)
+            {
+                CreateTileLabel(tile, label, 30, 24f);
+            }
+            else
+            {
+                CreateText(
+                    tile, "Label", label, 30, FontStyles.Bold, marble ? InkColor : TextColor, TextAlignmentOptions.Midline,
+                    anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
+                    anchoredPos: Vector2.zero, sizeDelta: Vector2.zero);
+            }
 
             return button;
         }
 
         /// <summary>
-        /// 오른쪽 위 원형 버튼(설정·우편·특가) — 금 링 바탕(round_button) 위에 그림. 그림이 아직 없으면
-        /// 이름 글자를 쓴다. 레드닷은 넣지 않았다 — 알릴 것이 생기는 기능이 붙을 때 그 기능이 띄운다.
+        /// 오른쪽 위 원형 버튼(설정·우편·특가) — 금 링 대리석 판(frame_round_btn) 위에 그림. 그림은 링 안쪽을 꽉 채운다
+        /// (지름의 0.84 — compose_v7.py). 그림이 아직 없으면 이름 글자를 쓴다.
+        /// 레드닷은 넣지 않았다 — 알릴 것이 생기는 기능이 붙을 때 그 기능이 띄운다.
         /// </summary>
         private static Button CreateRoundButton(RectTransform canvas, string name, string icon, string label, Vector2 pos, float size)
         {
-            Sprite ring = Skin("round_button");
+            Sprite ring = Skin("frame_round_btn") ?? Skin("round_button");
             RectTransform rect = CreateRect(
                 canvas, name,
                 anchorMin: new Vector2(1f, 1f), anchorMax: new Vector2(1f, 1f), pivot: new Vector2(1f, 1f),
@@ -922,7 +967,7 @@ namespace Olympus.Editor
 
             Button button = MakeButton(bg);
 
-            if (ring == null || AddIcon(rect, icon, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size * 0.86f) == null)
+            if (ring == null || AddIcon(rect, icon, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size * 0.84f) == null)
             {
                 CreateText(rect, "Label", label, 18, FontStyles.Bold, ring != null ? InkColor : Color.white, TextAlignmentOptions.Midline,
                     anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
@@ -934,15 +979,20 @@ namespace Olympus.Editor
 
         private static RectTransform CreateToast(RectTransform canvas, out TMP_Text toastText)
         {
+            // 시안 v9 토스트: 금테 대리석 패널(frame_panel, 금테 22) + 짙은 갈색 글자.
             RectTransform panel = CreatePanel(
                 canvas, "Toast",
                 anchorMin: new Vector2(0.5f, 0.5f), anchorMax: new Vector2(0.5f, 0.5f), pivot: new Vector2(0.5f, 0.5f),
-                anchoredPos: new Vector2(0f, 300f), sizeDelta: new Vector2(900f, 220f));
+                anchoredPos: new Vector2(0f, 300f), sizeDelta: new Vector2(900f, 220f), skin: "frame_panel");
+            bool marble = Skin("frame_panel") != null;
+            if (marble)
+                panel.GetComponent<Image>().pixelsPerUnitMultiplier = 44f / 22f;
 
+            // 금테(22) 안쪽에 가는 금선이 한 줄 더 있다 — 글자가 그 선에 닿지 않게 좌우 48씩 비운다.
             toastText = CreateText(
-                panel, "Text", "", 28, FontStyles.Normal, TextColor, TextAlignmentOptions.Midline,
+                panel, "Text", "", 28, FontStyles.Normal, marble ? InkColor : TextColor, TextAlignmentOptions.Midline,
                 anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
-                anchoredPos: Vector2.zero, sizeDelta: new Vector2(-40f, 0f));
+                anchoredPos: Vector2.zero, sizeDelta: new Vector2(marble ? -96f : -40f, marble ? -48f : 0f));
 
             return panel;
         }
@@ -1039,6 +1089,63 @@ namespace Olympus.Editor
             image.color = Color.white;
         }
 
+        /// <summary>
+        /// 양 끝이 반원인 알약 그림(칩·초록 버튼)은 끝 반원이 칸 높이에 맞아야 둥글게 보인다 — 그림 높이를 칸 높이로
+        /// 나눈 배수를 준다. 고정 배수(2)로 두면 높이가 72가 아닌 버튼에서 끝이 납작하거나 뾰족해진다.
+        /// </summary>
+        private static void FitCapsToHeight(Image image, float height)
+        {
+            if (image.sprite != null && image.type == Image.Type.Sliced && height > 0f)
+                image.pixelsPerUnitMultiplier = image.sprite.rect.height / height;
+        }
+
+        /// <summary>탭 프레임(frame_tab)의 금테가 화면에서 <paramref name="gold"/> 두께가 되게 한다(시안: 작은 칸 15, 하단 탭 22).</summary>
+        private static void FitTabFrame(Image image, float gold)
+        {
+            if (image.sprite != null && image.type == Image.Type.Sliced)
+                image.pixelsPerUnitMultiplier = TabFrameBorderPx / gold;
+        }
+
+        /// <summary>짙은 초록 — 3D 초록 버튼 위 흰 글자의 테두리(시안 v9 "받기").</summary>
+        private static readonly Color GreenButtonEdge = new Color(0.12f, 0.35f, 0.12f);
+
+        /// <summary>
+        /// 글자에 테두리를 두른다. 테두리는 글꼴 재질의 값이라 글자마다 재질을 새로 만들면(씬에 묻힌 재질)
+        /// 다시 지을 때마다 쌓이고 diff도 못 읽는다 — 글꼴·색마다 재질 자산 하나를 만들어 같이 쓴다.
+        /// 재질은 Assets/Art/Fonts/에 둔다(.mat은 SceneAutoRebuild 지문에 안 들어가서, 만들어도 재조립이 또 돌지 않는다).
+        /// </summary>
+        private static void Outline(TMP_Text text, Color color)
+        {
+            var font = text.font;
+            if (font == null || font.material == null)
+                return;
+
+            string path = FontFolder + font.name + " Outline " + ColorUtility.ToHtmlStringRGB(color) + ".mat";
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(font.material) { name = font.name + " Outline " + ColorUtility.ToHtmlStringRGB(color) };
+                AssetDatabase.CreateAsset(mat, path);
+            }
+
+            // 값은 매번 다시 넣는다 — 두께를 고치면 이미 있는 재질에도 반영되게.
+            mat.shader = font.material.shader;
+            mat.SetTexture(ShaderUtilities.ID_MainTex, font.material.GetTexture(ShaderUtilities.ID_MainTex));
+            mat.EnableKeyword(ShaderUtilities.Keyword_Outline);
+            mat.SetColor(ShaderUtilities.ID_OutlineColor, color);
+            mat.SetFloat(ShaderUtilities.ID_OutlineWidth, TextOutlineWidth);
+            // 테두리는 글자 가장자리를 중심으로 안팎 반반 그려진다 — 같은 만큼 글자를 불려야 글자 속이 안 먹힌다
+            // (0.4/0.2로 두었더니 명조 Lv 글자가 머리카락 굵기만 남았다).
+            mat.SetFloat(ShaderUtilities.ID_FaceDilate, TextOutlineWidth);
+            ShaderUtilities.UpdateShaderRatios(mat);
+            EditorUtility.SetDirty(mat);
+
+            text.fontSharedMaterial = mat;
+        }
+
+        /// <summary>글자 테두리 두께(글꼴 재질 단위, 0~1). 시안은 22~30pt 글자에 3px 테두리다.</summary>
+        private const float TextOutlineWidth = 0.25f;
+
         /// <summary>그림 하나를 버튼으로 — 누르면 살짝 어두워지고, 못 누를 때는 확실히 회색.</summary>
         private static Button MakeButton(Image target)
         {
@@ -1100,21 +1207,33 @@ namespace Olympus.Editor
             rect.anchoredPosition = anchoredPos;
             rect.sizeDelta = sizeDelta;
 
-            // 바탕(btn_fill)은 흰 그림에 색을 곱하고, 금 테두리(btn_frame)는 색을 안 곱한 채 위에 얹는다 —
-            // 한 장에 테두리까지 그려 두면 버튼 색을 바꿀 때 금색도 같이 물든다.
             Color fill = fillColor ?? ClaimGreen;
-            Sprite fillSprite = Skin("btn_fill");
             Image image = go.AddComponent<Image>();
-            ApplySkin(image, fillSprite, fill);
-            image.color = fill;
 
-            Sprite frame = Skin("btn_frame");
-            if (fillSprite != null && frame != null)
+            // 기본(초록) 버튼은 시안 v9의 3D 버튼 한 장(btn_green) — 이미 초록으로 칠해진 그림이라 색을 곱하지 않는다.
+            // 다른 색 버튼은 그 색의 3D 그림이 아직 없어서 예전 방식(흰 바탕에 색 곱하기 + 금 테두리)을 쓴다.
+            Sprite green = fill == ClaimGreen ? Skin("btn_green") : null;
+            if (green != null)
             {
-                RectTransform frameRect = CreateRect(go.transform, "Frame", Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-                Image frameImage = frameRect.gameObject.AddComponent<Image>();
-                ApplySkin(frameImage, frame, Color.white);
-                frameImage.raycastTarget = false;
+                ApplySkin(image, green, fill);
+                FitCapsToHeight(image, sizeDelta.y);
+            }
+            else
+            {
+                // 바탕(btn_fill)은 흰 그림에 색을 곱하고, 금 테두리(btn_frame)는 색을 안 곱한 채 위에 얹는다 —
+                // 한 장에 테두리까지 그려 두면 버튼 색을 바꿀 때 금색도 같이 물든다.
+                Sprite fillSprite = Skin("btn_fill");
+                ApplySkin(image, fillSprite, fill);
+                image.color = fill;
+
+                Sprite frame = Skin("btn_frame");
+                if (fillSprite != null && frame != null)
+                {
+                    RectTransform frameRect = CreateRect(go.transform, "Frame", Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+                    Image frameImage = frameRect.gameObject.AddComponent<Image>();
+                    ApplySkin(frameImage, frame, Color.white);
+                    frameImage.raycastTarget = false;
+                }
             }
 
             Button button = go.AddComponent<Button>();
@@ -1132,6 +1251,10 @@ namespace Olympus.Editor
                 go.transform, "Label", label, labelFontSize, FontStyles.Bold, lightFill ? InkColor : Color.white, TextAlignmentOptions.Midline,
                 anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
                 anchoredPos: Vector2.zero, sizeDelta: Vector2.zero);
+
+            // 3D 초록 버튼은 밝은 부분이 있어 흰 글자만으로는 묻힌다 — 시안처럼 짙은 초록 테두리를 두른다.
+            if (green != null)
+                Outline(labelText, GreenButtonEdge);
 
             return button;
         }

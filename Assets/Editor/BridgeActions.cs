@@ -321,6 +321,50 @@ namespace Olympus.Editor
             return "다시 가져옴: " + path;
         }
 
+        /// <summary>
+        /// 본부를 <paramref name="hqLevel"/>까지 밀어 올린다(자원 지급 → 복구·업그레이드 → 공사 즉시 완료 → 임무 받기를 반복).
+        /// 본부 레벨이 올라야 켜지는 HUD(탭·식량·금·위협 띠)를 화면으로 확인하려고 둔다. 시험 봇(RealDataTests)과 같은 순서다.
+        /// ⚠️ 로컬 세이브에 그대로 남는다 — 형님 진행을 지키려면 부르기 전에 olympus-save.json을 백업해 두고 끝나면 되돌린다.
+        /// </summary>
+        public static string RushHq(int hqLevel)
+        {
+            Olympus.Core.Territory.TerritoryRuntime rt = Presenter().Runtime;
+            for (int round = 0; round < 200 && rt.HqLevel < hqLevel; round++)
+            {
+                rt.DebugGrantResources(50000);
+                foreach (var b in rt.State.Buildings.OrderBy(b => b.Id))
+                {
+                    if (b.IsRuined)
+                        rt.Construction.TryStartRepair(b.Id);
+                    else
+                        rt.Upgrades.TryStart(b.Id);
+                }
+                rt.DebugCompleteAllConstruction();
+                while (rt.Quests.TryClaim() == Olympus.Core.Progression.QuestClaimRejection.None) { }
+
+                // 본부 Lv.2부터는 성문 밖 기지를 무너뜨려야 열린다 — 시간이 걸리는 일이라 공격 가능한 기지 하나를 바로 넘긴다.
+                Olympus.Core.Chapter.FrontView front = rt.Frontline.Describe();
+                if (front.HasOutpost && !front.Waiting)
+                    rt.Store.Apply(new Olympus.Core.State.StateDelta()
+                        .WithCounter(Olympus.Core.State.CountChange.Absolute(Olympus.Core.Chapter.FrontlineService.IndexKey, front.Index + 1))
+                        .WithCounter(Olympus.Core.State.CountChange.Absolute(Olympus.Core.Chapter.FrontlineService.DamageKey, 0)));
+
+                // 본부 Lv.4부터는 거인을 무찔러야 열린다 — 용사를 채우고 바로 도착시켜 Core에서 결판낸다(협곡 연출은 건너뜀).
+                var threat = rt.Threats.Current;
+                if (threat != null && rt.Threats.Describe(threat).Phase != Olympus.Core.Chapter.ThreatPhase.Hidden)
+                {
+                    rt.DebugGrantTroops(300);
+                    rt.DebugThreatArriveNow();
+                    rt.Tick();
+                    if (rt.Threats.CanDispatch(threat.ThreatId) == Olympus.Core.Chapter.ThreatRejection.None)
+                        rt.Threats.Resolve(threat.ThreatId);
+                }
+            }
+            // 훈련 칸(왼쪽 열)도 보이게 몇 명 훈련을 걸어 둔다. 병영이 없으면 거절되고 그만이다.
+            rt.Training.TryStart(10);
+            return "본부 Lv." + rt.HqLevel;
+        }
+
         private static TerritoryPresenter Presenter()
         {
             if (!Application.isPlaying)

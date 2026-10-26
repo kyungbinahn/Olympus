@@ -77,7 +77,7 @@ namespace Olympus.UI
                 _levelText.text = "Lv." + rt.HqLevel;
 
             if (_prosperityText != null)
-                _prosperityText.text = "번영도 " + ProgressionRules.Prosperity(rt.State, rt.Progression).ToString("N0");
+                _prosperityText.text = (_showLabels ? "번영도 " : "") + ProgressionRules.Prosperity(rt.State, rt.Progression).ToString("N0");
 
             RefreshQueue(rt);
         }

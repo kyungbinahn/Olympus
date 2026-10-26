@@ -31,6 +31,13 @@ namespace Olympus.Editor
             { "btn_frame", new Vector4(28, 28, 28, 28) },
             { "parchment", new Vector4(30, 0, 30, 0) },
             { "navbar", new Vector4(0, 0, 0, 14) },
+
+            // v9 3D 프레임 — tools/hud-art/import_hud_v9.py가 아트 원본을 줄여 넣는다(값은 그 파일 FRAMES와 같다).
+            { "frame_chip", new Vector4(44, 0, 44, 0) },
+            { "btn_green", new Vector4(76, 0, 76, 0) },
+            { "frame_tab", new Vector4(44, 44, 44, 44) },
+            { "frame_panel", new Vector4(44, 44, 44, 44) },
+            { "strip_front", new Vector4(32, 32, 32, 32) },
         };
 
         // 표를 바꾼 뒤에는 Skin 폴더를 우클릭 → Reimport. (GetVersion을 올리는 방법도 있지만 그러면
