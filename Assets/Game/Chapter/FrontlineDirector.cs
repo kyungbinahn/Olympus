@@ -412,19 +412,22 @@ namespace Olympus.Game.Chapter
                 KillOne(_theirs);
             }
 
-            if (Time.time >= _nextOurDeath && CountAlive(_ours) > 0)
+            // 우리 쪽은 맞붙은 적이 있을 때만 쓰러진다. 공격 전(본부 레벨 미달 — Waiting)에는 적이 안 나오는데
+            // 이 조건이 없어서, 성문 밖에 홀로 선 병사가 5초마다 아무것도 없는 데서 쓰러졌다(2026-10-26 형님 제보).
+            if (Time.time >= _nextOurDeath && CountAlive(_ours) > 0 && CountAlive(_theirs) > 0)
             {
                 _nextOurDeath = Time.time + (v.Stalled ? 1.6f : 5f);
                 KillOne(_ours);
             }
 
-            Drive(_ours, clash, v);
-            Drive(_theirs, clash, v);
+            // 휘두르기도 상대가 서 있을 때만 — 공격 전에는 성문 앞에서 창을 세우고 지킨다.
+            Drive(_ours, clash, CountAlive(_theirs) > 0);
+            Drive(_theirs, clash, CountAlive(_ours) > 0);
             Sweep(_ours);
             Sweep(_theirs);
         }
 
-        private void Drive(List<Fighter> list, Vector3 clash, FrontView v)
+        private void Drive(List<Fighter> list, Vector3 clash, bool facingEnemy)
         {
             for (int i = 0; i < list.Count; i++)
             {
@@ -461,7 +464,7 @@ namespace Olympus.Game.Chapter
                 if (face.sqrMagnitude > 0.01f)
                     f.Go.transform.rotation = Quaternion.Slerp(f.Go.transform.rotation, Quaternion.LookRotation(face), Time.deltaTime * 6f);
 
-                if (Time.time >= f.NextSwing && f.Animator != null && f.Animator.runtimeAnimatorController != null)
+                if (facingEnemy && Time.time >= f.NextSwing && f.Animator != null && f.Animator.runtimeAnimatorController != null)
                 {
                     f.Animator.SetInteger(VariantParam, Random.Range(0, 2));
                     f.Animator.SetTrigger(AttackParam);
