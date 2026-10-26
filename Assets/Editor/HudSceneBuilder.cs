@@ -218,6 +218,8 @@ namespace Olympus.Editor
             TerritorySceneBuilder.Wire(so1, "_foodCell", res.FoodCell);
             TerritorySceneBuilder.Wire(so1, "_goldCell", res.GoldCell);
             WireList(so1, "_chips", res.Chips);
+            so1.FindProperty("_chipOrigin").vector2Value = new Vector2(ChipLeft, -ChipTop);
+            so1.FindProperty("_chipStep").vector2Value = new Vector2(ChipWidth + ChipGap, ChipHeight + ChipGap);
             TerritorySceneBuilder.Wire(so1, "_queueRoot", queueTile);
             TerritorySceneBuilder.Wire(so1, "_queueText", queueText);
             so1.FindProperty("_showLabels").boolValue = Icon("icon_res_wood") == null;
@@ -694,17 +696,21 @@ namespace Olympus.Editor
             }
         }
 
+        /// <summary>자원 칩 크기·자리. 칩 사이는 가로세로 같은 6 — 형님 판단 2026-10-26 "칩 간 간격 더 줄여"(시안은 가로 30·세로 8).</summary>
+        private const float ChipWidth = 158f, ChipHeight = 40f, ChipGap = 6f;
+        private const float ChipLeft = 170f, ChipTop = 20f;
+
         /// <summary>
         /// 자원 칩 하나(158×40) — 양 끝이 반원인 대리석 알약, 아이콘은 왼쪽 원 안에 꽉 차게(밖으로 안 나감), 숫자는 나머지 가운데.
         /// 아이콘과 글자가 칩의 자식이라 ResourceBarView가 칩을 숨기면(식량·금 잠김) 통째로 숨는다.
         /// </summary>
         private static TMP_Text CreateResourceChip(RectTransform root, string name, int column, int row, string icon, out GameObject cell)
         {
-            const float w = 158f, h = 40f;
+            const float w = ChipWidth, h = ChipHeight;
             RectTransform chip = CreatePanel(
                 root, name + "Cell",
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(170f + column * (w + 30f), -20f - row * 48f), sizeDelta: new Vector2(w, h),
+                anchoredPos: new Vector2(ChipLeft + column * (w + ChipGap), -ChipTop - row * (h + ChipGap)), sizeDelta: new Vector2(w, h),
                 skin: "frame_chip", fallbackColor: PanelBackground);
             Image bg = chip.GetComponent<Image>();
             bg.raycastTarget = false;

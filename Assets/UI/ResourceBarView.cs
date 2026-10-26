@@ -37,8 +37,8 @@ namespace Olympus.UI
         [SerializeField] private RectTransform[] _chips;
         [Tooltip("첫 칩의 왼쪽 위 자리(부모 기준).")]
         [SerializeField] private Vector2 _chipOrigin = new Vector2(170f, -20f);
-        [Tooltip("다음 열(x)·다음 줄(y)까지의 거리.")]
-        [SerializeField] private Vector2 _chipStep = new Vector2(188f, 48f);
+        [Tooltip("다음 열(x)·다음 줄(y)까지의 거리. HUD 빌더가 칩 크기 + 간격으로 넣는다.")]
+        [SerializeField] private Vector2 _chipStep = new Vector2(164f, 46f);
 
         private const int ChipRows = 2;
 
