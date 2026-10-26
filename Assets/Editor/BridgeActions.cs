@@ -312,6 +312,70 @@ namespace Olympus.Editor
             return "(" + v.x.ToString("0.0") + "," + v.z.ToString("0.0") + ")";
         }
 
+        /// <summary>
+        /// 모델 파일의 면 방향 검사 — 메시마다 "삼각형 감김(앞면) 방향이 중심에서 바깥을 보는 비율"과
+        /// "감김 방향과 정점 노말이 어긋난 비율", 그리고 오브젝트 크기에 음수(거울)가 있는지.
+        /// 바깥 비율이 낮으면 면이 안팎으로 뒤집혀 안쪽 면이 보인다(방패 테가 두 줄로 보이는 증상).
+        /// </summary>
+        public static string MeshInfo(string assetPath)
+        {
+            var root = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            if (root == null)
+                return "모델 없음: " + assetPath;
+
+            var sb = new StringBuilder();
+            foreach (MeshFilter mf in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                Mesh m = mf.sharedMesh;
+                if (m == null) continue;
+
+                Vector3[] v = m.vertices;
+                Vector3[] n = m.normals;
+                int[] t = m.triangles;
+                Vector3 c = m.bounds.center;
+                int outward = 0, mismatch = 0, tris = t.Length / 3;
+                for (int i = 0; i < t.Length; i += 3)
+                {
+                    Vector3 a = v[t[i]], b = v[t[i + 1]], d = v[t[i + 2]];
+                    Vector3 fn = Vector3.Cross(b - a, d - a);   // Unity 앞면 = 시계 방향 감김
+                    Vector3 mid = (a + b + d) / 3f;
+                    if (Vector3.Dot(fn, mid - c) > 0f) outward++;
+                    if (n.Length == v.Length && Vector3.Dot(fn, n[t[i]] + n[t[i + 1]] + n[t[i + 2]]) < 0f) mismatch++;
+                }
+
+                // 감김 일관성 — 이웃 삼각형이 공유한 모서리를 같은 방향으로 지나면 둘 중 하나가 뒤집힌 것이다.
+                // 위치로 정점을 합쳐서 본다(UV 이음매로 정점이 쪼개져 있어도 같은 모서리로 센다).
+                var key = new System.Collections.Generic.Dictionary<Vector3, int>();
+                int[] id = new int[v.Length];
+                for (int i = 0; i < v.Length; i++)
+                {
+                    Vector3 q = new Vector3(Mathf.Round(v[i].x * 1e4f), Mathf.Round(v[i].y * 1e4f), Mathf.Round(v[i].z * 1e4f));
+                    int k;
+                    if (!key.TryGetValue(q, out k)) { k = key.Count; key[q] = k; }
+                    id[i] = k;
+                }
+                var directed = new System.Collections.Generic.Dictionary<long, int>();
+                for (int i = 0; i < t.Length; i += 3)
+                    for (int e = 0; e < 3; e++)
+                    {
+                        long ek = ((long)id[t[i + e]] << 32) | (uint)id[t[i + (e + 1) % 3]];
+                        directed[ek] = directed.TryGetValue(ek, out int cnt) ? cnt + 1 : 1;
+                    }
+                int same = 0;
+                foreach (var kv in directed)
+                    if (kv.Value > 1) same += kv.Value - 1;
+
+                Vector3 s = mf.transform.lossyScale;
+                sb.Append(mf.name).Append(": 감김이 어긋난 모서리 ").Append(same).Append(", 삼각형 ").Append(tris)
+                  .Append(", 바깥을 보는 면 ").Append((100f * outward / Mathf.Max(1, tris)).ToString("0")).Append('%')
+                  .Append(", 노말 어긋남 ").Append((100f * mismatch / Mathf.Max(1, tris)).ToString("0")).Append('%')
+                  .Append(", 크기 ").Append(s.ToString("0.###"))
+                  .Append(s.x * s.y * s.z < 0f ? " (거울 — 면이 뒤집혀 그려진다)" : "").Append('\n');
+            }
+
+            return sb.Length > 0 ? sb.ToString() : "메시 없음";
+        }
+
         /// <summary>에셋 하나를 다시 가져온다(가져오기 규칙을 고친 뒤). 플레이 중에는 안 된다.</summary>
         public static string Reimport(string path)
         {
