@@ -43,6 +43,9 @@ FRAMES = {
 # 설정·우편·특가·임무는 v6 때 페인팅 시안에서 잘라 넣었던 것을 같은 이름으로 갈아끼운다.
 ICON_NAMES = ["icon_settings", "icon_mail", "icon_offer", "icon_quest", "icon_prosperity", "icon_outpost"]
 
+# 프로필 확대 자르기 (중심 x, 중심 y, 한 변) — 512 기준. 얼굴(투구 눈구멍~수염)이 가운데 오게.
+PROFILE_CROP = (270, 250, 320)
+
 GOLD = (212, 168, 92)
 FRONT_FILL = (62, 44, 32)
 
@@ -102,11 +105,18 @@ def main():
     for n in ICON_NAMES:
         shutil.copyfile(f"{ART}/icons/final/{n}.png", f"{ICONS}/{n}.png")
 
-    # 기본 프로필(월계관 원판 안, 화면 지름 80) — 512 납품을 256으로 줄인다(2배 + 밉맵 여유).
+    # 기본 프로필(월계관 원판 안, 화면 지름 80) — 형님 선택 2번 장군(strategos, 2026-10-26).
+    # 아트 확정본(icons/final/profile_default.png)이 있으면 그것을, 아직이면 같은 그림인 후보 파일을 쓴다.
+    # "크게"(형님) — 512 중 얼굴 중심 320 정사각만 잘라 얼굴을 원판에 가득 채운다(투구 깃 끝은 잘린다).
     profile = f"{ART}/icons/final/profile_default.png"
+    if not os.path.exists(profile):
+        profile = f"{ART}/profile/512/strategos.png"
     if os.path.exists(profile):
-        Image.open(profile).convert("RGBA").resize((256, 256), Image.LANCZOS).save(f"{ICONS}/profile_default.png")
-        print("icon profile_default (256, 256)")
+        im = Image.open(profile).convert("RGBA").resize((512, 512), Image.LANCZOS)
+        cx, cy, side = PROFILE_CROP
+        im = im.crop((cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2))
+        im.resize((256, 256), Image.LANCZOS).save(f"{ICONS}/profile_default.png")
+        print("icon profile_default (256, 256) from", profile)
         print("icon", n)
 
 
