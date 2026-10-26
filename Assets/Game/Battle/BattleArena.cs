@@ -471,6 +471,11 @@ namespace Olympus.Game.Battle
         /// 그러면 뼈 축이 어떻게 생겼든 상관없다. 아트 쪽이 Blender 뼈 로컬 숫자로 준 소켓 값을 그대로 옮기면
         /// FBX 축 변환 때문에 틀어지므로 쓰지 않는다.
         /// </summary>
+        /// <summary>방패 중심 — 가슴뼈에서 왼쪽·앞·아래로(키 1.95m 기준 m). 몸 왼쪽 반을 어깨~허벅지까지 가리는 자리.</summary>
+        private const float ShieldLeft = 0.16f;
+        private const float ShieldForward = 0.26f;
+        private const float ShieldDrop = 0.22f;
+
         private static void AttachProps(Transform model, Animator animator, BattleUnitModelEntry entry,
             Transform frame, float modelHeight, bool player)
         {
@@ -506,17 +511,21 @@ namespace Olympus.Game.Battle
                 }
                 else
                 {
-                    bone = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
-                    Transform hand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
-                    if (bone == null || hand == null) continue;
+                    // 방패는 가슴뼈에 단다 — 몸 왼쪽 앞을 가리고 붉은 앞면이 늘 정면을 본다(300의 호플리테스 실루엣).
+                    // 왼 팔뚝에 달았을 때는 범용 걷기·대기 동작이 팔을 흔들어 방패가 바깥 옆을 보거나(위에서 보면 몸 옆에
+                    // 세로로 선 바퀴) 앞으로 누웠다(2026-10-26 형님 "방패 이상해 보이고 위치도 어색"). 방패 든 전용 동작이
+                    // 생기면 팔뚝으로 되돌린다.
+                    bone = animator.GetBoneTransform(HumanBodyBones.Chest) ?? animator.GetBoneTransform(HumanBodyBones.Spine);
+                    if (bone == null) continue;
 
-                    Vector3 armDir = (hand.position - bone.position).normalized;
-                    Vector3 face = frame.up;
+                    position = bone.position
+                               - frame.right * ShieldLeft * k
+                               + frame.forward * ShieldForward * k
+                               - frame.up * ShieldDrop * k;
 
-                    // 방패 위쪽 = 팔꿈치 쪽(손 반대). 팔을 내리면 문양이 똑바로 선다.
-                    Vector3 up = Vector3.ProjectOnPlane(-armDir, face).normalized;
-                    position = bone.position + armDir * 0.117f * k + face * 0.05f * k;
-                    rotation = Quaternion.LookRotation(face, up);
+                    // 납품 소품의 +Z가 방패 "안쪽"(손잡이 끈)이다 — 촬영 부스 정면 사진에서 끈이 보였다. 그래서 +Z를 뒤로 돌려
+                    // 붉은 앞면이 바깥(정면)을 보게 한다. 형님이 먼저 짚었다("붉은 부분이 뒤집혔나 보다").
+                    rotation = Quaternion.LookRotation(-frame.forward, frame.up);
                 }
 
                 // 크기는 건드리지 않는다 — 몸과 같은 내보내기 도구에서 나와 단위가 이미 같다.
