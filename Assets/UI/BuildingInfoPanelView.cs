@@ -22,6 +22,14 @@ namespace Olympus.UI
         private const string OkColor = "#9FD88A";
         private const string NgColor = "#F07A6E";
 
+        /// <summary>비용 글이 시작하는 높이(패널 위에서). HudSceneBuilder가 같은 값으로 글 칸을 놓는다.</summary>
+        public const float CostTop = -110f;
+
+        /// <summary>아래 버튼 줄이 차지하는 높이(여백 24 + 버튼 72 + 틈 10). 경고 글은 이 바로 위에 앉는다.</summary>
+        public const float ButtonRowHeight = 106f;
+
+        private const float MessageHeight = 30f;
+
         [SerializeField] private TerritoryPresenter _presenter;
 
         [Header("뷰")]
@@ -129,6 +137,46 @@ namespace Olympus.UI
                     ShowComplete(panel);
                     break;
             }
+
+            FitHeight();
+        }
+
+        /// <summary>
+        /// 판 높이를 내용에 맞춘다. 고정 높이로 두면 공사 중(글 한 줄)일 때 판 절반이 비고,
+        /// 본부(조건 줄 서너 개)일 때는 글이 버튼 위로 흘러넘친다.
+        /// </summary>
+        private void FitHeight()
+        {
+            var rect = (RectTransform)_root.transform;
+
+            float height = -CostTop + _costText.preferredHeight + 14f;
+
+            if (AnyButtonVisible())
+            {
+                if (_messageText.text.Length > 0)
+                    height += MessageHeight;
+                height += ButtonRowHeight;
+            }
+            else
+            {
+                height += 14f;
+            }
+
+            rect.sizeDelta = new Vector2(rect.sizeDelta.x, Mathf.Ceil(height));
+        }
+
+        private bool AnyButtonVisible()
+        {
+            if (_repairButton.gameObject.activeSelf)
+                return true;
+            if (_collectButton != null && _collectButton.gameObject.activeSelf)
+                return true;
+            for (int i = 0; i < _speedUpButtons.Count; i++)
+            {
+                if (_speedUpButtons[i].gameObject.activeSelf)
+                    return true;
+            }
+            return false;
         }
 
         private void ShowRuined(SlotPanel panel)

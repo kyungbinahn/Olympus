@@ -162,10 +162,11 @@ namespace Olympus.Editor
         private static void BuildHud(BattlePresenter presenter)
         {
             HudSceneBuilder.EnsureKoreanFont();
+            float hudScale = HudSceneBuilder.ExistingHudScale();
             HudSceneBuilder.DestroyIfExists("HUD");
             HudSceneBuilder.DestroyIfExists("EventSystem");
             HudSceneBuilder.CreateEventSystem();
-            RectTransform canvas = HudSceneBuilder.CreateCanvas();
+            RectTransform canvas = HudSceneBuilder.CreateCanvas(hudScale);
 
             var text = new Color(0.96f, 0.95f, 0.90f);
             var dim = new Color(0.82f, 0.80f, 0.72f);

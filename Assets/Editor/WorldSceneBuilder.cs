@@ -140,11 +140,12 @@ namespace Olympus.Editor
         {
             HudSceneBuilder.EnsureKoreanFont();
 
+            float hudScale = HudSceneBuilder.ExistingHudScale();
             HudSceneBuilder.DestroyIfExists("HUD");
             HudSceneBuilder.DestroyIfExists("EventSystem");
 
             HudSceneBuilder.CreateEventSystem();
-            RectTransform canvas = HudSceneBuilder.CreateCanvas();
+            RectTransform canvas = HudSceneBuilder.CreateCanvas(hudScale);
 
             // 고른 칸 정보 — 좌표와 거기 있는 것.
             RectTransform info = HudSceneBuilder.CreatePanel(

@@ -8,8 +8,8 @@ using Olympus.Game.Territory;
 namespace Olympus.UI
 {
     /// <summary>
-    /// 화면 상단 자원 표시 + 본부 줄(레벨·번영도·공사 대기열). StateStore.Changed만 듣는다 —
-    /// 상태를 직접 고치지 않는다.
+    /// 화면 상단 자원 표시 + 본부 레벨 배지·번영도, 그리고 왼쪽 열 공사 대기열 칸(망치 a/b).
+    /// StateStore.Changed만 듣는다 — 상태를 직접 고치지 않는다.
     ///
     /// 식량은 <c>food</c>(본부 Lv.2), 금은 <c>gold</c>(Lv.5) 기능이 열려야 보인다. 탑포스가 Lv.5에서 상단 자원 바를
     /// "식량·철"로 바꾸는 순간과 같다 — 쓸 곳이 없는 자원을 처음부터 0으로 띄워 두면 그냥 소음이다.
@@ -21,11 +21,20 @@ namespace Olympus.UI
     public sealed class ResourceBarView : MonoBehaviour
     {
         [SerializeField] private TerritoryPresenter _presenter;
-        [SerializeField] private TMP_Text _hqText;
+        [SerializeField] private TMP_Text _levelText;
+        [SerializeField] private TMP_Text _prosperityText;
         [SerializeField] private TMP_Text _woodText;
         [SerializeField] private TMP_Text _stoneText;
         [SerializeField] private TMP_Text _foodText;
         [SerializeField] private TMP_Text _goldText;
+
+        [Tooltip("식량·금 칸의 바탕까지 통째로 숨길 때 쓴다. 비워 두면 글자만 숨긴다.")]
+        [SerializeField] private GameObject _foodCell;
+        [SerializeField] private GameObject _goldCell;
+
+        [Header("왼쪽 열 — 공사 대기열")]
+        [SerializeField] private GameObject _queueRoot;
+        [SerializeField] private TMP_Text _queueText;
 
         [Tooltip("자원 이름(목재·석재…)을 숫자 앞에 쓴다. 아이콘이 붙으면 HUD 빌더가 끈다 — 아이콘과 이름이 겹치면 읽기만 느리다.")]
         [SerializeField] private bool _showLabels = true;
@@ -61,11 +70,16 @@ namespace Olympus.UI
             _stoneText.text = Line(ResourceKind.Stone, resources);
 
             // 식량은 거인이 보이는 본부 Lv.2부터(병사 훈련 재료), 금은 Lv.5부터 — function-unlock.json.
-            SetLine(_foodText, rt.IsFeatureUnlocked("food"), Line(ResourceKind.Food, resources));
-            SetLine(_goldText, rt.IsFeatureUnlocked("gold"), Line(ResourceKind.Gold, resources));
+            SetLine(_foodText, _foodCell, rt.IsFeatureUnlocked("food"), Line(ResourceKind.Food, resources));
+            SetLine(_goldText, _goldCell, rt.IsFeatureUnlocked("gold"), Line(ResourceKind.Gold, resources));
 
-            if (_hqText != null)
-                _hqText.text = HqLine(rt);
+            if (_levelText != null)
+                _levelText.text = "Lv." + rt.HqLevel;
+
+            if (_prosperityText != null)
+                _prosperityText.text = "번영도 " + ProgressionRules.Prosperity(rt.State, rt.Progression).ToString("N0");
+
+            RefreshQueue(rt);
         }
 
         private string Line(ResourceKind kind, ResourcePool resources)
@@ -74,24 +88,25 @@ namespace Olympus.UI
             return _showLabels ? ResourceLabels.Of(kind) + " " + value : value;
         }
 
-        private static string HqLine(TerritoryRuntime rt)
+        private void RefreshQueue(TerritoryRuntime rt)
         {
-            string line = "본부 Lv." + rt.HqLevel + "   번영도 " + ProgressionRules.Prosperity(rt.State, rt.Progression);
+            if (_queueRoot == null)
+                return;
 
-            // 대기열은 한도가 생긴 뒤(Lv.4~)에만 보인다 — 한도가 없을 때 "공사 3/∞"는 의미가 없다.
+            // 대기열은 한도가 생긴 뒤(Lv.4~)에만 보인다 — 한도가 없을 때 "3/∞"는 의미가 없다.
             int slots = ProgressionRules.QueueSlots(rt.State, rt.Progression);
-            if (slots > 0)
-                line += "   공사 " + ProgressionRules.ConstructingCount(rt.State) + "/" + slots;
+            _queueRoot.SetActive(slots > 0);
 
-            return line;
+            if (slots > 0 && _queueText != null)
+                _queueText.text = ProgressionRules.ConstructingCount(rt.State) + "/" + slots;
         }
 
-        private static void SetLine(TMP_Text text, bool visible, string value)
+        private static void SetLine(TMP_Text text, GameObject cell, bool visible, string value)
         {
             if (text == null)
                 return;
 
-            text.gameObject.SetActive(visible);
+            (cell != null ? cell : text.gameObject).SetActive(visible);
             if (visible)
                 text.text = value;
         }

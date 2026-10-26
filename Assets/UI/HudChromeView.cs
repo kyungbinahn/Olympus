@@ -33,6 +33,10 @@ namespace Olympus.UI
         [SerializeField] private Button _worldMapButton;
         [SerializeField] private Button _settingsButton;
 
+        [Tooltip("오른쪽 열(설정 아래) — 우편·특가. 자리만 잡아 둔 것이라 지금은 알림만 띄운다.")]
+        [SerializeField] private Button _mailButton;
+        [SerializeField] private Button _offerButton;
+
         [Tooltip("레벨업 알림을 띄워 두는 시간(초). 이야기 한 줄 + 새 건물 + 새 기능을 읽을 시간이다.")]
         [SerializeField] private float _levelUpToastSeconds = 5f;
 
@@ -48,6 +52,8 @@ namespace Olympus.UI
             Wire(_allianceButton, "동맹 — 준비중입니다");
             Wire(_shopButton, "상점 — 준비중입니다");
             Wire(_settingsButton, "설정 — 준비중입니다");
+            Wire(_mailButton, "우편 — 준비중입니다");
+            Wire(_offerButton, "특가 — 준비중입니다");
 
             if (_bagButton != null)
                 _bagButton.onClick.AddListener(ShowBag);

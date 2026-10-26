@@ -96,6 +96,16 @@ namespace Olympus.UI
                 return;
             }
 
+            // 전초기지 임무("○번째 기지를 무너뜨려라")는 성문 밖 전선 쪽으로.
+            if (view.Quest.Objective.Kind == RequirementKind.Counter
+                && view.Quest.Objective.Target == Olympus.Core.Chapter.FrontlineService.IndexKey)
+            {
+                var front = Object.FindFirstObjectByType<Olympus.Game.Chapter.FrontlineDirector>();
+                if (front != null)
+                    front.FocusOutpost();
+                return;
+            }
+
             _presenter.FocusOnDef(view.Quest.FocusDefId);
         }
 

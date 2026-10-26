@@ -12,7 +12,8 @@ using Olympus.Game.Territory;
 namespace Olympus.UI
 {
     /// <summary>
-    /// 1장 화면 — 상단 띠(거인 도착까지 · 용사 n/300 · 출정), 병영 훈련 칸, 협곡 전투 중 배속·건너뛰기.
+    /// 1장 화면 — 상단 띠(거인 도착까지 · 용사 n/300 게이지 · 출정), 왼쪽 열 훈련 진행 칸, 병영 훈련 칸,
+    /// 협곡 전투 중 배속·건너뛰기.
     ///
     /// 컨셉의 "시급성"은 이 띠가 맡는다: 남은 시간과 300이 늘 같이 보여야 "거인이 오기 전에 300"이 읽힌다.
     /// 그래서 띠는 정보 패널처럼 탭해야 뜨는 것이 아니라, 거인이 보이는 동안 늘 떠 있다.
@@ -27,10 +28,22 @@ namespace Olympus.UI
         [Header("상단 띠")]
         [SerializeField] private GameObject _bannerRoot;
         [SerializeField] private Button _bannerButton;
-        [SerializeField] private TMP_Text _bannerTitle;
-        [SerializeField] private TMP_Text _bannerDetail;
+        [Tooltip("작은 윗줄 — \"거인 도착까지\"")]
+        [SerializeField] private TMP_Text _bannerCaption;
+        [Tooltip("큰 숫자 — 남은 시간(전투 중엔 거인 체력 %)")]
+        [SerializeField] private TMP_Text _bannerClock;
+        [Tooltip("용사 n/300 + 게이지 묶음. 출정 버튼이 뜨면 그 자리를 비켜 준다.")]
+        [SerializeField] private GameObject _troopRow;
+        [SerializeField] private TMP_Text _troopText;
+        [Tooltip("게이지 채움 — 오른쪽 앵커(anchorMax.x)를 비율로 움직인다. 늘림(9-slice) 그림이라 Filled를 못 쓴다.")]
+        [SerializeField] private RectTransform _troopGaugeFill;
         [SerializeField] private Button _dispatchButton;
         [SerializeField] private TMP_Text _dispatchLabel;
+
+        [Header("왼쪽 열 — 훈련 진행 칸")]
+        [SerializeField] private GameObject _trainTile;
+        [SerializeField] private Image _trainTileRing;
+        [SerializeField] private TMP_Text _trainTileTime;
 
         [Header("병영 훈련")]
         [SerializeField] private GameObject _trainRoot;
@@ -166,6 +179,7 @@ namespace Olympus.UI
                 return;
 
             RefreshBanner();
+            RefreshTrainTile();
             RefreshTraining();
             RefreshBattle();
         }
@@ -200,39 +214,74 @@ namespace Olympus.UI
             {
                 BattleSimulation sim = _director.Simulation;
                 int alive = sim != null ? sim.AliveCount(BattleTeam.Player) : 0;
-                SetText(_bannerTitle, "협곡 전투 — 용사 " + alive + " vs 거인");
-                SetText(_bannerDetail, GiantHpLine(sim));
+                float hp = GiantHpFraction(sim);
+                SetText(_bannerCaption, "협곡 전투 · 거인 체력");
+                SetText(_bannerClock, Mathf.CeilToInt(hp * 100f) + "%");
+                SetText(_troopText, "용사 " + alive + "명 싸우는 중" + (sim != null ? "  " + (sim.ElapsedMs / 1000) + "초" : ""));
+                SetGauge(hp);
+                SetActive(_troopRow, true);
                 SetActive(_dispatchButton, false);
                 return;
             }
 
             if (v.Phase == ThreatPhase.Arrived)
             {
+                // 띠가 크림슨이라 경고색은 빨강이 아니라 금색으로 띄운다 — 빨강 위 빨강은 안 읽힌다.
                 float left = _director != null ? _director.ArrivalCountdown : 0f;
-                SetText(_bannerTitle, "<color=#FF6A4D>거인이 협곡에 닿았다!</color>" +
-                    (left > 0f ? "  " + Mathf.CeilToInt(left) + "초 뒤 맞선다" : ""));
+                SetText(_bannerCaption, "<color=#FFD27A>거인이 협곡에 닿았다!</color>");
+                SetText(_bannerClock, left > 0f ? Clock((long)(left * 1000f)) : "맞선다!");
             }
             else
             {
-                SetText(_bannerTitle, (v.Tries > 0 ? "거인이 다시 온다 — " : "거인 도착까지 ") + Clock(v.RemainingMs));
+                SetText(_bannerCaption, v.Tries > 0 ? "거인이 다시 온다" : "거인 도착까지");
+                SetText(_bannerClock, Clock(v.RemainingMs));
             }
 
-            var sb = new StringBuilder();
             long visible = tv.VisibleTroops;
-            sb.Append("용사 ").Append(visible >= v.Def.GoalTroops ? "<color=#8CE07A>" : "")
-              .Append(visible).Append(" / ").Append(v.Def.GoalTroops)
-              .Append(visible >= v.Def.GoalTroops ? "</color>" : "");
+            long goal = v.Def.GoalTroops;
+            bool full = visible >= goal;
+            SetText(_troopText, "용사 " + (full ? "<color=#C8F5A0>" : "") + visible + "/" + goal + (full ? "</color>" : ""));
+            SetGauge(goal > 0 ? (float)visible / goal : 0f);
 
-            if (tv.Running)
-                sb.Append("   (훈련 중 ").Append(tv.DoneSoFar).Append('/').Append(tv.OrderCount)
-                  .Append(", ").Append(Clock(tv.EndsAtUnixMs - _presenter.Runtime.Clock.NowUnixMs)).Append(')');
-
-            SetText(_bannerDetail, sb.ToString());
-
+            // 출정 버튼은 300이 찼을 때만 — 그때는 게이지가 할 말을 다 했으니 그 자리를 버튼에 내준다.
             bool canDispatch = v.Phase == ThreatPhase.Approaching && v.CanDispatch;
+            SetActive(_troopRow, !canDispatch);
             SetActive(_dispatchButton, canDispatch);
             if (canDispatch)
                 SetText(_dispatchLabel, "협곡으로 출정!");
+        }
+
+        private void SetGauge(float fraction)
+        {
+            if (_troopGaugeFill == null)
+                return;
+
+            fraction = Mathf.Clamp01(fraction);
+            // 채움 그림은 양 끝이 둥근 알약이라 너무 짧으면 찌그러진다 — 거의 0이면 아예 숨긴다.
+            bool show = fraction > 0.02f;
+            if (_troopGaugeFill.gameObject.activeSelf != show)
+                _troopGaugeFill.gameObject.SetActive(show);
+            _troopGaugeFill.anchorMax = new Vector2(fraction, _troopGaugeFill.anchorMax.y);
+        }
+
+        /// <summary>왼쪽 열 훈련 칸 — 훈련이 도는 동안만. 병영을 누르지 않아도 "지금 기르는 중"이 보여야 한다.</summary>
+        private void RefreshTrainTile()
+        {
+            if (_trainTile == null)
+                return;
+
+            TrainingService training = _presenter.Runtime.Training;
+            TrainingView v = training.Def != null ? training.Describe() : default(TrainingView);
+            bool show = training.Def != null && v.Running && !(_director != null && _director.Fighting);
+            SetActive(_trainTile, show);
+            if (!show)
+                return;
+
+            long now = _presenter.Runtime.Clock.NowUnixMs;
+            long total = v.EndsAtUnixMs - v.StartedAtUnixMs;
+            if (_trainTileRing != null)
+                _trainTileRing.fillAmount = total > 0 ? Mathf.Clamp01((float)(now - v.StartedAtUnixMs) / total) : 1f;
+            SetText(_trainTileTime, Clock(v.EndsAtUnixMs - now));
         }
 
         private void AnnounceIfNew(ThreatDef t, ThreatView v)
@@ -256,10 +305,10 @@ namespace Olympus.UI
             _lastPhase = v.Phase;
         }
 
-        private static string GiantHpLine(BattleSimulation sim)
+        private static float GiantHpFraction(BattleSimulation sim)
         {
             if (sim == null)
-                return "";
+                return 0f;
 
             long hp = 0, max = 0;
             for (int i = 0; i < sim.Units.Count; i++)
@@ -270,8 +319,7 @@ namespace Olympus.UI
                 max += u.MaxHp;
             }
 
-            int pct = max > 0 ? (int)(hp * 100 / max) : 0;
-            return "거인 체력 " + pct + "%   " + (sim.ElapsedMs / 1000) + "초";
+            return max > 0 ? (float)hp / max : 0f;
         }
 
         private void OnBannerClicked()
