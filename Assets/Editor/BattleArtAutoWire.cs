@@ -28,6 +28,10 @@ namespace Olympus.Editor
 
         static BattleArtAutoWire()
         {
+            // 파일 가져오기용 보조 프로세스에서는 씬을 만지지 않는다(SceneAutoRebuild와 같은 이유).
+            if (AssetDatabase.IsAssetImportWorkerProcess())
+                return;
+
             string have = System.IO.File.Exists(VersionFile) ? System.IO.File.ReadAllText(VersionFile).Trim() : "";
             if (have == WireVersion.ToString() || _scheduled)
                 return;

@@ -51,7 +51,14 @@
   손으로 만들면 조용히 깨진다. 대신 **에디터 메뉴 명령**으로 조립한다:
   `Olympus/Setup/기지 씬 만들기` (`Assets/Editor/TerritorySceneBuilder.cs`)
   재실행 가능하고, 코드라서 diff로 읽히고 리뷰된다.
-- 새 `.cs`를 만들면 `.meta`는 Unity가 생성한다. 사용자가 Unity를 한 번 열어야 하고, 그 다음 커밋한다.
+- **조립은 저절로 다시 돈다** (`Assets/Editor/SceneAutoRebuild.cs`). 조립 코드·UI 그림·글꼴이 바뀌면
+  코드가 다시 읽힐 때 해당 씬(기지·월드맵·전투)을 다시 짓는다. 사용자에게 "메뉴 눌러 주세요"를 시키지 않는다.
+  새 씬 조립기를 만들면 거기 `Targets`에 입력 파일과 함께 등록한다 — 안 하면 다시 사람 손 단계가 생긴다.
+- **Unity는 AI가 직접 조작하고 확인한다** — `tools/editor-bridge/ub.sh` (설명: [`docs/editor-bridge.md`](docs/editor-bridge.md)).
+  코드를 고친 뒤 `refresh` → `wait` → 콘솔(`Temp/EditorBridge/console.log`)에서 컴파일 오류 확인 →
+  `play` → `call`로 조작 → `shot`으로 캡처해 **직접 보고** 보고한다. "눈으로 확인해 주세요"로 끝내지 않는다.
+  색·크기 같은 취향 판단만 사용자에게 캡처를 보여 주고 묻는다.
+- 새 `.cs`를 만들면 `.meta`는 Unity가 생성한다(브리지의 `refresh`로 된다). 그 다음 커밋한다.
 - 입력은 **새 Input System API**를 직접 읽는다(`Mouse.current`·`Touchscreen.current`·`Keyboard.current`).
   프로젝트가 `activeInputHandler: 1`(새 시스템 전용)이라 레거시 `Input.*`은 동작하지 않는다.
 - UI는 **UGUI + TextMeshPro**. 어셈블리 이름은 `UnityEngine.UI`·`Unity.TextMeshPro`
