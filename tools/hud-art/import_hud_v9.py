@@ -101,6 +101,12 @@ def main():
 
     for n in ICON_NAMES:
         shutil.copyfile(f"{ART}/icons/final/{n}.png", f"{ICONS}/{n}.png")
+
+    # 기본 프로필(월계관 원판 안, 화면 지름 80) — 512 납품을 256으로 줄인다(2배 + 밉맵 여유).
+    profile = f"{ART}/icons/final/profile_default.png"
+    if os.path.exists(profile):
+        Image.open(profile).convert("RGBA").resize((256, 256), Image.LANCZOS).save(f"{ICONS}/profile_default.png")
+        print("icon profile_default (256, 256)")
         print("icon", n)
 
 

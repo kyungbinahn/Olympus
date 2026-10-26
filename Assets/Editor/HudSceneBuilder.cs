@@ -668,8 +668,8 @@ namespace Olympus.Editor
         }
 
         /// <summary>
-        /// 월계관 원판 안 프로필 사진 — 동그란 마스크(circle_mask) 안에 그림을 넣는다. 아직 플레이어 프로필 기능·그림이 없어서
-        /// 호플리테스 투구(icon_soldier)를 임시로 둔다. 진짜 사진은 네모 그림이어도 마스크가 동그랗게 자른다 —
+        /// 월계관 원판 안 프로필 사진 — 동그란 마스크(circle_mask) 안에 그림을 넣는다. 플레이어가 고르는 프로필 기능은 아직 없어서
+        /// 기본 초상(profile_default)을 넣는다. 진짜 사진은 네모 그림이어도 마스크가 동그랗게 자른다 —
         /// 나중에 프로필을 붙이는 코드는 "ProfilePicture/Image"의 sprite만 갈아끼우면 된다.
         /// </summary>
         private static void CreateProfilePicture(RectTransform root, Vector2 center, float size)
@@ -687,11 +687,15 @@ namespace Olympus.Editor
                 mask.gameObject.AddComponent<Mask>().showMaskGraphic = true;
             }
 
-            Sprite placeholder = Icon("icon_soldier");
-            if (placeholder != null)
+            // 아트 납품 기본 프로필(profile_default — 배경까지 채운 정사각 초상)이 있으면 원판을 꽉 채우고,
+            // 없으면 투구 아이콘을 임시로 둔다(아이콘은 PNG 여백이 있어 그만큼 키운다).
+            Sprite profile = Icon("profile_default");
+            Sprite sprite = profile ?? Icon("icon_soldier");
+            if (sprite != null)
             {
-                Image picture = AddImage(mask, "Image", placeholder, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(0f, -size * 0.04f), new Vector2(size, size) / IconInkFraction);
+                Vector2 pictureSize = profile != null ? new Vector2(size, size) : new Vector2(size, size) / IconInkFraction;
+                Vector2 offset = profile != null ? Vector2.zero : new Vector2(0f, -size * 0.04f);
+                Image picture = AddImage(mask, "Image", sprite, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), offset, pictureSize);
                 picture.preserveAspect = true;
             }
         }
