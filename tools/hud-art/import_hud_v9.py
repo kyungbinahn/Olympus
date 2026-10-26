@@ -58,6 +58,14 @@ def front_strip():
     return im.resize((w, h), Image.LANCZOS)
 
 
+def circle_mask():
+    """월계관 원판 안 프로필 사진을 동그랗게 자르는 마스크(흰 원, 2배 해상도 = 지름 80 → 160)."""
+    n = 160
+    im = Image.new("RGBA", (n * SS, n * SS), (0, 0, 0, 0))
+    ImageDraw.Draw(im).ellipse((0, 0, n * SS - 1, n * SS - 1), fill=(255, 255, 255, 255))
+    return im.resize((n, n), Image.LANCZOS)
+
+
 def badge_disc(im):
     """Lv 글자를 얹을 대리석 원판의 중심·반지름 — 밝고 채도 낮은 픽셀 중 가운데 덩어리."""
     w, h = im.size
@@ -87,6 +95,9 @@ def main():
     strip = front_strip()
     strip.save(f"{SKIN}/strip_front.png")
     print(f"{'strip_front':16s} {strip.size}  border=(32,32,32,32)")
+
+    circle_mask().save(f"{SKIN}/circle_mask.png")
+    print(f"{'circle_mask':16s} (160, 160)")
 
     for n in ICON_NAMES:
         shutil.copyfile(f"{ART}/icons/final/{n}.png", f"{ICONS}/{n}.png")

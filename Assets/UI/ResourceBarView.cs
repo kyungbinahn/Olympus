@@ -32,6 +32,16 @@ namespace Olympus.UI
         [SerializeField] private GameObject _foodCell;
         [SerializeField] private GameObject _goldCell;
 
+        [Header("자원 칩 배치 — 두 줄, 늘어나면 오른쪽 열로")]
+        [Tooltip("칩을 이 순서로 채운다: 위→아래 한 열을 채우고 다음 열로. 잠긴 칩(식량·금)은 건너뛰어 빈칸을 남기지 않는다.")]
+        [SerializeField] private RectTransform[] _chips;
+        [Tooltip("첫 칩의 왼쪽 위 자리(부모 기준).")]
+        [SerializeField] private Vector2 _chipOrigin = new Vector2(170f, -20f);
+        [Tooltip("다음 열(x)·다음 줄(y)까지의 거리.")]
+        [SerializeField] private Vector2 _chipStep = new Vector2(188f, 48f);
+
+        private const int ChipRows = 2;
+
         [Header("왼쪽 열 — 공사 대기열")]
         [SerializeField] private GameObject _queueRoot;
         [SerializeField] private TMP_Text _queueText;
@@ -79,7 +89,29 @@ namespace Olympus.UI
             if (_prosperityText != null)
                 _prosperityText.text = (_showLabels ? "번영도 " : "") + ProgressionRules.Prosperity(rt.State, rt.Progression).ToString("N0");
 
+            LayoutChips();
             RefreshQueue(rt);
+        }
+
+        /// <summary>
+        /// 보이는 칩만 차례로 자리에 앉힌다. 자리를 빌더가 고정해 두면 식량이 열리기 전 그 칸이 비어 보이고,
+        /// 자원이 늘 때마다 빌더 좌표를 다시 짜야 한다 — 열리는 순간 여기서 다시 줄을 세운다.
+        /// </summary>
+        private void LayoutChips()
+        {
+            if (_chips == null)
+                return;
+
+            int slot = 0;
+            for (int i = 0; i < _chips.Length; i++)
+            {
+                RectTransform chip = _chips[i];
+                if (chip == null || !chip.gameObject.activeSelf)
+                    continue;
+
+                chip.anchoredPosition = _chipOrigin + new Vector2(slot / ChipRows * _chipStep.x, -(slot % ChipRows) * _chipStep.y);
+                slot++;
+            }
         }
 
         private string Line(ResourceKind kind, ResourcePool resources)

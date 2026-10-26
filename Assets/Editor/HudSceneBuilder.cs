@@ -195,10 +195,12 @@ namespace Olympus.Editor
             ChapterHudParts chapterParts = CreateChapterHud(canvas);
             FrontlineParts front = CreateFrontlineStrip(canvas);
 
-            // 오른쪽 위 원형 버튼 줄 — 설정(92), 그 아래 우편·특가(84, 자리만). 시안 v9: 세 버튼 중심이 오른쪽 끝에서 60.
-            Button settingsButton = CreateRoundButton(canvas, "SettingsButton", "icon_settings", "설정", new Vector2(-14f, -14f), 92f);
-            Button mailButton = CreateRoundButton(canvas, "MailButton", "icon_mail", "우편", new Vector2(-18f, -124f), 84f);
-            Button offerButton = CreateRoundButton(canvas, "OfferButton", "icon_offer", "특가", new Vector2(-18f, -220f), 84f);
+            // 오른쪽 위 원형 버튼 줄 — 설정, 그 아래 우편·특가(자리만). 세 버튼 중심이 오른쪽 끝에서 60(시안 v9).
+            // 크기는 시안(92·84)의 1.1배 — 형님 판단 2026-10-26 "1.1배 키우고". 커진 만큼 세로 간격도 벌렸다.
+            const float settingsSize = 92f * 1.1f, sideSize = 84f * 1.1f;
+            Button settingsButton = CreateRoundButton(canvas, "SettingsButton", "icon_settings", "설정", RoundButtonPos(62f, settingsSize), settingsSize);
+            Button mailButton = CreateRoundButton(canvas, "MailButton", "icon_mail", "우편", RoundButtonPos(174f, sideSize), sideSize);
+            Button offerButton = CreateRoundButton(canvas, "OfferButton", "icon_offer", "특가", RoundButtonPos(278f, sideSize), sideSize);
             RectTransform toastPanel = CreateToast(canvas, out TMP_Text toastText);
 
             var controller = new GameObject("HudController");
@@ -215,6 +217,7 @@ namespace Olympus.Editor
             TerritorySceneBuilder.Wire(so1, "_goldText", res.Gold);
             TerritorySceneBuilder.Wire(so1, "_foodCell", res.FoodCell);
             TerritorySceneBuilder.Wire(so1, "_goldCell", res.GoldCell);
+            WireList(so1, "_chips", res.Chips);
             TerritorySceneBuilder.Wire(so1, "_queueRoot", queueTile);
             TerritorySceneBuilder.Wire(so1, "_queueText", queueText);
             so1.FindProperty("_showLabels").boolValue = Icon("icon_res_wood") == null;
@@ -603,6 +606,7 @@ namespace Olympus.Editor
             public TMP_Text Gold;
             public GameObject FoodCell;
             public GameObject GoldCell;
+            public Object[] Chips;
         }
 
         /// <summary>
@@ -618,26 +622,76 @@ namespace Olympus.Editor
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
                 anchoredPos: Vector2.zero, sizeDelta: new Vector2(540f, 170f));
 
-            parts.ProsperityText = CreateResourceChip(root, "Prosperity", 0, 0, "icon_prosperity", out _);
-            parts.Wood = CreateResourceChip(root, "Wood", 0, 1, "icon_res_wood", out _);
+            // 칩 자리는 ResourceBarView가 정한다(두 줄, 늘면 오른쪽 열) — 여기 좌표는 처음 자리일 뿐이고 순서가 곧 채우는 순서다.
+            GameObject prosperity, wood, stone;
+            parts.ProsperityText = CreateResourceChip(root, "Prosperity", 0, 0, "icon_prosperity", out prosperity);
+            parts.Wood = CreateResourceChip(root, "Wood", 0, 1, "icon_res_wood", out wood);
+            parts.Stone = CreateResourceChip(root, "Stone", 1, 0, "icon_res_stone", out stone);
             parts.Food = CreateResourceChip(root, "Food", 1, 1, "icon_res_food", out parts.FoodCell);
-            parts.Stone = CreateResourceChip(root, "Stone", 0, 2, "icon_res_stone", out _);
-            parts.Gold = CreateResourceChip(root, "Gold", 1, 2, "icon_res_gold", out parts.GoldCell);
+            parts.Gold = CreateResourceChip(root, "Gold", 2, 0, "icon_res_gold", out parts.GoldCell);
+            GameObject[] order = { prosperity, wood, stone, parts.FoodCell, parts.GoldCell };
+            parts.Chips = new Object[order.Length];
+            for (int i = 0; i < order.Length; i++)
+                parts.Chips[i] = order[i].GetComponent<RectTransform>();
 
-            // 월계관 배지 — 원판 중심은 그림의 (134, 129)/272 자리(tools/hud-art/import_hud_v9.py가 찍어 준다).
+            // 월계관 배지 — 원판 안은 플레이어 프로필 사진 자리다(형님 결정 2026-10-26: 레벨은 원판이 아니라 아래 명패에).
+            // 원판 중심·반지름은 그림의 (134, 129)·80 / 272 자리(tools/hud-art/import_hud_v9.py가 찍어 준다).
             const float badgeSize = 136f;
             Vector2 badgePos = new Vector2(10f, -12f);
+            Vector2 discCenter = badgePos + new Vector2(134f / 272f * badgeSize, -129f / 272f * badgeSize);
+            float discSize = 2f * 80f / 272f * badgeSize;
+
             Sprite badgeSprite = Skin("frame_badge_lv");
             if (badgeSprite != null)
                 AddImage(root, "LevelBadge", badgeSprite, new Vector2(0f, 1f), new Vector2(0f, 1f), badgePos, new Vector2(badgeSize, badgeSize));
 
-            parts.LevelText = CreateText(
-                root, "LevelText", "Lv.0", 32, FontStyles.Bold, InkColor, TextAlignmentOptions.Midline,
+            // 사진은 배지 다음에 만든다 — 배지 그림의 대리석 원판이 불투명이라 먼저 그리면 사진을 덮는다.
+            CreateProfilePicture(root, discCenter, discSize);
+
+            // 레벨 명패 — 월계관 아래 묶음 매듭에 걸친 짙은 판. 원판이 사진으로 밝고 복잡해져도 숫자가 읽히게 어두운 바탕에 크림 글자.
+            RectTransform plate = CreatePanel(root, "LevelPlate",
                 anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(0f, 1f), pivot: new Vector2(0.5f, 0.5f),
-                anchoredPos: badgePos + new Vector2(134f / 272f * badgeSize, -129f / 272f * badgeSize), sizeDelta: new Vector2(110f, 44f));
-            Outline(parts.LevelText, Color.white);
+                anchoredPos: new Vector2(discCenter.x, -(12f + badgeSize - 10f)), sizeDelta: new Vector2(80f, 30f), skin: "strip_front");
+            Image plateImage = plate.GetComponent<Image>();
+            plateImage.raycastTarget = false;
+            if (plateImage.type == Image.Type.Sliced)
+                plateImage.pixelsPerUnitMultiplier = 32f / 12f;   // 테두리 32px → 12: 높이 30에 위아래가 들어가게.
+
+            parts.LevelText = CreateText(
+                plate, "LevelText", "Lv.0", 20, FontStyles.Bold, CreamTextColor, TextAlignmentOptions.Midline,
+                anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
+                anchoredPos: Vector2.zero, sizeDelta: Vector2.zero);
 
             return parts;
+        }
+
+        /// <summary>
+        /// 월계관 원판 안 프로필 사진 — 동그란 마스크(circle_mask) 안에 그림을 넣는다. 아직 플레이어 프로필 기능·그림이 없어서
+        /// 호플리테스 투구(icon_soldier)를 임시로 둔다. 진짜 사진은 네모 그림이어도 마스크가 동그랗게 자른다 —
+        /// 나중에 프로필을 붙이는 코드는 "ProfilePicture/Image"의 sprite만 갈아끼우면 된다.
+        /// </summary>
+        private static void CreateProfilePicture(RectTransform root, Vector2 center, float size)
+        {
+            Sprite circle = Skin("circle_mask");
+            RectTransform mask = CreateRect(root, "ProfilePicture",
+                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0.5f, 0.5f), center, new Vector2(size, size));
+
+            if (circle != null)
+            {
+                Image maskImage = mask.gameObject.AddComponent<Image>();
+                maskImage.sprite = circle;
+                maskImage.color = new Color(0.86f, 0.80f, 0.70f);   // 사진 뒤 바탕(그림이 투명한 부분) — 대리석보다 조금 짙게.
+                maskImage.raycastTarget = false;
+                mask.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            }
+
+            Sprite placeholder = Icon("icon_soldier");
+            if (placeholder != null)
+            {
+                Image picture = AddImage(mask, "Image", placeholder, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(0f, -size * 0.04f), new Vector2(size, size) / IconInkFraction);
+                picture.preserveAspect = true;
+            }
         }
 
         /// <summary>
@@ -944,6 +998,12 @@ namespace Olympus.Editor
         /// (지름의 0.84 — compose_v7.py). 그림이 아직 없으면 이름 글자를 쓴다.
         /// 레드닷은 넣지 않았다 — 알릴 것이 생기는 기능이 붙을 때 그 기능이 띄운다.
         /// </summary>
+        /// <summary>원형 버튼 자리 — 중심이 오른쪽 끝에서 60, 위에서 <paramref name="centerY"/>(오른쪽 위 앵커 기준 좌표로 바꾼다).</summary>
+        private static Vector2 RoundButtonPos(float centerY, float size)
+        {
+            return new Vector2(-(60f - size / 2f), -(centerY - size / 2f));
+        }
+
         private static Button CreateRoundButton(RectTransform canvas, string name, string icon, string label, Vector2 pos, float size)
         {
             Sprite ring = Skin("frame_round_btn") ?? Skin("round_button");
