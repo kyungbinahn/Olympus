@@ -98,9 +98,12 @@ namespace Olympus.Game.Battle
 
         public void Play()
         {
-            if (Simulation == null || Simulation.IsFinished)
+            if (Simulation == null)
                 return;
 
+            // 이미 끝난 전투(용사 0명으로 거인을 맞음 등)도 재생 상태로 둔다 — 다음 Update가 End()로 Finished를 낸다.
+            // 예전엔 여기서 그냥 돌아가서 Finished가 영영 안 나왔고, 협곡 전투가 "용사 0명 싸우는 중 0초"로 멈춘 채
+            // 건너뛰기(SkipToEnd)도 Playing이 아니라 무시됐다(2026-10-27, 거인이 도착할 때 병사가 없던 세이브).
             _accumulatedMs = 0f;
             Playing = true;
         }
