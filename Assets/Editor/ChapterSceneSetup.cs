@@ -116,6 +116,11 @@ namespace Olympus.Editor
             fso.FindProperty("_outpostStep").floatValue = 5f;
             fso.ApplyModifiedPropertiesWithoutUndo();
 
+            TerritoryWallView walls = EnsureWalls(root, presenter);
+            var fso2 = new SerializedObject(front);
+            TerritorySceneBuilder.Wire(fso2, "_walls", walls);
+            fso2.ApplyModifiedPropertiesWithoutUndo();
+
             TroopGarrisonView garrison = root.GetComponent<TroopGarrisonView>();
             if (garrison == null)
                 garrison = root.AddComponent<TroopGarrisonView>();
@@ -128,6 +133,103 @@ namespace Olympus.Editor
 
             EditorSceneManager.MarkSceneDirty(scene);
             return director;
+        }
+
+        private const string WallFolder = "Assets/Art/Buildings/Walls/";
+
+        /// <summary>
+        /// 앞뒤를 뒤집는 단계 — 화면으로 정했다(2026-10-27 위에서 본 사진): Lv.2는 키트 그대로면 버팀목·발판이 성 밖을 본다.
+        /// 나머지 단계는 앞뒤가 거의 같다(Lv.5 깃발은 양면에 있다).
+        /// </summary>
+        private static readonly int[] WallFlipped = { 2 };
+
+        /// <summary>
+        /// 본부 레벨별 성벽 — 아트 성벽 키트(OlympusArt background/out/3d-walls/kit, L1~L5 직선·기둥, L1~L3 성문)를
+        /// 단계마다 배선한다. 파일이 없는 단계는 키트에서 빠지고 아래 단계 키트를 쓴다(TerritoryWallView.KitFor).
+        /// 앞뒤 뒤집기(flip)는 화면으로 정했다 — 버팀목·발판이 성 안쪽에 오게.
+        /// </summary>
+        private static TerritoryWallView EnsureWalls(GameObject chapterRoot, TerritoryPresenter presenter)
+        {
+            // 씬 맨 위에 둔다 — Chapter 루트는 거인 협곡 전투 자리로 옮겨진다(GiantThreatDirector가 재생 부분을 협곡 가운데로).
+            // 그 밑에 두었더니 성벽이 협곡으로 따라갔다(2026-10-27).
+            UnityEngine.SceneManagement.Scene scene = chapterRoot.scene;
+            Transform old = chapterRoot.transform.Find("Walls");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            Transform t = null;
+            foreach (GameObject go in scene.GetRootGameObjects())
+            {
+                if (go.name == "Walls")
+                    t = go.transform;
+            }
+            if (t == null)
+            {
+                t = new GameObject("Walls").transform;
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(t.gameObject, scene);
+            }
+            t.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+            TerritoryWallView view = t.GetComponent<TerritoryWallView>();
+            if (view == null)
+                view = t.gameObject.AddComponent<TerritoryWallView>();
+
+            var so = new SerializedObject(view);
+            TerritorySceneBuilder.Wire(so, "_presenter", presenter);
+            TerritorySceneBuilder.Wire(so, "_walls", TerritorySceneBuilder.LoadRequired<TextAsset>("Assets/Data/walls.json"));
+
+            SerializedProperty kits = so.FindProperty("_kits");
+            kits.ClearArray();
+            for (int level = 1; level <= 5; level++)
+            {
+                string stem = WallFolder + "L" + level + "_";
+                var straight = AssetDatabase.LoadAssetAtPath<GameObject>(stem + "straight.fbx");
+                var post = AssetDatabase.LoadAssetAtPath<GameObject>(stem + "post.fbx");
+                if (straight == null || post == null)
+                {
+                    Debug.LogWarning("성벽 Lv." + level + " 키트(직선·기둥)를 못 찾았습니다: " + stem + "*.fbx");
+                    continue;
+                }
+
+                int i = kits.arraySize;
+                kits.InsertArrayElementAtIndex(i);
+                SerializedProperty e = kits.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("hqLevel").intValue = level;
+                e.FindPropertyRelative("straight").objectReferenceValue = straight;
+                e.FindPropertyRelative("post").objectReferenceValue = post;
+                e.FindPropertyRelative("gate").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(stem + "gate.fbx");
+                e.FindPropertyRelative("straightMaterial").objectReferenceValue = WallPieceMaterial(level, "straight");
+                e.FindPropertyRelative("postMaterial").objectReferenceValue = WallPieceMaterial(level, "post");
+                e.FindPropertyRelative("gateMaterial").objectReferenceValue = WallPieceMaterial(level, "gate");
+                e.FindPropertyRelative("flip").boolValue = System.Array.IndexOf(WallFlipped, level) >= 0;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return view;
+        }
+
+        /// <summary>
+        /// 성벽 조각 머티리얼 — 직선·기둥·성문이 텍스처를 따로 갖고 있어 조각마다 만든다. .mat을 우리가 만드는 이유는
+        /// 건물과 같다(TerritorySceneBuilder.CreateOrLoadBuildingMaterial 주석). 텍스처가 없는 조각(L4·L5 성문)은 null.
+        /// </summary>
+        private static Material WallPieceMaterial(int level, string piece)
+        {
+            string stem = WallFolder + "L" + level + "_" + piece;
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(stem + "_basecolor.jpg");
+            if (texture == null)
+                return null;
+            string path = stem + ".mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                material = new Material(shader) { name = "Wall_L" + level + "_" + piece };
+                AssetDatabase.CreateAsset(material, path);
+            }
+            if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", texture);
+            if (material.HasProperty("_MainTex")) material.SetTexture("_MainTex", texture);
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.1f);
+            if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0f);
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         private static void EnsureFolder(string path)

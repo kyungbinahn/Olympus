@@ -1,0 +1,11 @@
+{
+    "_comment": "본부 레벨별 성벽(영토) — 기지 가운데를 둘러싼 정사각형의 반 변(m). 한 변(halfSize×2)은 unit(성벽 조각 길이, 아트 키트 4m)의 배수여야 한다. 그 레벨까지 열리는 건물이 모두 안쪽 1.5m 여유 안에 들어와야 한다 — tools/DomainTests/RealData가 확인한다. 성문은 전선 쪽(+X+Z) 모서리. 설계 docs/hq1-5-frontline.md '영토·성벽 확장'.",
+    "unit": 4,
+    "tiers": [
+        { "hqLevel": 1, "halfSize": 18 },
+        { "hqLevel": 2, "halfSize": 20 },
+        { "hqLevel": 3, "halfSize": 22 },
+        { "hqLevel": 4, "halfSize": 28 },
+        { "hqLevel": 5, "halfSize": 30 }
+    ]
+}

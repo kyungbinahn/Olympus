@@ -188,6 +188,44 @@ namespace Olympus.DomainTests.RealData
         }
 
         [Test]
+        public void 성벽은_그_레벨까지_열리는_건물을_모두_안에_둔다()
+        {
+            WallConfig walls = Load<WallFile>("walls.json").ToConfig();
+            Assert.That(walls.Validate(), Is.Empty, string.Join(" / ", walls.Validate()));
+
+            BuildingCatalog catalog = Catalog();
+            LayoutFile layoutFile = Load<LayoutFile>("base-layout.json");
+            GridRect bounds = GridRect.Centered(layoutFile.baseSize);
+            var grid = new SquareGrid(1f);
+
+            // 성벽 가운데 = 기지 칸 범위의 가운데(칸 중심이 정수라 짝수 기지는 -0.5). TerritoryWallView와 같은 계산.
+            float cx = (bounds.MinX + bounds.MaxXExclusive - 1) * 0.5f;
+            float cz = (bounds.MinY + bounds.MaxYExclusive - 1) * 0.5f;
+            const float Clearance = 1.5f;   // 성벽 두께·기둥 폭이 건물 칸을 덮지 않을 여유
+
+            var problems = new List<string>();
+            foreach (WallTier tier in walls.Tiers)
+            {
+                foreach (SlotRecord s in layoutFile.slots)
+                {
+                    BuildingDef def;
+                    Assert.That(catalog.TryGet(s.defId, out def), Is.True, s.defId);
+                    if (def.UnlockHqLevel > tier.HqLevel)
+                        continue;
+
+                    WorldXZ c = def.Footprint.CenterAt(new GridPos(s.x, s.y), grid);
+                    float reachX = Math.Abs(c.X - cx) + def.Footprint.Width * 0.5f;
+                    float reachZ = Math.Abs(c.Z - cz) + def.Footprint.Height * 0.5f;
+                    float room = tier.HalfSize - Math.Max(reachX, reachZ);
+                    if (room < Clearance)
+                        problems.Add("본부 Lv." + tier.HqLevel + " 성벽(반 변 " + tier.HalfSize + "m)이 " + s.defId + "에 " + room.ToString("0.0") + "m 남음");
+                }
+            }
+
+            Assert.That(problems, Is.Empty, string.Join(" / ", problems));
+        }
+
+        [Test]
         public void 봇이_본부_Lv5까지_가고_임무를_전부_끝낸다()
         {
             BuildingCatalog catalog = Catalog();

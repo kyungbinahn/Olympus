@@ -23,6 +23,9 @@ namespace Olympus.Game.Chapter
         [SerializeField] private BattleArena _arena;
         [SerializeField] private GiantThreatDirector _giant;
 
+        [Tooltip("성벽 — 있으면 장정이 성문을 지나 나간다(없으면 기지 모서리로 곧장).")]
+        [SerializeField] private TerritoryWallView _walls;
+
         [Header("자리")]
         [Tooltip("전선 방향(기지 가운데 기준 XZ). 거인이 오는 협곡 쪽과 같다 — 전선은 한 방향.")]
         [SerializeField] private Vector2 _direction = new Vector2(1f, 1f);
@@ -335,15 +338,28 @@ namespace Olympus.Game.Chapter
                 w.Armed = true;
             }
 
-            // 받아 든 뒤에도 거치대를 뚫고 가지 않게 — 성문 쪽에 가까운 끝으로 돌아 나간다.
-            if (w.PickupAt >= 0)
+            // 성벽이 서 있으면 성문을 지나 나간다 — 성벽은 본부 레벨마다 넓어지므로 걸음을 내딛을 때마다 다시 묻는다.
+            Vector3 gateIn = _gate - _dir * 1.5f, gateOut = _gate + _dir * 4f;
+            Vector3 wallIn, wallOut;
+            bool walled = false;
+            if (_walls != null && _walls.TryGetGate(out wallIn, out wallOut))
             {
-                Vector3 toGate = _gate - _dir * 1.5f;
-                w.Path.Add((toGate - _rackEndLeft).sqrMagnitude < (toGate - _rackEndRight).sqrMagnitude ? _rackEndLeft : _rackEndRight);
+                walled = true;
+                gateIn = wallIn;
+                gateOut = wallOut;
             }
 
-            w.Path.Add(_gate - _dir * 1.5f);
-            w.Path.Add(_gate + _dir * 4f);
+            // 받아 든 뒤에도 거치대를 뚫고 가지 않게 — 성문 쪽에 가까운 끝으로 돌아 나간다.
+            if (w.PickupAt >= 0)
+                w.Path.Add((gateIn - _rackEndLeft).sqrMagnitude < (gateIn - _rackEndRight).sqrMagnitude ? _rackEndLeft : _rackEndRight);
+
+            w.Path.Add(gateIn);
+            w.Path.Add(gateOut);
+
+            // 성문을 나선 뒤 전선 들머리(기지 모서리 밖)까지 — 넓은 성벽은 성문이 이미 그보다 바깥이라 건너뛴다.
+            Vector3 front = _gate + _dir * 4f;
+            if (walled && Vector3.Dot(front - gateOut, _dir) > 0.5f)
+                w.Path.Add(front);
 
             go.transform.position = w.Path[0];
             if (animator != null && animator.runtimeAnimatorController != null)
