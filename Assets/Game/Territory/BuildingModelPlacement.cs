@@ -152,6 +152,43 @@ namespace Olympus.Game.Territory
         }
 
         /// <summary>배율 1일 때의 경계. 래퍼 밑의 렌더러를 전부 합친다.</summary>
+        /// <summary>
+        /// 앉힌 모델이 바닥에 차지하는 돌린 사각형(월드) — 흙바닥 자리. <see cref="TryMeasureBounds"/>는 월드 축에 맞춘 상자라
+        /// 돌린 건물에서는 실제보다 크고 각도도 잃는다. 그래서 각 메쉬의 경계를 래퍼 자신의 축으로 옮겨 잰다.
+        /// </summary>
+        /// <param name="yawDegrees">래퍼에 준 회전(<see cref="Place"/>의 yaw와 같은 값). 래퍼 회전을 읽지 않고 받는다 — 자유 회전이 섞이면 터무니없는 값이 나온다(CLAUDE.md §4).</param>
+        public static bool TryMeasureGroundRect(Transform root, float yawDegrees, out Vector3 center, out Vector2 halfSize)
+        {
+            center = Vector3.zero;
+            halfSize = Vector2.zero;
+            if (root == null)
+                return false;
+
+            Quaternion toLocal = Quaternion.Inverse(Quaternion.Euler(0f, yawDegrees, 0f));
+            bool any = false;
+            Vector2 min = Vector2.zero, max = Vector2.zero;
+            foreach (Renderer r in root.GetComponentsInChildren<Renderer>())
+            {
+                Bounds local = r.localBounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    Vector3 corner = local.center + Vector3.Scale(local.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    Vector3 p = toLocal * (r.transform.TransformPoint(corner) - root.position);
+                    var xz = new Vector2(p.x, p.z);
+                    if (!any) { min = max = xz; any = true; }
+                    else { min = Vector2.Min(min, xz); max = Vector2.Max(max, xz); }
+                }
+            }
+
+            if (!any)
+                return false;
+
+            Vector2 mid = (min + max) * 0.5f;
+            center = root.position + Quaternion.Euler(0f, yawDegrees, 0f) * new Vector3(mid.x, 0f, mid.y);
+            halfSize = (max - min) * 0.5f;
+            return true;
+        }
+
         public static bool TryMeasureBounds(Transform root, out Bounds bounds)
         {
             bounds = new Bounds();

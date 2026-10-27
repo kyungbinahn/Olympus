@@ -576,13 +576,33 @@ namespace Olympus.Game.Territory
             _ground.SetDirtPatches(DirtPatches());
         }
 
-        private IEnumerable<(GridPos, GridFootprint)> DirtPatches()
+        /// <summary>
+        /// 완성된 모델은 모델이 바닥에 차지하는 돌린 사각형을 자리 여백(<see cref="_footprintInset"/>)만큼 키워서 —
+        /// 돌리지 않은 건물이면 예전처럼 풋프린트와 같아지고, 비스듬히 돌린 건물은 흙도 같이 돈다
+        /// (형님 "건물이 틀어져 있다면 땅도 거기에 맞춰서", 2026-10-27). 폐허·공사 중 큐브는 풋프린트 그대로.
+        /// </summary>
+        private IEnumerable<GroundPatch> DirtPatches()
         {
             foreach (BuildingInstance b in _runtime.State.Buildings)
             {
                 BuildingDef def;
-                if (_catalog.TryGet(b.DefId, out def))
-                    yield return (b.Anchor, def.Footprint);
+                if (!_catalog.TryGet(b.DefId, out def))
+                    continue;
+
+                Transform t;
+                Vector3 center;
+                Vector2 half;
+                float yaw = _modelYaw + _art.For(b.DefId).YawDegrees;
+                if (_modelVisuals.Contains(b.Id) && _visuals.TryGetValue(b.Id, out t)
+                    && BuildingModelPlacement.TryMeasureGroundRect(t, yaw, out center, out half))
+                {
+                    half /= _footprintInset;
+                    yield return new GroundPatch(new WorldXZ(center.x, center.z), half.x, half.y, yaw);
+                }
+                else
+                {
+                    yield return _ground.FootprintPatch(b.Anchor, def.Footprint);
+                }
             }
         }
 
@@ -728,6 +748,8 @@ namespace Olympus.Game.Territory
                 if (_modelVisuals.Contains(b.Id))
                     RefreshVisual(b);
             }
+
+            RefreshDirtPatches();   // 흙은 건물 각도를 따라 돈다
         }
 
         private float HeightFor(BuildingPhase phase)

@@ -3,13 +3,12 @@
 // 건물 에셋에는 바닥을 넣지 않는다(OlympusArt/background/art-direction.md). 대신 건물의
 // 풋프린트(정사각형·직사각형 칸 범위)만큼 이 셰이더가 지면을 흙으로 칠한다.
 //
-// 흙 위치는 머티리얼이 아니라 전역 텍스처 _OlympusDirtMask가 들고 있다 — 칸 하나당 1픽셀,
-// 건물이 덮는 칸이 1. TerritoryGround.SetDirtPatches가 건물 상태가 바뀔 때만 다시 굽는다.
+// 흙 위치는 머티리얼이 아니라 전역 텍스처 _OlympusDirtMask가 들고 있다 — 건물 자리(돌린 사각형)까지의
+// 거리장(DirtCoverage 주석). TerritoryGround.SetDirtPatches가 건물 상태가 바뀔 때만 다시 굽는다.
 // 전역으로 두는 이유: 황폐/녹지 두 머티리얼이 같은 마스크를 봐야 하고, 머티리얼 에셋에
 // 런타임 텍스처를 꽂으면 에디터에서 에셋이 더러워진다.
 //
-// 가장자리: 마스크를 바이리니어로 읽으면 칸 경계에서 정확히 0.5가 된다. 그 0.5 등고선을
-// 문턱으로 자르면 풋프린트와 딱 맞는 사각형이 나오고, 문턱에 저주파 노이즈를 더해
+// 가장자리: 거리장의 0 등고선이 건물 자리 사각형이고, 번짐(_DirtGrow)만큼 밖으로 밀고 저주파 노이즈를 더해
 // 가장자리만 살짝 흙이 번진 느낌을 준다. 텍스처 샘플 2번 + 노이즈 몇 줄이라 모바일에서도 싸다.
 Shader "Olympus/Ground"
 {
@@ -99,10 +98,10 @@ Shader "Olympus/Ground"
             TEXTURE2D(_RestoredMap);        SAMPLER(sampler_RestoredMap);
             TEXTURE2D(_DirtMap);            SAMPLER(sampler_DirtMap);
             // 전역 — TerritoryGround가 Shader.SetGlobal*로 넣는다. 안 넣었으면 흙·녹지 블렌딩 없음.
-            // 두 마스크는 같은 격자 범위를 덮어서 사각형(Rect)을 같이 쓴다.
             TEXTURE2D(_OlympusDirtMask);    SAMPLER(sampler_OlympusDirtMask);
             TEXTURE2D(_OlympusRestoreMask); SAMPLER(sampler_OlympusRestoreMask);
-            float4 _OlympusGroundMaskRect;  // xy = 마스크가 덮는 월드 XZ 최소 코너, zw = 1/월드 크기
+            float4 _OlympusGroundMaskRect;  // 녹지 마스크 — xy = 덮는 월드 XZ 최소 코너, zw = 1/월드 크기
+            float4 _OlympusDirtFieldRect;   // 흙 거리장 — 같은 뜻, 기지보다 2칸씩 넓다
             float _OlympusRestoreBlend;     // 1이면 녹지를 마스크로 섞는다 (메쉬가 서브메쉬로 안 나눈 상태)
             float _OlympusDirtCellSize;     // 칸 하나의 월드 크기 (노이즈·번짐을 칸 단위로)
 
@@ -186,48 +185,23 @@ Shader "Olympus/Ground"
                 return (half)smoothstep(threshold - _RestoreEdgeSoftness, threshold + _RestoreEdgeSoftness, m);
             }
 
-            // 흙 비율. 녹지처럼 부드럽게 섞되, 모양은 풋프린트 사각형을 지켜야 한다.
+            // 흙 비율. 녹지처럼 부드럽게 섞되, 모양은 건물 자리 사각형(돌린 것 포함)을 지켜야 한다.
             //
-            // 예전엔 마스크를 바이리니어로 읽고 0.5 등고선을 잘랐는데, 그 방식은 1×1 건물에서 값이
-            // 가운데 한 점에서만 1이라 흙이 점처럼 줄어들고(부드럽게 하려고 문턱 폭을 넓히면 더 심해짐),
-            // 녹지처럼 마스크를 흐리면 아예 사라진다. 그래서 주변 3×3 칸을 직접 읽어 "가장 가까운 흙 칸
-            // 사각형까지의 거리"(안쪽이면 음수)를 재고, 그 거리로 가장자리를 만든다 — 크기와 상관없이
-            // 풋프린트 + 번짐만큼의 둥근 사각형이 되고 부드러움은 칸 단위로 그대로 조절된다.
+            // 전역 _OlympusDirtMask는 흙 마스크가 아니라 거리장이다 — 텍셀마다 "가장 가까운 흙 자리까지의 거리(칸)"를
+            // -1~1.5칸 범위로 담았다(Core DirtField, 칸당 4텍셀). 바이리니어로 읽어 거리를 되살리고,
+            // 그 거리에 번짐·부드러움·노이즈를 적용한다 — 크기와 각도에 상관없이 자리 + 번짐만큼의 둥근 사각형이 된다.
+            // (예전엔 칸당 1픽셀 흙/아님이라 격자에 붙은 사각형만 됐고, 비스듬히 돌린 건물 밑 흙이 따로 놀았다.)
             half DirtCoverage(float3 positionWS, float2 cellXZ)
             {
-                if (_OlympusGroundMaskRect.z <= 0.0)
+                if (_OlympusDirtFieldRect.z <= 0.0)
                     return 0;
 
-                float cell = _OlympusDirtCellSize > 0.0 ? _OlympusDirtCellSize : 1.0;
-                float2 g = (positionWS.xz - _OlympusGroundMaskRect.xy) / cell;     // 마스크 최소 코너 기준 칸 좌표
-                int2 size = (int2)round(1.0 / (_OlympusGroundMaskRect.zw * cell)); // 마스크 칸 수
-                int2 c0 = (int2)floor(g);
+                float2 uv = (positionWS.xz - _OlympusDirtFieldRect.xy) * _OlympusDirtFieldRect.zw;
+                // 텍스처 밖은 흙 아님 — 클램프로 가장자리 값이 끝없이 늘어나지 않게.
+                if (any(uv < 0.0) || any(uv > 1.0))
+                    return 0;
 
-                float dOut = 1.0;   // 가장 가까운 흙 칸까지 (밖에 있을 때)
-                float dIn = 1.0;    // 가장 가까운 흙 아닌 칸까지 (흙 안에 있을 때)
-
-                [unroll]
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    [unroll]
-                    for (int dx = -1; dx <= 1; dx++)
-                    {
-                        int2 c = c0 + int2(dx, dy);
-                        // 마스크 밖(기지 밖)은 흙 아님 — 가장자리 칸의 흙이 기지 밖까지는 번지지만 새로 생기진 않는다.
-                        bool inside = all(c >= 0) && all(c < size);
-                        float v = inside ? LOAD_TEXTURE2D(_OlympusDirtMask, clamp(c, 0, size - 1)).r : 0.0;
-
-                        float2 q = abs(g - ((float2)c + 0.5)) - 0.5;
-                        float d = length(max(q, 0.0));   // 이 칸 사각형까지의 거리, 안이면 0
-
-                        if (v > 0.5)
-                            dOut = min(dOut, d);
-                        else
-                            dIn = min(dIn, d);
-                    }
-                }
-
-                float sd = dOut > 0.0 ? dOut : -dIn;
+                float sd = lerp(-1.0, 1.5, SAMPLE_TEXTURE2D(_OlympusDirtMask, sampler_OlympusDirtMask, uv).r);
 
                 float n = ((ValueNoise(cellXZ * _DirtEdgeNoiseScale) - 0.5) * 1.5
                          + (ValueNoise(cellXZ * _DirtEdgeNoiseScale * 2.9 + 5.0) - 0.5) * 0.5) * _DirtEdgeNoise;
