@@ -42,6 +42,91 @@ namespace Olympus.Editor
             importer.importLights = false;
 
             FixUalMapping(importer);
+            SpreadArms(importer);
+        }
+
+        /// <summary>
+        /// 몸통이 두꺼운 모델의 "팔 내리기" 한도(배율) — 파일 이름(확장자 없이) 기준. 1이면 기본, 작을수록 팔이 몸에서 뜬다.
+        /// 동작 모음(UAL)은 마른 기본 마네킹용이라 갑옷·어깨받이·망토를 입은 호플리테스에 그대로 입히면 팔이 몸통 속으로
+        /// 들어간다(형님 "양팔이 이상하게 돌아가서 몸에 씹힘", 2026-10-27). 사람형 동작은 근육 값(-1~1)을 받는 몸의 각도 한도로
+        /// 펼치므로, 받는 쪽 한도를 줄이면 동작 파일은 그대로 두고 그 몸에서만 팔이 덜 내려온다 — 매 프레임 보정이 없어 300명이어도 공짜다.
+        /// </summary>
+        private static readonly (string model, float armDown, float shoulderDown)[] ArmSpread =
+        {
+            ("hoplite", 0.55f, 0.5f),
+        };
+
+        private static void SpreadArms(ModelImporter importer)
+        {
+            string model = System.IO.Path.GetFileNameWithoutExtension(importer.assetPath);
+            float armDown = 0f, shoulderDown = 0f;
+            foreach ((string m, float a, float s) in ArmSpread)
+            {
+                if (m == model) { armDown = a; shoulderDown = s; }
+            }
+            if (armDown <= 0f)
+                return;
+
+            HumanDescription d = importer.humanDescription;
+            if (d.human == null || d.human.Length == 0 || d.skeleton == null)
+                return;   // 첫 가져오기 — 뼈대 목록이 생긴 뒤 다시 가져올 때 적용된다
+
+            bool changed = false;
+            for (int i = 0; i < d.human.Length; i++)
+            {
+                string part = d.human[i].humanName;
+                float scale = part == "LeftUpperArm" || part == "RightUpperArm" ? armDown
+                            : part == "LeftShoulder" || part == "RightShoulder" ? shoulderDown
+                            : 0f;
+                if (scale <= 0f)
+                    continue;
+
+                HumanLimit limit = DownLimit(part, d.human[i].boneName, d.skeleton, scale);
+                HumanLimit old = d.human[i].limit;
+                if (!old.useDefaultValues && old.min == limit.min && old.max == limit.max && Mathf.Approximately(old.axisLength, limit.axisLength))
+                    continue;
+                d.human[i].limit = limit;
+                changed = true;
+            }
+
+            if (!changed)
+                return;
+            importer.humanDescription = d;
+            UnityEngine.Debug.Log("팔 내리기 한도를 줄였습니다(팔이 몸통에 파묻히지 않게): " + importer.assetPath);
+        }
+
+        /// <summary>
+        /// 기본 한도에서 "Down-Up" 근육의 아래쪽(음수) 끝만 <paramref name="scale"/>배로 줄인 한도.
+        /// 축 순서(x·y·z 중 어느 것이 Down-Up인지)는 짐작하지 않고 HumanTrait 근육 이름에서 찾는다.
+        /// 기본값을 끄면 축 길이도 직접 넣어야 해서 자식 뼈까지의 거리(뼈 길이)를 쓴다.
+        /// </summary>
+        private static HumanLimit DownLimit(string part, string boneName, SkeletonBone[] skeleton, float scale)
+        {
+            int bone = System.Array.IndexOf(HumanTrait.BoneName, part);   // humanName은 HumanTrait.BoneName 그대로다
+            if (bone < 0)
+                return new HumanLimit { useDefaultValues = true };
+            Vector3 min = Vector3.zero, max = Vector3.zero;
+            for (int dof = 0; dof < 3; dof++)
+            {
+                int muscle = HumanTrait.MuscleFromBone(bone, dof);
+                if (muscle < 0)
+                    continue;
+                float lo = HumanTrait.GetMuscleDefaultMin(muscle);
+                if (HumanTrait.MuscleName[muscle].Contains("Down-Up"))
+                    lo *= scale;
+                min[dof] = lo;
+                max[dof] = HumanTrait.GetMuscleDefaultMax(muscle);
+            }
+
+            string child = boneName.StartsWith("clavicle") ? boneName.Replace("clavicle", "upperarm") : boneName.Replace("upperarm", "lowerarm");
+            float length = 0f;
+            foreach (SkeletonBone b in skeleton)
+            {
+                if (b.name == child)
+                    length = b.position.magnitude;
+            }
+
+            return new HumanLimit { useDefaultValues = false, min = min, max = max, center = Vector3.zero, axisLength = length };
         }
 
         /// <summary>

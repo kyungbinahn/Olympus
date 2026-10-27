@@ -195,7 +195,21 @@ namespace Olympus.Editor
             return "부스 치움";
         }
 
-        private static void Render(Vector3 from, Vector3 at, string path)
+        /// <summary>
+        /// 기지 카메라 각도(yaw 45°)로 (<paramref name="x"/>, <paramref name="z"/>)를 <paramref name="distance"/>만큼 떨어져 찍는다 —
+        /// 기지 카메라는 기지 범위에 묶여 있어서 성문 밖(협곡·도적 기지)까지 한 장에 담으려면 따로 찍는다.
+        /// <c>Temp/EditorBridge/shots/overview.png</c>.
+        /// </summary>
+        public static string Overview(float x, float z, float distance)
+        {
+            Vector3 at = new Vector3(x, 0f, z);
+            Vector3 dir = Quaternion.Euler(50f, 45f, 0f) * Vector3.forward;
+            string path = System.IO.Path.GetFullPath("Temp/EditorBridge/shots/overview.png");
+            Render(at - dir * distance, at, path, 1024, distance * 3f);
+            return path;
+        }
+
+        private static void Render(Vector3 from, Vector3 at, string path, int size = 640, float far = 50f)
         {
             var go = new GameObject("BridgeBoothCamera");
             try
@@ -207,16 +221,16 @@ namespace Olympus.Editor
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = new Color(0.82f, 0.84f, 0.86f);
                 cam.nearClipPlane = 0.05f;
-                cam.farClipPlane = 50f;
+                cam.farClipPlane = far;
 
-                var rt = new RenderTexture(640, 640, 24);
+                var rt = new RenderTexture(size, size, 24);
                 cam.targetTexture = rt;
                 cam.Render();
 
                 RenderTexture prev = RenderTexture.active;
                 RenderTexture.active = rt;
-                var tex = new Texture2D(640, 640, TextureFormat.RGB24, false);
-                tex.ReadPixels(new Rect(0, 0, 640, 640), 0, 0);
+                var tex = new Texture2D(size, size, TextureFormat.RGB24, false);
+                tex.ReadPixels(new Rect(0, 0, size, size), 0, 0);
                 tex.Apply();
                 RenderTexture.active = prev;
 
@@ -376,6 +390,59 @@ namespace Olympus.Editor
             return sb.Length > 0 ? sb.ToString() : "메시 없음";
         }
 
+        /// <summary>
+        /// 모델 파일의 묶음 자세(동작 없이 파일에 저장된 자세) 뼈 높이 — 키 대비 비율로. 비율이 이상하면 모델링 문제,
+        /// 비율은 멀쩡한데 동작을 걸면 이상해지면 리깅·리타깃 문제로 가른다. 메시 높이와 뼈 높이도 같이 본다
+        /// (뼈가 메시의 관절 자리에 안 놓였으면 굽힐 때 엉뚱한 데가 접힌다).
+        /// </summary>
+        public static string BoneReport(string assetPath)
+        {
+            var root = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            if (root == null)
+                return "모델 없음: " + assetPath;
+
+            var sb = new StringBuilder();
+            Bounds mb = new Bounds();
+            bool any = false;
+            foreach (SkinnedMeshRenderer r in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (r.sharedMesh == null) continue;
+                // 파일 좌표(뿌리 기준) 메시 범위.
+                Matrix4x4 m = root.transform.worldToLocalMatrix * r.transform.localToWorldMatrix;
+                foreach (Vector3 v in r.sharedMesh.vertices)
+                {
+                    Vector3 p = m.MultiplyPoint3x4(v);
+                    if (!any) { mb = new Bounds(p, Vector3.zero); any = true; }
+                    else mb.Encapsulate(p);
+                }
+            }
+            float h = any ? mb.size.y : 1f;
+            sb.Append("메시 높이 ").Append(h.ToString("0.000")).Append(" (바닥 ").Append(mb.min.y.ToString("0.000")).Append(")\n");
+
+            string[] names = { "root", "pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "Head",
+                "clavicle_l", "upperarm_l", "lowerarm_l", "hand_l", "thigh_l", "calf_l", "foot_l", "ball_l" };
+            foreach (string n in names)
+            {
+                Transform t = FindDeep(root.transform, n);
+                if (t == null) { sb.Append(n).Append(": 없음\n"); continue; }
+                Vector3 p = root.transform.InverseTransformPoint(t.position);
+                sb.Append(n).Append(": 높이 ").Append(((p.y - mb.min.y) / h).ToString("0.00"))
+                  .Append(" x ").Append(p.x.ToString("0.000")).Append(" z ").Append(p.z.ToString("0.000")).Append('\n');
+            }
+            return sb.ToString();
+        }
+
+        private static Transform FindDeep(Transform t, string name)
+        {
+            if (t.name == name) return t;
+            for (int i = 0; i < t.childCount; i++)
+            {
+                Transform f = FindDeep(t.GetChild(i), name);
+                if (f != null) return f;
+            }
+            return null;
+        }
+
         /// <summary>에셋 하나를 다시 가져온다(가져오기 규칙을 고친 뒤). 플레이 중에는 안 된다.</summary>
         public static string Reimport(string path)
         {
@@ -383,6 +450,35 @@ namespace Olympus.Editor
                 return "플레이 중에는 다시 가져오지 않음 — 먼저 stop";
             UnityEditor.AssetDatabase.ImportAsset(path, UnityEditor.ImportAssetOptions.ForceUpdate);
             return "다시 가져옴: " + path;
+        }
+
+        /// <summary>
+        /// 사람형 아바타를 처음부터 다시 만든다 — 뼈 위치가 바뀐 몸(아트가 비율을 고친 FBX)을 같은 이름으로 교체했을 때.
+        /// .meta의 humanDescription.skeleton이 옛 뼈 위치(T포즈)를 들고 있어서 그냥 다시 가져오면 옛 비율로 아바타가 만들어진다.
+        /// 비우고 한 번(Unity 자동 연결 + 새 뼈 목록) → 한 번 더(CharacterModelPostprocessor의 UAL 표·팔 한도 적용).
+        /// </summary>
+        public static string ResetHuman(string path)
+        {
+            if (Application.isPlaying)
+                return "플레이 중에는 다시 가져오지 않음 — 먼저 stop";
+            var importer = (UnityEditor.ModelImporter)UnityEditor.AssetImporter.GetAtPath(path);
+            if (importer == null)
+                return "모델이 아님: " + path;
+
+            HumanDescription d = importer.humanDescription;
+            d.human = new HumanBone[0];
+            d.skeleton = new SkeletonBone[0];
+            importer.humanDescription = d;
+            importer.SaveAndReimport();
+            UnityEditor.AssetDatabase.ImportAsset(path, UnityEditor.ImportAssetOptions.ForceUpdate);
+
+            var avatar = UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path);
+            foreach (Object o in avatar)
+            {
+                if (o is Avatar a)
+                    return "아바타 다시 만듦: " + path + " / 사람형=" + a.isHuman + " 유효=" + a.isValid;
+            }
+            return "아바타 없음: " + path;
         }
 
         /// <summary>
