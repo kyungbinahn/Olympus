@@ -188,41 +188,48 @@ namespace Olympus.DomainTests.RealData
         }
 
         [Test]
-        public void 성벽은_그_레벨까지_열리는_건물을_모두_안에_둔다()
+        public void 성벽은_그_레벨까지_열리는_건물을_모두_안에_두고_레벨마다_넓어진다()
         {
             WallConfig walls = Load<WallFile>("walls.json").ToConfig();
             Assert.That(walls.Validate(), Is.Empty, string.Join(" / ", walls.Validate()));
 
             BuildingCatalog catalog = Catalog();
             LayoutFile layoutFile = Load<LayoutFile>("base-layout.json");
-            GridRect bounds = GridRect.Centered(layoutFile.baseSize);
             var grid = new SquareGrid(1f);
-
-            // 성벽 가운데 = 기지 칸 범위의 가운데(칸 중심이 정수라 짝수 기지는 -0.5). TerritoryWallView와 같은 계산.
-            float cx = (bounds.MinX + bounds.MaxXExclusive - 1) * 0.5f;
-            float cz = (bounds.MinY + bounds.MaxYExclusive - 1) * 0.5f;
-            const float Clearance = 1.5f;   // 성벽 두께·기둥 폭이 건물 칸을 덮지 않을 여유
+            var slots = layoutFile.slots.Select(s => (s.defId, new GridPos(s.x, s.y))).ToList();
 
             var problems = new List<string>();
+            var log = new List<string>();
+            float lastArea = 0f;
             foreach (WallTier tier in walls.Tiers)
             {
-                foreach (SlotRecord s in layoutFile.slots)
-                {
-                    BuildingDef def;
-                    Assert.That(catalog.TryGet(s.defId, out def), Is.True, s.defId);
-                    if (def.UnlockHqLevel > tier.HqLevel)
-                        continue;
+                // TerritoryWallView와 같은 함수·같은 전선 방향.
+                List<GroundPatch> village = WallRing.VillagePatches(slots, catalog, grid, tier.HqLevel);
+                WallPlan plan = WallRing.Plan(village, walls, tier.GateLength, new WorldXZ(1f, 1f));
 
-                    WorldXZ c = def.Footprint.CenterAt(new GridPos(s.x, s.y), grid);
-                    float reachX = Math.Abs(c.X - cx) + def.Footprint.Width * 0.5f;
-                    float reachZ = Math.Abs(c.Z - cz) + def.Footprint.Height * 0.5f;
-                    float room = tier.HalfSize - Math.Max(reachX, reachZ);
-                    if (room < Clearance)
-                        problems.Add("본부 Lv." + tier.HqLevel + " 성벽(반 변 " + tier.HalfSize + "m)이 " + s.defId + "에 " + room.ToString("0.0") + "m 남음");
-                }
+                float room = WallRing.MinRoom(plan, village);
+                if (room < walls.Clearance)
+                    problems.Add("본부 Lv." + tier.HqLevel + " 성벽이 건물에 " + room.ToString("0.0") + "m만 남김");
+
+                float area = Area(plan.Outline);
+                if (area <= lastArea)
+                    problems.Add("본부 Lv." + tier.HqLevel + " 성벽이 앞 단계보다 넓지 않음");
+                lastArea = area;
+
+                log.Add("Lv" + tier.HqLevel + ": 건물 " + village.Count + " · 기둥 사이 " + (plan.Outline.Count - 1) + "칸 · 넓이 " +
+                        area.ToString("0") + "m² · 여유 " + room.ToString("0.0") + "m · margin " + plan.MarginUsed);
             }
 
+            TestContext.WriteLine(string.Join(" / ", log));
             Assert.That(problems, Is.Empty, string.Join(" / ", problems));
+        }
+
+        private static float Area(List<WorldXZ> poly)
+        {
+            float a = 0f;
+            for (int i = 0, j = poly.Count - 1; i < poly.Count; j = i++)
+                a += poly[j].X * poly[i].Z - poly[i].X * poly[j].Z;
+            return Math.Abs(a) * 0.5f;
         }
 
         [Test]

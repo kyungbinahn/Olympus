@@ -225,6 +225,25 @@ namespace Olympus.Editor
             return path;
         }
 
+        /// <summary>성벽 키트마다 성문 모델 길이(m) — walls.json의 gateLength를 모델에 맞출 때 쓴다.</summary>
+        public static string WallGateLengths()
+        {
+            var lines = new System.Collections.Generic.List<string>();
+            for (int level = 1; level <= 9; level++)
+            {
+                var gate = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/Walls/L" + level + "_gate.fbx");
+                if (gate == null)
+                    continue;
+                GameObject probe = Object.Instantiate(gate);
+                Vector3 c;
+                Vector2 half;
+                bool ok = Olympus.Game.Territory.BuildingModelPlacement.TryMeasureGroundRect(probe.transform, 0f, out c, out half);
+                Object.DestroyImmediate(probe);
+                lines.Add("L" + level + " " + (ok ? (half.x * 2f).ToString("0.00") + "m × " + (half.y * 2f).ToString("0.00") + "m" : "잴 수 없음"));
+            }
+            return string.Join(" / ", lines);
+        }
+
         private static void Render(Vector3 from, Vector3 at, string path, int size = 640, float far = 50f)
         {
             var go = new GameObject("BridgeBoothCamera");
