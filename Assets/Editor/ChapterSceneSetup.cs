@@ -63,6 +63,10 @@ namespace Olympus.Editor
                 MaterialFolder + "/CanyonFloor.mat", "CanyonFloor", new Color(0.55f, 0.48f, 0.36f)));
             TerritorySceneBuilder.Wire(so, "_canyonWallMaterial", TerritorySceneBuilder.CreateOrLoadFlatMaterial(
                 MaterialFolder + "/CanyonWall.mat", "CanyonWall", new Color(0.40f, 0.36f, 0.33f)));
+            // 거리는 조립할 때마다 여기 값으로 맞춘다 — 컴포넌트를 재사용하므로 코드 기본값만 바꾸면 기존 씬에 안 들어간다
+            // (2026-10-27 "협곡·도적 소굴이 멀다"를 고치며 밟음). 인스펙터에서 맞춘 값은 여기에 옮겨 적는다.
+            so.FindProperty("_canyonGap").floatValue = 1f;
+            so.FindProperty("_approachLength").floatValue = 32f;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // 도적 습격은 따로 재생 부분을 쓴다 — 거인 협곡 전투와 동시에 걸릴 수 있어서(도적은 기다리지만 그림은 남는다).
@@ -108,6 +112,8 @@ namespace Olympus.Editor
                 MaterialFolder + "/OutpostHpBack.mat", "OutpostHpBack", new Color(0.10f, 0.10f, 0.10f)));
             TerritorySceneBuilder.Wire(fso, "_hpFillMaterial", TerritorySceneBuilder.CreateOrLoadFlatMaterial(
                 MaterialFolder + "/OutpostHpFill.mat", "OutpostHpFill", new Color(0.85f, 0.25f, 0.20f)));
+            fso.FindProperty("_outpostDistance").floatValue = 34f;   // 위 거인 거리와 같은 이유
+            fso.FindProperty("_outpostStep").floatValue = 5f;
             fso.ApplyModifiedPropertiesWithoutUndo();
 
             TroopGarrisonView garrison = root.GetComponent<TroopGarrisonView>();

@@ -27,11 +27,11 @@ namespace Olympus.Game.Chapter
         [Tooltip("전선 방향(기지 가운데 기준 XZ). 거인이 오는 협곡 쪽과 같다 — 전선은 한 방향.")]
         [SerializeField] private Vector2 _direction = new Vector2(1f, 1f);
 
-        [Tooltip("성문(기지 모서리)에서 적 기지까지(m).")]
-        [SerializeField] private float _outpostDistance = 52f;
+        [Tooltip("성문(기지 모서리)에서 적 기지까지(m). 52m는 화면을 한참 끌어야 보여서 멀었다(형님, 2026-10-27).")]
+        [SerializeField] private float _outpostDistance = 34f;
 
         [Tooltip("다음 기지는 이만큼 더 멀리 선다(m).")]
-        [SerializeField] private float _outpostStep = 6f;
+        [SerializeField] private float _outpostStep = 5f;
 
         [Header("인원")]
         [SerializeField] private int _maxOurs = 8;

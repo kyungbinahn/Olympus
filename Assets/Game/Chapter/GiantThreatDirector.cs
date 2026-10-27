@@ -26,10 +26,10 @@ namespace Olympus.Game.Chapter
 
         [Tooltip("진형 맨 뒷줄과 성 모서리 사이 여유(m). 협곡 자리는 진형 깊이(줄 수 × 간격)에서 저절로 정해진다 —\n" +
                  "숫자로 박아 뒀더니 마을에서 너무 멀었다(2026-10-22, 44m).")]
-        [SerializeField] private float _canyonGap = 3f;
+        [SerializeField] private float _canyonGap = 1f;
 
         [Tooltip("협곡 가운데에서 거인이 처음 보이는 곳까지(m).")]
-        [SerializeField] private float _approachLength = 45f;
+        [SerializeField] private float _approachLength = 32f;
 
         [Tooltip("진형 폭 바깥으로 절벽까지 남기는 여유(m, 한쪽). 좁아야 '소수로 막는 천연 요새'로 읽힌다.")]
         [SerializeField] private float _canyonSideMargin = 3f;
