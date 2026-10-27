@@ -245,6 +245,79 @@ namespace Olympus.Game.Battle
             return root.gameObject;
         }
 
+        private const string PropPrefix = "Prop_";
+
+        /// <summary>
+        /// <see cref="SpawnDisplay"/>로 세운 병사의 손 소품(창·방패)을 켜고 끈다 — 훈련소에서 무기를 받기 전 장정은 맨손이다.
+        /// 소품을 지웠다 다시 붙이지 않는 이유: 소켓은 T포즈에서 맞춰야 하는데(AttachProps), 걷는 중엔 T포즈가 아니다.
+        /// </summary>
+        public static void SetPropsVisible(GameObject display, bool visible)
+        {
+            if (display == null)
+                return;
+            foreach (Transform t in display.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name.StartsWith(PropPrefix))
+                    t.gameObject.SetActive(visible);
+            }
+        }
+
+        /// <summary>
+        /// 손 소품 한 벌(창·방패)을 바닥에 세워 둔 모습으로 만든다 — 훈련소 앞 무기 거치대에 놓는 것.
+        /// 원점이 바닥, 정면(+Z, 방패 붉은 면이 보는 쪽)이 받으러 오는 장정 쪽이다. 크기는 <paramref name="radius"/> 병사의 손에 든 것과 같게.
+        /// 모델이 없으면(도형 병사) null.
+        /// </summary>
+        public GameObject SpawnPropSet(string unitId, bool player, float radius, Transform parent)
+        {
+            BattleUnitModelEntry entry = ModelFor(unitId);
+            if (entry == null || entry.props == null || entry.props.Count == 0)
+                return null;
+
+            // 손에 든 소품은 몸과 같이 "키 / 모델 키"배로 커진다(BuildModelSoldier). 납품 모델 키는 약 2m.
+            float scale = radius * 4.5f * (entry.scale > 0.01f ? entry.scale : 1f) / 2f;
+
+            var root = new GameObject("PropSet_" + unitId).transform;
+            root.SetParent(parent, false);
+
+            for (int i = 0; i < entry.props.Count; i++)
+            {
+                BattlePropEntry p = entry.props[i];
+                if (p == null || p.model == null)
+                    continue;
+
+                // 창은 날을 위로 살짝 뒤로 기대 세우고, 방패는 그 앞에 붉은 면을 앞으로 기대 세운다.
+                bool spear = p.socket == PropSocket.SpearRightHand;
+                Quaternion lean = spear
+                    ? Quaternion.LookRotation(Quaternion.AngleAxis(-8f, Vector3.right) * Vector3.up, Vector3.back)
+                    : Quaternion.LookRotation(Quaternion.AngleAxis(-15f, Vector3.right) * Vector3.forward, Vector3.up);
+
+                GameObject prop = Instantiate(p.model, root);
+                prop.transform.localRotation = lean * p.model.transform.localRotation;
+                prop.transform.localScale = p.model.transform.localScale * scale;
+
+                Material m = !player && p.enemyMaterial != null ? p.enemyMaterial : p.material;
+                Renderer[] renderers = prop.GetComponentsInChildren<Renderer>();
+                if (m != null)
+                {
+                    foreach (Renderer r in renderers)
+                        r.sharedMaterial = m;
+                }
+
+                // 바닥에 닿게 — 소품 원점이 손잡이라 그대로 두면 땅에 박히거나 뜬다.
+                if (renderers.Length > 0)
+                {
+                    Bounds b = renderers[0].bounds;
+                    foreach (Renderer r in renderers)
+                        b.Encapsulate(r.bounds);
+                    Vector3 local = root.InverseTransformPoint(b.center);
+                    float bottom = b.min.y - root.position.y;
+                    prop.transform.localPosition = new Vector3(-local.x, -bottom, (spear ? -0.15f : 0.1f) - local.z);
+                }
+            }
+
+            return root.gameObject;
+        }
+
         // ---------- 병사 모습 ----------
 
         private void BuildViews()
@@ -530,6 +603,7 @@ namespace Olympus.Game.Battle
                 // 들어오는데, 그걸 덮어쓰면 아트가 정한 "앞 = Unity +Z"가 "앞 = -Y"로 틀어진다 — 창이 날을 아래로 하고
                 // 수직으로 서고 방패가 팔 끝 쪽을 봤다(2026-10-26, 촬영 부스로 확인).
                 GameObject prop = Instantiate(p.model, position, rotation * p.model.transform.localRotation);
+                prop.name = PropPrefix + p.model.name;   // SetPropsVisible이 이 이름으로 찾는다
 
                 Material m = !player && p.enemyMaterial != null ? p.enemyMaterial : p.material;
                 if (m != null)

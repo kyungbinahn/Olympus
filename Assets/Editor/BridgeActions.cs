@@ -69,6 +69,22 @@ namespace Olympus.Editor
             return "카메라를 옮김: " + go.name + " @ " + go.transform.position;
         }
 
+        /// <summary>이름이 <paramref name="prefix"/>로 시작하는 오브젝트마다 이름·위치·손 소품이 켜졌는지 한 줄씩.</summary>
+        public static string Where(string prefix)
+        {
+            var sb = new StringBuilder();
+            foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+            {
+                if (!t.name.StartsWith(prefix))
+                    continue;
+                bool armed = false;
+                foreach (Transform c in t.GetComponentsInChildren<Transform>(false))
+                    armed |= c.name.StartsWith("Prop_");
+                sb.Append(t.name).Append(" @ ").Append(t.position.ToString("F1")).Append(armed ? " 무장" : " 맨손").Append('\n');
+            }
+            return sb.Length > 0 ? sb.ToString() : "없음";
+        }
+
         /// <summary>
         /// 병사 모델 진단 — 이름이 <paramref name="prefix"/>로 시작하는 것마다 한 줄:
         /// 몸이 보는 방향(발끝·어깨, 지금 동작 자세 기준)과 오브젝트 정면(=걷는 방향) 사이 각도,

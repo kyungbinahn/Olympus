@@ -38,6 +38,16 @@ namespace Olympus.Game.Chapter
         [SerializeField] private int _maxTheirs = 6;
         [SerializeField] private float _walkSpeed = 3.2f;
 
+        [Header("무기 배급 (훈련소 앞)")]
+        [Tooltip("거치대에 세워 둘 수 있는 창·방패 벌 수.")]
+        [SerializeField] private int _rackCapacity = 4;
+
+        [Tooltip("지휘관이 무기고에서 한 벌을 챙기는 시간(초). 짧을수록 장정이 덜 기다린다.")]
+        [SerializeField] private float _commanderLoadSeconds = 0.8f;
+
+        [Tooltip("장정이 받아 드는 데 서 있는 시간(초).")]
+        [SerializeField] private float _pickupSeconds = 0.5f;
+
         [SerializeField] private Material _outpostWoodMaterial;
         [SerializeField] private Material _outpostStoneMaterial;
         [SerializeField] private Material _hpBackMaterial;
@@ -53,6 +63,17 @@ namespace Olympus.Game.Chapter
         private Transform _sinking;
 
         private readonly List<Walker> _walkers = new List<Walker>();
+
+        // 무기 배급 — 훈련소가 서면 거치대·지휘관이 생긴다(EnsureArmory).
+        private Transform _rack;
+        private Vector3 _rackFacing;                 // 거치대 앞면(장정이 서는 쪽) 방향
+        private Vector3 _pickupSpot, _dropSpot, _armorySpot;
+        private Vector3 _rackEndLeft, _rackEndRight;   // 거치대 양 끝 바깥 — 장정이 거치대를 뚫고 지나가지 않게 돌아 들어오는 길목
+        private readonly List<GameObject> _rackSets = new List<GameObject>();
+        private int _stock;
+        private Walker _commander;
+        private bool _commanderCarrying;
+        private readonly List<Walker> _queue = new List<Walker>();
         private readonly List<Fighter> _ours = new List<Fighter>();
         private readonly List<Fighter> _theirs = new List<Fighter>();
 
@@ -73,6 +94,11 @@ namespace Olympus.Game.Chapter
             public Animator Animator;
             public readonly List<Vector3> Path = new List<Vector3>();
             public int Next;
+
+            /// <summary>이 번호의 길목(훈련소 앞)에 닿으면 줄을 서서 무기를 받는다. -1이면 받을 곳 없음(처음부터 무장).</summary>
+            public int PickupAt = -1;
+            public bool Armed;
+            public float WaitUntil;
         }
 
         /// <summary>맞붙는 자리에 선 병사.</summary>
@@ -144,6 +170,7 @@ namespace Olympus.Game.Chapter
                 return;
 
             UpdateRecruits(v);
+            UpdateCommander();
             UpdateWalkers();
             UpdateFight(v);
         }
@@ -292,9 +319,28 @@ namespace Olympus.Game.Chapter
             Vector3 barracks;
             if (TryBuildingFront("barracks", out barracks))
                 w.Path.Add(barracks);
+            // 훈련소를 지나기 전에는 맨손 — 훈련소 앞 거치대에서 지휘관이 내놓은 창·방패를 받아 든다(형님, 탑포스식 2026-10-27).
+            // 훈련소가 아직 없으면 받을 곳이 없으니 처음부터 무장해서 나온다.
             Vector3 yard;
-            if (TryBuildingFront("training_ground", out yard))
-                w.Path.Add(yard);
+            if (TryBuildingFront("training_ground", out yard) && EnsureArmory(yard))
+            {
+                Vector3 from = w.Path[w.Path.Count - 1];
+                w.Path.Add((from - _rackEndLeft).sqrMagnitude < (from - _rackEndRight).sqrMagnitude ? _rackEndLeft : _rackEndRight);
+                w.PickupAt = w.Path.Count;
+                w.Path.Add(_pickupSpot);
+                BattleArena.SetPropsVisible(go, false);
+            }
+            else
+            {
+                w.Armed = true;
+            }
+
+            // 받아 든 뒤에도 거치대를 뚫고 가지 않게 — 성문 쪽에 가까운 끝으로 돌아 나간다.
+            if (w.PickupAt >= 0)
+            {
+                Vector3 toGate = _gate - _dir * 1.5f;
+                w.Path.Add((toGate - _rackEndLeft).sqrMagnitude < (toGate - _rackEndRight).sqrMagnitude ? _rackEndLeft : _rackEndRight);
+            }
 
             w.Path.Add(_gate - _dir * 1.5f);
             w.Path.Add(_gate + _dir * 4f);
@@ -341,21 +387,179 @@ namespace Olympus.Game.Chapter
                     continue;
                 }
 
-                Vector3 target = w.Path[w.Next];
-                Vector3 pos = w.Go.transform.position;
-                Vector3 to = target - pos;
-                to.y = 0f;
-                float step = _walkSpeed * Time.deltaTime;
+                if (Time.time < w.WaitUntil)
+                    continue;   // 받아 드는 중
 
-                if (to.magnitude <= step)
+                bool queueing = w.Next == w.PickupAt && !w.Armed;
+                Vector3 target = w.Path[w.Next];
+                if (queueing)
                 {
-                    w.Go.transform.position = target;
-                    w.Next++;
-                    continue;
+                    if (!_queue.Contains(w))
+                        _queue.Add(w);
+                    target = QueueSlot(_queue.IndexOf(w));
                 }
 
-                w.Go.transform.position = pos + to.normalized * step;
-                w.Go.transform.rotation = Quaternion.Slerp(w.Go.transform.rotation, Quaternion.LookRotation(to), Time.deltaTime * 8f);
+                if (!StepToward(w, target, queueing ? -_rackFacing : (Vector3?)null))
+                    continue;
+
+                if (!queueing)
+                {
+                    w.Next++;
+                }
+                else if (_queue[0] == w && _stock > 0)
+                {
+                    TakeSet();
+                    BattleArena.SetPropsVisible(w.Go, true);
+                    w.Armed = true;
+                    w.WaitUntil = Time.time + _pickupSeconds;
+                    _queue.Remove(w);
+                    w.Next++;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 한 걸음 옮긴다. 닿았으면 참 — 그때 <paramref name="faceWhenArrived"/>가 있으면 그쪽을 보고 선다(줄 선 장정은 거치대를 본다).
+        /// 서 있는 동안은 걷기 동작을 멈춘다 — 제자리에서 다리만 움직이면 줄 서서 기다리는 게 안 읽힌다.
+        /// </summary>
+        private bool StepToward(Walker w, Vector3 target, Vector3? faceWhenArrived)
+        {
+            Vector3 pos = w.Go.transform.position;
+            Vector3 to = target - pos;
+            to.y = 0f;
+            float step = _walkSpeed * Time.deltaTime;
+            bool arrived = to.magnitude <= step;
+
+            if (w.Animator != null && w.Animator.runtimeAnimatorController != null)
+                w.Animator.SetFloat(SpeedParam, arrived ? 0f : 1f);
+
+            if (arrived)
+            {
+                w.Go.transform.position = target;
+                if (faceWhenArrived.HasValue)
+                    w.Go.transform.rotation = Quaternion.Slerp(w.Go.transform.rotation, Quaternion.LookRotation(faceWhenArrived.Value), Time.deltaTime * 8f);
+                return true;
+            }
+
+            w.Go.transform.position = pos + to.normalized * step;
+            w.Go.transform.rotation = Quaternion.Slerp(w.Go.transform.rotation, Quaternion.LookRotation(to), Time.deltaTime * 8f);
+            return false;
+        }
+
+        // ---------- 무기 배급: 지휘관 → 거치대 → 장정 ----------
+
+        /// <summary>
+        /// 훈련소 앞에 거치대와 지휘관을 세운다(한 번). 거치대는 훈련소 쪽에 붙고, 장정은 그 앞에 줄을 선다 —
+        /// 지휘관은 거치대 뒤(훈련소 쪽)로만 다녀서 줄과 엉키지 않는다. 모델이 없으면(도형 병사) 거짓 — 처음부터 무장.
+        /// </summary>
+        private bool EnsureArmory(Vector3 yardFront)
+        {
+            if (_rack != null)
+                return true;
+
+            _rackFacing = Vector3.back;   // TryBuildingFront가 건물의 -Z 쪽 앞을 준다
+            Vector3 toBuilding = -_rackFacing;
+            Vector3 side = Vector3.Cross(Vector3.up, toBuilding);
+
+            _rack = new GameObject("WeaponRack").transform;
+            _rack.SetParent(_root, false);
+            // 훈련소 울타리에 붙으면 거치대가 담장에 파묻힌다 — 앞으로 조금 뺀다.
+            Vector3 rackPos = yardFront + _rackFacing * 1.2f;
+            _rack.position = rackPos;
+            _rack.rotation = Quaternion.LookRotation(_rackFacing);   // 받침 한 벌의 정면(+Z, 방패 붉은 면) = 장정 쪽
+
+            const float slot = 1.05f;   // 방패 지름(약 1m)보다 넓게 — 좁으면 방패끼리 겹친다
+            float width = slot * _rackCapacity;
+            Color wood = new Color(0.45f, 0.32f, 0.20f);
+            for (int i = -1; i <= 1; i += 2)
+            {
+                Transform post = Prim(PrimitiveType.Cube, _rack, _outpostWoodMaterial, wood);
+                post.localPosition = new Vector3(i * width * 0.5f, 0.55f, -0.25f);
+                post.localScale = new Vector3(0.12f, 1.1f, 0.12f);
+            }
+            Transform bar = Prim(PrimitiveType.Cube, _rack, _outpostWoodMaterial, wood);
+            bar.localPosition = new Vector3(0f, 1.0f, -0.25f);
+            bar.localScale = new Vector3(width + 0.2f, 0.1f, 0.1f);
+
+            for (int i = 0; i < _rackCapacity; i++)
+            {
+                GameObject set = _arena.SpawnPropSet("hoplite", true, 0.4f, _rack);
+                if (set == null)
+                {
+                    Destroy(_rack.gameObject);
+                    _rack = null;
+                    _rackSets.Clear();
+                    return false;
+                }
+                set.transform.localPosition = new Vector3((i - (_rackCapacity - 1) * 0.5f) * slot, 0f, 0f);
+                set.transform.localRotation = Quaternion.identity;
+                set.SetActive(false);
+                _rackSets.Add(set);
+            }
+
+            // 처음 두 벌은 놓여 있다 — 첫 장정이 오자마자 한참 서 있지 않게.
+            for (int i = 0; i < Mathf.Min(2, _rackCapacity); i++)
+                PutSet();
+
+            _pickupSpot = rackPos + _rackFacing * 1.1f;
+            _dropSpot = rackPos + toBuilding * 0.9f;
+            _armorySpot = _dropSpot + side * (width * 0.5f + 2.2f);
+            _rackEndLeft = rackPos - side * (width * 0.5f + 0.9f) + _rackFacing * 0.6f;
+            _rackEndRight = rackPos + side * (width * 0.5f + 0.9f) + _rackFacing * 0.6f;
+
+            // 지휘관은 장정보다 한 뼘 크게 — 아직 전용 모델이 없어 호플리테스를 쓴다.
+            Animator animator;
+            GameObject boss = _arena.SpawnDisplay("hoplite", true, 0.46f, _root, out animator, 0);
+            boss.name = "Commander";
+            boss.transform.position = _armorySpot;
+            _commander = new Walker { Go = boss, Animator = animator, Armed = true };
+            _commanderCarrying = true;
+            return true;
+        }
+
+        private Vector3 QueueSlot(int i) => _pickupSpot + _rackFacing * (i * 1.0f);
+
+        private void PutSet()
+        {
+            if (_stock >= _rackSets.Count)
+                return;
+            _rackSets[_stock].SetActive(true);
+            _stock++;
+        }
+
+        private void TakeSet()
+        {
+            if (_stock <= 0)
+                return;
+            _stock--;
+            _rackSets[_stock].SetActive(false);
+        }
+
+        /// <summary>
+        /// 지휘관: 무기고에서 한 벌 챙겨(손에 듦) → 거치대 뒤에 내려놓고(거치대에 한 벌 생김) → 무기고로 돌아간다.
+        /// 거치대가 차 있으면 들고 기다린다 — 장정이 가져가면 바로 내려놓는다.
+        /// </summary>
+        private void UpdateCommander()
+        {
+            if (_commander == null || Time.time < _commander.WaitUntil)
+                return;
+
+            if (_commanderCarrying)
+            {
+                if (!StepToward(_commander, _dropSpot, _rackFacing) || _stock >= _rackSets.Count)
+                    return;
+                PutSet();
+                _commanderCarrying = false;
+                BattleArena.SetPropsVisible(_commander.Go, false);
+                _commander.WaitUntil = Time.time + 0.3f;
+            }
+            else
+            {
+                if (!StepToward(_commander, _armorySpot, null))
+                    return;
+                _commanderCarrying = true;
+                BattleArena.SetPropsVisible(_commander.Go, true);
+                _commander.WaitUntil = Time.time + _commanderLoadSeconds;
             }
         }
 
