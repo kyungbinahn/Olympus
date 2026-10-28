@@ -147,6 +147,58 @@ namespace Olympus.DomainTests.RealData
             Assert.That(won150, Is.False, "150명으로도 이긴다: " + string.Join(Environment.NewLine, lines));
         }
 
+        /// <summary>
+        /// 거인 2·3 — 같은 300이 무장(본부·제철소·성문·치유의 집·투기장 강화)을 갖춰야 이긴다(docs/village-growth.md 4-3).
+        /// 무장은 그 거인과 맞붙을 무렵 봇의 강화 배수(봇 시험 출력의 "무장")에 맞춘 값이다. 숫자를 고치면 이 표가 바뀐다.
+        /// </summary>
+        [TestCase("giant_2", 1.4, 1.15)]
+        [TestCase("giant_3", 1.55, 1.7)]
+        public void 다음_거인은_무장한_300이면_이기고_200이면_진다(string threatId, double hp, double attack)
+        {
+            BattleConfig battle = Battle();
+            ThreatDef t;
+            Assert.That(Chapter().TryGetThreat(threatId, out t), Is.True, threatId + "가 chapter1.json에 없다");
+            UnitDef hoplite;
+            battle.TryGetUnit(t.TroopUnitId, out hoplite);
+
+            var lines = new List<string>();
+            bool won300 = false, won200 = true;
+            int survivors300 = 0;
+            foreach (int n in new[] { 150, 200, 250, 300, 350 })
+            {
+                var player = new List<UnitSpawn>();
+                for (int i = 0; i < n; i++) player.Add(new UnitSpawn(hoplite, hp, attack));
+                var enemy = new List<UnitSpawn>();
+                foreach (EnemyGroup g in t.Enemies)
+                {
+                    UnitDef def;
+                    battle.TryGetUnit(g.UnitId, out def);
+                    for (int k = 0; k < g.Count; k++) enemy.Add(new UnitSpawn(def, g.Multiplier, g.Multiplier, t.EnemyScale));
+                }
+
+                var sim = new BattleSimulation(player, enemy, t.TimeLimitMs, t.RowWidth, t.Spacing, t.StartDistance);
+                sim.RunToEnd();
+                lines.Add(n + "명: " + (sim.PlayerWon ? "승" : "패") + " " + (sim.ElapsedMs / 1000.0).ToString("0") + "초, 생존 " +
+                          sim.AliveCount(BattleTeam.Player) + ", 남은 적 " + sim.AliveCount(BattleTeam.Enemy));
+                if (n == 300) { won300 = sim.PlayerWon; survivors300 = sim.AliveCount(BattleTeam.Player); }
+                if (n == 200) won200 = sim.PlayerWon;
+            }
+
+            string table = string.Join(Environment.NewLine, lines);
+            TestContext.WriteLine(threatId + " (체력 ×" + hp + ", 공격 ×" + attack + ")" + Environment.NewLine + table);
+            Assert.That(won300, Is.True, "무장한 300명이 진다: " + table);
+            Assert.That(won200, Is.False, "200명으로도 이긴다: " + table);
+            Assert.That(survivors300, Is.InRange(30, 150), "300명 생존이 30~90 목표에서 많이 벗어남: " + table);
+        }
+
+        /// <summary>본부가 땅보다 앞서면 새로 열린 건물이 성 밖에 선다 — 본부 Lv.N 조건에 영토 N 조건이 있어야 한다.</summary>
+        [Test]
+        public void 본부_조건에_영토_조건이_들어_있다()
+        {
+            List<string> problems = Load<WallFile>("walls.json").ToConfig().CheckAgainst(Config());
+            Assert.That(problems, Is.Empty, string.Join(Environment.NewLine, problems));
+        }
+
         [Test]
         public void 화면에_뜨는_문구_키가_전부_문자열_표에_있다()
         {
@@ -256,6 +308,8 @@ namespace Olympus.DomainTests.RealData
             int raidsWon = 0, raidsLost = 0, raidTroopsLost = 0;
             runtime.Raids.AutoResolved += o => { if (o.Won) raidsWon++; else raidsLost++; raidTroopsLost += o.TroopsLost; };
 
+            WallConfig walls = Load<WallFile>("walls.json").ToConfig();
+            var territoryAt = new Dictionary<int, double>();
             var reachedAt = new Dictionary<int, double>();
             var stageLog = new List<string>();
             const long Step = 10_000L;     // 10초마다 한 번 화면을 보는 사람
@@ -278,18 +332,35 @@ namespace Olympus.DomainTests.RealData
 
                 if (threat != null && runtime.Threats.CanDispatch(threat.ThreatId) == ThreatRejection.None)
                 {
+                    double hpBuff = runtime.Battles.BuffMultiplier(threat.TroopUnitId, BattleStat.Hp);
+                    double attackBuff = runtime.Battles.BuffMultiplier(threat.TroopUnitId, BattleStat.Attack);
                     ThreatOutcome o = runtime.Threats.Resolve(threat.ThreatId);
                     stageLog.Add(threat.ThreatId + " " + (o.Won ? "승" : "패") + " " + o.Sent + "명(생존 " + o.Survivors + ") @Lv" +
-                        runtime.HqLevel + " " + ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분");
+                        runtime.HqLevel + " " + ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분 무장 체력×" +
+                        hpBuff.ToString("0.00") + " 공격×" + attackBuff.ToString("0.00"));
                     continue;
                 }
 
-                if (threatActive && threat != null && !stageLog.Any(l => l.StartsWith("등장")))
-                    stageLog.Add("등장 " + ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분");
+                if (threatActive && threat != null && !stageLog.Any(l => l.StartsWith("등장 " + threat.ThreatId)))
+                    stageLog.Add("등장 " + threat.ThreatId + " " + ((clock.NowUnixMs - start) / 60000.0).ToString("0.0") + "분");
 
                 int hq = runtime.HqLevel;
                 if (!reachedAt.ContainsKey(hq))
                     reachedAt[hq] = (clock.NowUnixMs - start) / 60000.0;
+
+                // 영토가 본부보다 뒤처지면 열린 건물이 성 밖에 선다. 게임의 Current()는 본부 레벨 아래로 안 내려가게 받쳐 주므로
+                // 그 받침 없이 "무찌른 적"만으로 잰 단계가 본부를 따라오는지 본다.
+                int bySignal = 0;
+                foreach (WallTier t in walls.Tiers)
+                {
+                    if (!ProgressionRules.AllMet(t.Unlock, runtime.State, runtime.Progression))
+                        break;
+                    bySignal = t.HqLevel;
+                }
+                if (hq >= 1 && !territoryAt.ContainsKey(bySignal))
+                    territoryAt[bySignal] = (clock.NowUnixMs - start) / 60000.0;
+                Assert.That(bySignal, Is.GreaterThanOrEqualTo(Math.Min(hq, walls.Tiers[walls.Tiers.Count - 1].HqLevel)),
+                    "본부 Lv." + hq + "인데 무찌른 적으로 연 영토는 " + bySignal);
 
                 if (hq >= config.MaxHqLevel && !runtime.Quests.Current.HasQuest)
                     break;
@@ -299,6 +370,7 @@ namespace Olympus.DomainTests.RealData
 
             string report = string.Join(", ", reachedAt.OrderBy(p => p.Key).Select(p => "Lv." + p.Key + " " + p.Value.ToString("0.0") + "분"));
             TestContext.WriteLine("봇 진행: " + report + " / 임무 " + runtime.State.QuestIndex + "/" + config.Quests.Count);
+            TestContext.WriteLine("영토: " + string.Join(", ", territoryAt.OrderBy(p => p.Key).Select(p => p.Key + "단계 " + p.Value.ToString("0.0") + "분")));
             TestContext.WriteLine("거인: " + string.Join(", ", stageLog));
             TestContext.WriteLine("전선: " + string.Join(", ", frontLog) + " / 화력 " + runtime.Frontline.Power());
             TestContext.WriteLine("도적: 승 " + raidsWon + " / 패 " + raidsLost + ", 잃은 용사 " + raidTroopsLost);

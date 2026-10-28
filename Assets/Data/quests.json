@@ -307,27 +307,6 @@
             "focusDefId": ""
         },
         {
-            "questId": "q15",
-            "titleKey": "quest.q15",
-            "objective": {
-                "kind": "BuildingLevel",
-                "target": "main_hall",
-                "amount": 3
-            },
-            "rewardResources": [
-                {
-                    "kind": "Wood",
-                    "amount": 120
-                },
-                {
-                    "kind": "Stone",
-                    "amount": 100
-                }
-            ],
-            "rewardItems": [],
-            "focusDefId": "main_hall"
-        },
-        {
             "questId": "q16",
             "titleKey": "quest.q16",
             "objective": {
@@ -349,23 +328,6 @@
             "focusDefId": "barracks"
         },
         {
-            "questId": "q17",
-            "titleKey": "quest.q17",
-            "objective": {
-                "kind": "BuildingLevel",
-                "target": "training_ground",
-                "amount": 1
-            },
-            "rewardResources": [
-                {
-                    "kind": "Wood",
-                    "amount": 60
-                }
-            ],
-            "rewardItems": [],
-            "focusDefId": "training_ground"
-        },
-        {
             "questId": "q18",
             "titleKey": "quest.q18",
             "objective": {
@@ -385,6 +347,65 @@
             ],
             "rewardItems": [],
             "focusDefId": "barracks"
+        },
+        {
+            "questId": "q22",
+            "titleKey": "quest.q22",
+            "objective": {
+                "kind": "Counter",
+                "target": "threat.giant_1.won",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 80
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
+        },
+        {
+            "questId": "q15",
+            "titleKey": "quest.q15",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "main_hall",
+                "amount": 3
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 120
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q17",
+            "titleKey": "quest.q17",
+            "objective": {
+                "kind": "BuildingLevel",
+                "target": "training_ground",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 60
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "training_ground"
         },
         {
             "questId": "q19",
@@ -438,27 +459,6 @@
             "focusDefId": "healing_house"
         },
         {
-            "questId": "q22",
-            "titleKey": "quest.q22",
-            "objective": {
-                "kind": "Counter",
-                "target": "threat.giant_1.won",
-                "amount": 1
-            },
-            "rewardResources": [
-                {
-                    "kind": "Wood",
-                    "amount": 100
-                },
-                {
-                    "kind": "Stone",
-                    "amount": 80
-                }
-            ],
-            "rewardItems": [],
-            "focusDefId": ""
-        },
-        {
             "questId": "q23",
             "titleKey": "quest.q23",
             "objective": {
@@ -478,6 +478,48 @@
             ],
             "rewardItems": [],
             "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q22b",
+            "titleKey": "quest.q22b",
+            "objective": {
+                "kind": "Counter",
+                "target": "trained",
+                "amount": 450
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 150
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 120
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "barracks"
+        },
+        {
+            "questId": "q22c",
+            "titleKey": "quest.q22c",
+            "objective": {
+                "kind": "Counter",
+                "target": "threat.giant_2.won",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
         },
         {
             "questId": "q24",
@@ -673,6 +715,48 @@
             ],
             "rewardItems": [],
             "focusDefId": "main_hall"
+        },
+        {
+            "questId": "q33b",
+            "titleKey": "quest.q33b",
+            "objective": {
+                "kind": "Counter",
+                "target": "trained",
+                "amount": 700
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": "barracks"
+        },
+        {
+            "questId": "q33c",
+            "titleKey": "quest.q33c",
+            "objective": {
+                "kind": "Counter",
+                "target": "threat.giant_3.won",
+                "amount": 1
+            },
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 300
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 200
+                }
+            ],
+            "rewardItems": [],
+            "focusDefId": ""
         },
         {
             "questId": "q34",

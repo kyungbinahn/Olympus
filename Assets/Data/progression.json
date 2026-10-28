@@ -70,6 +70,11 @@
                     "kind": "Counter",
                     "target": "front.outpost",
                     "amount": 2
+                },
+                {
+                    "kind": "Counter",
+                    "target": "threat.giant_1.won",
+                    "amount": 1
                 }
             ],
             "costs": [
@@ -121,7 +126,7 @@
                 },
                 {
                     "kind": "Counter",
-                    "target": "threat.giant_1.won",
+                    "target": "threat.giant_2.won",
                     "amount": 1
                 }
             ],
@@ -176,6 +181,11 @@
                     "kind": "Counter",
                     "target": "front.outpost",
                     "amount": 3
+                },
+                {
+                    "kind": "Counter",
+                    "target": "threat.giant_3.won",
+                    "amount": 1
                 }
             ],
             "costs": [

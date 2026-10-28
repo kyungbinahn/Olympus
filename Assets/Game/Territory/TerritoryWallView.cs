@@ -101,6 +101,7 @@ namespace Olympus.Game.Territory
 
             _config = JsonUtility.FromJson<WallFile>(_walls.text).ToConfig();
             List<string> problems = _config.Validate();
+            problems.AddRange(_config.CheckAgainst(_presenter.Runtime.Progression));
             if (problems.Count > 0)
                 throw new System.InvalidOperationException("walls.json: " + string.Join(" / ", problems));
 
@@ -110,7 +111,7 @@ namespace Olympus.Game.Territory
             _center = _presenter.Ground.transform.TransformPoint(new Vector3(
                 (b.MinX + b.MaxXExclusive - 1) * 0.5f * cell, 0f, (b.MinY + b.MaxYExclusive - 1) * 0.5f * cell));
 
-            Show(_config.ForHq(_presenter.Runtime.HqLevel), false);
+            Show(_config.Current(_presenter.Runtime.State, _presenter.Runtime.Progression), false);
         }
 
         private void OnDestroy()
@@ -126,7 +127,8 @@ namespace Olympus.Game.Territory
 
         private void Update()
         {
-            WallTier want = _config.ForHq(_presenter.Runtime.HqLevel);
+            // 영토 단계 = 무찌른 적(도적 소굴·거인). 거인을 이긴 순간 넓어진다 — 본부 공사를 기다리지 않는다.
+            WallTier want = _config.Current(_presenter.Runtime.State, _presenter.Runtime.Progression);
             if (want != _shown)
                 Show(want, true);
 
