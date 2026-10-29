@@ -79,7 +79,7 @@ Blender를 이미 파이프라인에서 쓰고 있다(`D:\OlympusArt\background\
 - **세션 유지** — 기지↔월드를 오가도 진행이 남는다(`TerritorySession`).
 - **건물 21종 실제 모델** — FBX + 텍스처 + `.mat` 21개. 합계 14만 삼각형, 14MB.
   머티리얼은 임포터에 맡기지 않고 `TerritorySceneBuilder`가 `.mat`을 만들어 직접 입힌다.
-- **밸런스** — 뉴포리아 라이브 테이블 기준으로 재설정. 근거는 `reference-findings.md`.
+- **밸런스** — 뉴포리아 라이브 테이블 기준으로 재설정. 근거는 `design/00` 10-7.
 - 시험 **117개 통과** (`1_CoreTest.bat`).
 
 ## 아직 안 정한 것 (판넬과 별개)
@@ -89,4 +89,4 @@ Blender를 이미 파이프라인에서 쓰고 있다(`D:\OlympusArt\background\
    `building-art.json`에 저장된다. 둘 다 게임이 읽는 그 파일이다.
    만들면서 두 번 크게 밟았으니 손대기 전에 `CLAUDE.md` 함정 목록의 해당 항목을 읽을 것.
 2. ~~**건물 레벨 업그레이드**~~ — **2026-10-20에 만들었다.** 본부 Lv.1~5와 함께 들어갔다
-   (건물 상한 = 본부 레벨). [`progression-hq1-5.md`](progression-hq1-5.md).
+   (건물 상한 = 본부 레벨). [`design/02`](design/02_첫세션_본부Lv1-5.md).

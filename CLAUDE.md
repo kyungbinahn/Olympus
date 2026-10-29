@@ -6,10 +6,12 @@
   두 레포는 **레퍼런스로만** 참조하고 필요한 것만 그때그때 가져온다.
   - `C:\Users\user\CatClient` — 고양이(Cat). Unity 6000.3.16f1. `CatClient\CLAUDE.md`가 훌륭한 지도다.
   - `C:\Users\user\dfw-client` — 뉴포리아. 라이브 서비스 중. Unity 2022.3.62f2.
-  - 무엇을 가져올 가치가 있고 무엇을 피해야 하는지는 [`docs/reference-findings.md`](docs/reference-findings.md).
-  - 경쟁작 초반 구조(방치형 → SLG 전환)와 올림푸스 대응안은 [`docs/topforce-early-game.md`](docs/topforce-early-game.md).
-- **연출·흐름의 1순위 기준은 [`docs/concept-core.md`](docs/concept-core.md)** (300·트로이·오디세이, 감정 구간별 설계).
-  탑포스 분석은 "어떻게 만드나"의 참고일 뿐이다. 지금 만든 것과의 차이·실행안은 [`docs/concept-gap.md`](docs/concept-gap.md).
+- **기획은 전부 [`docs/design/`](docs/design/README.md)에 번호 매긴 설계서로 쌓는다**(2026-10-29, 사이버펑크 클라 방식).
+  `00` 해부(탑포스·뉴포리아 실측) → `01` 컨셉 → `02` 본부 Lv.1~5 → `03` 1장 → `04` 영토·마을 → `05` 전투.
+  읽는 법·태그·규칙과 옛 파일 이름 → 새 자리 표는 [`docs/design/README.md`](docs/design/README.md).
+  - 뉴포리아·고양이에서 무엇을 가져왔고 무엇을 피했는지는 `00` 10절, 경쟁작(탑포스) 초반 구조는 `00` 0~9절.
+- **연출·흐름의 1순위 기준은 `01`** (300·트로이·오디세이, 감정 구간별 설계 — 형님 컨셉 원문이 1절에 그대로 있다).
+  탑포스 분석은 "어떻게 만드나"의 참고일 뿐이다.
 - 아트 원본은 **형제 폴더** `D:\OlympusArt`에 있다(별도 git 레포). Unity 프로젝트 안에 넣지 않는다.
   건물 로스터·화풍·프롬프트가 거기 있고, `Assets/Data/building-defs.json`의 `artCode`가 둘을 잇는다.
 - 폴더 규칙과 그 근거는 [`docs/project-layout.md`](docs/project-layout.md). **파일을 어디 둘지 헷갈리면 먼저 읽는다.**
@@ -132,6 +134,8 @@
 - 파싱은 `Game`(JsonUtility는 UnityEngine), **검증은 `Core`**(`BaseLayout.Validate`).
 - 건물 로스터는 아트(`D:\OlympusArt\배경\gen-buildings.sh`)와 **반드시 일치해야 한다.**
   `artCode`(B01·C12 등)가 링크다. 아트 로스터가 바뀌면 `tools/seed-layout/gen-layout.ps1`도 바꾼다.
+- **기획 숫자의 원본은 `docs/design/` 각 문서 끝의 `부록 — 핵심 상수` 표다.** 데이터 파일은 그걸 옮긴 것이다.
+  숫자를 바꾸면 **같은 커밋에서** 그 표(와 그 숫자를 인용한 문서)도 고친다 — 표와 데이터가 갈라져 문서가 틀린 채 남은 일이 네 번 있었다(`02` 3·7절, `03` 5절, `05` 2절 교정 기록).
 - 진척 규칙은 `progression.json`(본부 레벨 표·건물 레벨 곡선·가속·시작 자원) +
   `quests.json`(임무 체인) + `function-unlock.json`(버튼이 생기는 본부 레벨). 파일 모양 → 규칙 객체
   변환은 Core(`ProgressionFileMapper`·`BuildingDefFile`)에 있어서, `tools/DomainTests/RealData`가
@@ -150,11 +154,13 @@
 - 마일스톤: ①인게임 HUD(**완료**) ②기지 땅 + 건물(**완료**) ③월드맵 생성(**1차 완료**).
 - 그 뒤로 더해진 것: 로컬 세이브, 기지↔월드 세션 유지, 건물 21종 실제 모델,
   **본부 Lv.1~5 진척**(본부 레벨·건물 업그레이드·생산/수확·헤르메스의 날개 가속·임무 바·기능 해금).
-  설계와 숫자 고치는 법은 [`docs/progression-hq1-5.md`](docs/progression-hq1-5.md).
-  **전선(전투)** — 건물이 군대를 주고, 결정론 시뮬레이션(Core)을 화면이 재생한다. [`docs/battle.md`](docs/battle.md).
+  설계와 숫자 고치는 법은 `docs/design/02`.
+  **전투** — 건물이 군대를 주고, 결정론 시뮬레이션(Core)을 화면이 재생한다. `docs/design/05`.
   씬은 `Olympus/Setup/전투 씬 만들기`. (스테이지 사다리는 1장으로 바꾸며 닫았다 — 코드는 남김)
   **1장 "300 용사"** — 병영 훈련, 실시간으로 다가오는 거인, 기지 화면 안 협곡에서 300 vs 1.
-  [`docs/chapter1-300.md`](docs/chapter1-300.md). 디버그 `T` 거인 도착 / `Y` 용사 +100 / `B` 도적단. 거인 사이사이 도적 습격(2분 30초마다).
+  `docs/design/03`. 디버그 `T` 거인 도착 / `Y` 용사 +100 / `B` 도적단.
+  **상시 전선** — 성문 밖 적 기지 5곳을 건물이 주는 군대가 깎는다(`03` 4절). 도적 습격(2분 30초마다)은 2026-10-23에 전선으로 바꾸며 닫았다.
+  **영토·마을** — 거인을 이기면 성벽이 넓어진다(`04`, 영토 신호는 브랜치 `logic/territory-signal`에 있고 아직 안 합침).
 - **다음에 이어서 할 일과 아직 안 정한 것은 [`docs/handoff-billboard.md`](docs/handoff-billboard.md)에 있다** —
   건물을 사전 렌더 판넬로 바꾸는 검토, 기지 저작 툴.
 
