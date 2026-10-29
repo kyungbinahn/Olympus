@@ -33,8 +33,8 @@ namespace Olympus.Editor
         private static readonly Color ClaimGreen = new Color(0.42f, 0.56f, 0.27f);
         private static readonly Color DispatchCream = new Color(0.97f, 0.93f, 0.84f);
 
-        /// <summary>하단 탭 줄 높이 — 시안 176(탭 칸 160 + 위아래 여유).</summary>
-        private const float NavBarHeight = 176f;
+        /// <summary>하단 탭 줄 높이 — 시안 v10 B안 182(청동 바 tabbar_bg 364px = 2배).</summary>
+        private const float NavBarHeight = 182f;
 
         /// <summary>임무 바(양피지) — 시안 v9: 높이 100, 탭 줄 위로 12 띄운다.</summary>
         private const float QuestBarBottom = NavBarHeight + 12f;
@@ -942,18 +942,21 @@ namespace Olympus.Editor
 
         /// <summary>
         /// 하단 탭 줄. SLG 화면 하면 떠오르는 그 줄이다 — 탐색·영웅·동맹·상점은 아직 그 기능이 없어서
-        /// 눌러도 토스트만 뜬다(<see cref="HudChromeView"/>). 시안 v6: 갈색 바 위에 크림 대리석 칸,
-        /// 칸마다 3D 아이콘 + 아래 이름. 강조 탭은 없다(시안 확정 사항 — 외출도 다른 탭과 같은 모양).
+        /// 눌러도 토스트만 뜬다(<see cref="HudChromeView"/>). 시안 v10 B안(형님 선택 2026-10-29): 화면 폭 전체에 이어진
+        /// 청동 바(tabbar_bg) 한 장 위에 탭을 늘어놓고, 지금 화면의 탭 하나만 대리석 금테(frame_tab)를 두른다(<see cref="NavTabView"/>).
+        /// 예전 v9는 탭마다 금테 타일이라 바가 여섯 조각으로 끊겨 보였다.
         /// </summary>
         private static void CreateNavBar(
             RectTransform canvas,
             out Button battleButton, out Button exploreButton, out Button heroesButton, out Button allianceButton,
             out Button shopButton, out Button bagButton, out Button worldMapButton)
         {
+            // 세로 그라디언트 그림이라 가로로 통째로 늘려도 깨지지 않는다(테두리 없음 → Simple).
             RectTransform bar = CreatePanel(
                 canvas, "NavBar",
                 anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(0.5f, 0f),
-                anchoredPos: Vector2.zero, sizeDelta: new Vector2(0f, NavBarHeight), skin: "navbar");
+                anchoredPos: Vector2.zero, sizeDelta: new Vector2(0f, NavBarHeight),
+                skin: Skin("tabbar_bg") != null ? "tabbar_bg" : "navbar");
 
             // 전선은 본부 Lv.99로 잠겨 있어 사실상 안 보인다(function-unlock.json) — 아이콘도 없다.
             battleButton = CreateNavButton(bar, "BattleButton", "전선", 0, null);
@@ -965,7 +968,15 @@ namespace Olympus.Editor
             worldMapButton = CreateNavButton(bar, "WorldMapButton", "외출", 6, "icon_tab_world");
         }
 
-        /// <summary>탭 줄을 7칸으로 나눈 <paramref name="slot"/>번째 자리에 탭을 놓는다.</summary>
+        /// <summary>시안 v10 하단 탭 — 보통 글자 크림 + 진갈색 테두리.</summary>
+        private static readonly Color NavLabelCream = new Color(250f / 255f, 238f / 255f, 214f / 255f);
+        private static readonly Color NavLabelEdge = new Color(40f / 255f, 24f / 255f, 14f / 255f);
+
+        /// <summary>
+        /// 탭 줄을 7칸으로 나눈 <paramref name="slot"/>번째 자리에 탭을 놓는다. 금테·아이콘 크기·글자 색은 선택 여부에 따라
+        /// <see cref="NavTabView"/>가 바꾼다 — 여기서는 보통 모양으로 세우고 두 모양의 값을 넘긴다.
+        /// 크기(시안 1072 폭 기준): 선택 = 금테 칸 폭-8 × 바-14, 아이콘 132, 글자 30 / 보통 = 금테 없음, 아이콘 116, 글자 26.
+        /// </summary>
         private static Button CreateNavButton(RectTransform bar, string name, string label, int slot, string icon)
         {
             // 처음 배치일 뿐이다 — 열린 버튼만 남겨 고르게 다시 나누는 것은 HudChromeView가 한다.
@@ -973,32 +984,63 @@ namespace Olympus.Editor
             float min = (float)slot / slotCount;
             float max = (float)(slot + 1) / slotCount;
 
-            // 시안 v9: 금테 대리석 타일(높이 164), 아이콘은 금테 안쪽 면을 꽉 채우고 이름은 그 아래쪽에 흰 테두리 글자로 겹친다.
-            const float tileH = NavBarHeight - 12f;
-            RectTransform tile = CreatePanel(
+            // 칸 전체가 누르는 자리 — 그림 없는 투명 Image(바 위 어디를 눌러도 그 탭).
+            RectTransform tile = CreateRect(
                 bar, name,
                 anchorMin: new Vector2(min, 0f), anchorMax: new Vector2(max, 1f), pivot: new Vector2(0.5f, 0.5f),
-                anchoredPos: Vector2.zero, sizeDelta: new Vector2(-10f, -12f),
+                anchoredPos: Vector2.zero, sizeDelta: Vector2.zero);
+            Image hit = tile.gameObject.AddComponent<Image>();
+            hit.color = new Color(1f, 1f, 1f, 0f);
+            Button button = MakeButton(hit);
+
+            RectTransform frame = CreatePanel(
+                tile, "Frame",
+                anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
+                anchoredPos: Vector2.zero, sizeDelta: new Vector2(-8f, -14f),
                 skin: "frame_tab", fallbackColor: new Color(0.24f, 0.22f, 0.20f));
-            Image bg = tile.GetComponent<Image>();
-            FitTabFrame(bg, NavTileGold);
-            Button button = MakeButton(bg);
-            bool marble = Skin("frame_tab") != null;
+            Image frameImage = frame.GetComponent<Image>();
+            FitTabFrame(frameImage, NavTileGold);
+            frameImage.raycastTarget = false;
 
-            // 아이콘 크기는 칸 높이로 정한다 — 칸 폭은 열린 탭 수에 따라 바뀌지만(HudChromeView) 높이는 그대로다.
-            bool hasIcon = icon != null && AddTileIcon(tile, icon, tileH, tileH, NavTileGold) != null;
+            Image iconImage = icon != null
+                ? AddIcon(tile, icon, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -16f), 116f)
+                : null;
+            if (iconImage != null)
+                iconImage.raycastTarget = false;
 
-            if (hasIcon)
+            TMP_Text text;
+            Material selectedMat = null, normalMat = null;
+            if (iconImage != null)
             {
-                CreateTileLabel(tile, label, 30, 24f);
+                text = CreateText(
+                    tile, "Label", label, 26, FontStyles.Bold, NavLabelCream, TextAlignmentOptions.Midline,
+                    anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f), pivot: new Vector2(0.5f, 0.5f),
+                    anchoredPos: new Vector2(0f, 30f), sizeDelta: new Vector2(0f, 42f));
+                Outline(text, Color.white);
+                selectedMat = text.fontSharedMaterial;
+                Outline(text, NavLabelEdge);
+                normalMat = text.fontSharedMaterial;
             }
             else
             {
-                CreateText(
-                    tile, "Label", label, 30, FontStyles.Bold, marble ? InkColor : TextColor, TextAlignmentOptions.Midline,
+                text = CreateText(
+                    tile, "Label", label, 30, FontStyles.Bold, NavLabelCream, TextAlignmentOptions.Midline,
                     anchorMin: Vector2.zero, anchorMax: Vector2.one, pivot: new Vector2(0.5f, 0.5f),
                     anchoredPos: Vector2.zero, sizeDelta: Vector2.zero);
             }
+            text.raycastTarget = false;
+
+            NavTabView view = tile.gameObject.AddComponent<NavTabView>();
+            var so = new SerializedObject(view);
+            TerritorySceneBuilder.Wire(so, "_frame", frame.gameObject);
+            TerritorySceneBuilder.Wire(so, "_icon", iconImage != null ? iconImage.rectTransform : null);
+            TerritorySceneBuilder.Wire(so, "_label", text);
+            so.FindProperty("_selectedColor").colorValue = InkColor;
+            so.FindProperty("_color").colorValue = NavLabelCream;
+            TerritorySceneBuilder.Wire(so, "_selectedMaterial", selectedMat);
+            TerritorySceneBuilder.Wire(so, "_material", normalMat);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            view.SetSelected(false);
 
             return button;
         }

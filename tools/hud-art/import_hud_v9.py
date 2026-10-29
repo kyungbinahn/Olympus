@@ -1,4 +1,4 @@
-"""HUD v9 아트 반입 (2026-10-26) — D:\\OlympusArt\\ui\\out\\{frames,icons}\\final → Assets/Art/UI/{Skin,Icons}.
+"""HUD v9 아트 반입 (2026-10-26, 하단 탭 바 v10 B안 2026-10-29) — D:\\OlympusArt\\ui\\out\\{frames,icons}\\final → Assets/Art/UI/{Skin,Icons}.
 
 아트 납품 프레임은 원본 해상도(900~1170px)다. 그대로 넣으면 40px 칸에 1000px 그림을 줄여 그려서 금선이
 지글거리고(바탕 조각은 밉맵을 끈다 — UiIconPostprocessor) 텍스처만 수 MB가 된다. 그래서 화면 크기의 2배로
@@ -42,6 +42,12 @@ FRAMES = {
 # 3D 통일 아이콘(형님 선택 2026-10-26: settings-2, mail-1, offer-1, prosperity-3, outpost-2, quest-2).
 # 설정·우편·특가·임무는 v6 때 페인팅 시안에서 잘라 넣었던 것을 같은 이름으로 갈아끼운다.
 ICON_NAMES = ["icon_settings", "icon_mail", "icon_offer", "icon_quest", "icon_prosperity", "icon_outpost"]
+
+# 하단 탭 아이콘 — 시안 v10 B안(형님 선택 2026-10-29): 탐색 톤·외곽선·실루엣 면적에 맞춰 다시 그린 것(탭별 크기 보정 불필요).
+TAB_ICON_NAMES = ["icon_tab_heroes", "icon_tab_alliance", "icon_tab_shop", "icon_tab_bag", "icon_tab_world"]
+
+# 하단 탭 바 바탕(64x364 = 바 높이 182의 2배) — 세로 그라디언트라 가로로 통째로 늘려 깐다(테두리 없음).
+TABBAR = "tabbar_bg"
 
 # 프로필 확대 자르기 (중심 x, 중심 y, 한 변) — 512 기준. 얼굴(투구 눈구멍~수염)이 가운데 오게.
 PROFILE_CROP = (270, 250, 320)
@@ -102,8 +108,11 @@ def main():
     circle_mask().save(f"{SKIN}/circle_mask.png")
     print(f"{'circle_mask':16s} (160, 160)")
 
-    for n in ICON_NAMES:
+    for n in ICON_NAMES + TAB_ICON_NAMES:
         shutil.copyfile(f"{ART}/icons/final/{n}.png", f"{ICONS}/{n}.png")
+
+    shutil.copyfile(f"{ART}/frames/final/{TABBAR}.png", f"{SKIN}/{TABBAR}.png")
+    print(f"{TABBAR:16s} {Image.open(f'{SKIN}/{TABBAR}.png').size}  (늘림, 테두리 없음)")
 
     # 기본 프로필(월계관 원판 안, 화면 지름 80) — 형님 선택 2번 장군(strategos, 2026-10-26).
     # 아트 확정본(icons/final/profile_default.png)이 있으면 그것을, 아직이면 같은 그림인 후보 파일을 쓴다.

@@ -37,6 +37,9 @@ namespace Olympus.UI
         [SerializeField] private Button _mailButton;
         [SerializeField] private Button _offerButton;
 
+        [Tooltip("지금 화면의 탭(featureId) — 이 탭만 금테를 두른다. 기지 화면은 탐색이다(시안 v10).")]
+        [SerializeField] private string _selectedTab = "explore";
+
         [Tooltip("레벨업 알림을 띄워 두는 시간(초). 이야기 한 줄 + 새 건물 + 새 기능을 읽을 시간이다.")]
         [SerializeField] private float _levelUpToastSeconds = 5f;
 
@@ -71,6 +74,7 @@ namespace Olympus.UI
             AddNav("shop", _shopButton);
             AddNav("bag", _bagButton);
             AddNav("world_map", _worldMapButton);
+            ApplySelection();
 
             if (_presenter == null || _presenter.Runtime == null)
             {
@@ -133,6 +137,25 @@ namespace Olympus.UI
                 var rect = (RectTransform)visible[i].transform;
                 rect.anchorMin = new Vector2((float)i / visible.Count, rect.anchorMin.y);
                 rect.anchorMax = new Vector2((float)(i + 1) / visible.Count, rect.anchorMax.y);
+            }
+
+            ApplySelection();
+        }
+
+        /// <summary>선택 탭을 바꾼다 — 금테가 그 칸으로 옮겨 간다. 탭이 화면을 바꾸게 되면 그 화면이 부른다.</summary>
+        public void SelectTab(string featureId)
+        {
+            _selectedTab = featureId;
+            ApplySelection();
+        }
+
+        private void ApplySelection()
+        {
+            foreach (KeyValuePair<string, Button> nav in _nav)
+            {
+                NavTabView tab = nav.Value.GetComponent<NavTabView>();
+                if (tab != null)
+                    tab.SetSelected(nav.Key == _selectedTab);
             }
         }
 
