@@ -125,7 +125,7 @@ namespace Olympus.DomainTests.RealData
             battle.TryGetUnit(t.Enemies[0].UnitId, out giant);
 
             var lines = new List<string>();
-            bool won300 = false, won150 = true;
+            bool won300 = false, won150 = true, won200 = true;
             foreach (int n in new[] { 100, 150, 200, 250, 300 })
             {
                 var player = new List<UnitSpawn>();
@@ -140,11 +140,13 @@ namespace Olympus.DomainTests.RealData
                     sim.AliveCount(BattleTeam.Player) + ", 거인 체력 " + g.Hp + "/" + g.MaxHp);
                 if (n == 300) won300 = sim.PlayerWon;
                 if (n == 150) won150 = sim.PlayerWon;
+                if (n == 200) won200 = sim.PlayerWon;
             }
 
             TestContext.WriteLine(string.Join(Environment.NewLine, lines));
             Assert.That(won300, Is.True, "300명이 진다: " + string.Join(Environment.NewLine, lines));
             Assert.That(won150, Is.False, "150명으로도 이긴다: " + string.Join(Environment.NewLine, lines));
+            Assert.That(won200, Is.False, "설계서 03 3절 부록 표(200명 패)와 다르다 — 200명으로도 이긴다: " + string.Join(Environment.NewLine, lines));
         }
 
         /// <summary>
@@ -379,6 +381,272 @@ namespace Olympus.DomainTests.RealData
                 " / 지금 임무: " + (runtime.Quests.Current.HasQuest ? runtime.Quests.Current.Quest.QuestId : "없음"));
             Assert.That(runtime.Quests.Current.HasQuest, Is.False,
                 "임무가 남았다: " + (runtime.Quests.Current.HasQuest ? runtime.Quests.Current.Quest.QuestId : ""));
+
+            // 봇 시간은 곡선을 고치면 조금씩 움직인다 — 정확한 값이 아니라 범위로 묶는다.
+            // 범위를 벗어나면 곡선이 설계와 다른 게임이 됐다는 뜻이니 표를 다시 재서 고친다.
+            var drift = new List<string>();
+            CheckBotTime(drift, "02 7절", "봇 본부 Lv.", reachedAt, new Dictionary<int, double> { { 2, 4.7 }, { 3, 18.7 }, { 4, 27.5 }, { 5, 38.7 } });
+            CheckBotTime(drift, "04 9절", "봇 영토 ", territoryAt, new Dictionary<int, double> { { 2, 4.7 }, { 3, 18.5 }, { 4, 27.5 }, { 5, 35.2 } });
+            Assert.That(drift, Is.Empty, string.Join(Environment.NewLine, drift));
+        }
+
+        private const double BotTolerance = 0.15;
+
+        private static void CheckBotTime(List<string> drift, string section, string label,
+            Dictionary<int, double> actual, Dictionary<int, double> table)
+        {
+            foreach (KeyValuePair<int, double> row in table)
+            {
+                double got;
+                if (!actual.TryGetValue(row.Key, out got))
+                    drift.Add("설계서 " + section + " 부록 표: " + label + row.Key + " — 봇이 도달하지 못했다(표 " + row.Value + "분)");
+                else if (Math.Abs(got - row.Value) > row.Value * BotTolerance)
+                    drift.Add("설계서 " + section + " 부록 표: " + label + row.Key + " — 표 " + row.Value + "분, 봇 " +
+                              got.ToString("0.0") + "분 (±" + (BotTolerance * 100) + "% 밖)");
+            }
+        }
+
+        // ── 설계서 부록 상수표 ────────────────────────────────────────────────
+        // 숫자의 원본은 docs/design/02~05 끝의 "부록 — 핵심 상수" 표다. 데이터만 고치고 표를 안 고치면
+        // 여기서 실패한다(재편 때 그렇게 어긋난 곳이 네 군데 나왔다). 둘 중 어느 쪽이 맞는지는 사람이 정한다 —
+        // 데이터가 맞으면 같은 커밋에서 표와 이 기대값을 함께 고친다.
+        // 봇 시간은 위 봇 시험이, 300 vs 1 손맛은 거인 시험이 묶는다.
+
+        private static void Same(List<string> diffs, string section, string what, object table, object data)
+        {
+            if (!Equals(table, data))
+                diffs.Add("설계서 " + section + " 부록 표와 다르다 — " + what + ": 표 " + table + ", 데이터 " + data);
+        }
+
+        private static void AssertNoDiffs(List<string> diffs) =>
+            Assert.That(diffs, Is.Empty, Environment.NewLine + string.Join(Environment.NewLine, diffs));
+
+        private static long Requires(HqLevelDef def, RequirementKind kind, string target) =>
+            def.Requirements.Where(r => r.Kind == kind && (target == null || r.Target == target)).Select(r => r.Amount).DefaultIfEmpty(0L).Max();
+
+        private static long Amount(IEnumerable<ResourceCost> costs, ResourceKind kind) =>
+            costs.Where(c => c.Kind == kind).Sum(c => c.Amount);
+
+        private static long Items(IEnumerable<ItemGrant> items, string itemId) =>
+            items.Where(i => i.ItemId == itemId).Sum(i => i.Amount);
+
+        private static ThreatDef Threat(string threatId)
+        {
+            ThreatDef t;
+            Assert.That(Chapter().TryGetThreat(threatId, out t), Is.True, threatId + "가 chapter1.json에 없다");
+            return t;
+        }
+
+        private static UnitDef Unit(string unitId)
+        {
+            UnitDef u;
+            Assert.That(Battle().TryGetUnit(unitId, out u), Is.True, unitId + "가 battle.json에 없다");
+            return u;
+        }
+
+        private static string Enemies(ThreatDef t) =>
+            string.Join(" + ", t.Enemies.Select(e => e.UnitId + "×" + e.Count + "(배수 " + e.Multiplier + ")"));
+
+        [Test]
+        public void 설계서_02_본부_부록표와_데이터가_같다()
+        {
+            ProgressionConfig config = Config();
+            var d = new List<string>();
+
+            Same(d, "02 1절", "시작 목재", 300L, Amount(config.StartingResources, ResourceKind.Wood));
+            Same(d, "02 1절", "시작 석재", 200L, Amount(config.StartingResources, ResourceKind.Stone));
+
+            // 레벨: 번영도, 적 기지(front.outpost), 이긴 거인, 공사 시간(ms), 대기열(0 = 무제한)
+            var hq = new[]
+            {
+                new { Lv = 2, Prosperity = 3L,  Outposts = 1L, Giant = "",        Ms = 0L,      Queue = 0 },
+                new { Lv = 3, Prosperity = 11L, Outposts = 2L, Giant = "giant_1", Ms = 5000L,   Queue = 0 },
+                new { Lv = 4, Prosperity = 20L, Outposts = 0L, Giant = "giant_2", Ms = 120000L, Queue = 2 },
+                new { Lv = 5, Prosperity = 30L, Outposts = 3L, Giant = "giant_3", Ms = 180000L, Queue = 2 },
+            };
+            foreach (var row in hq)
+            {
+                HqLevelDef def;
+                Assert.That(config.TryGetHqLevel(row.Lv, out def), Is.True, "progression.json에 본부 Lv." + row.Lv + "가 없다");
+                string at = "본부 Lv." + row.Lv + " ";
+                Same(d, "02 3절", at + "조건 번영도", row.Prosperity, Requires(def, RequirementKind.Prosperity, null));
+                Same(d, "02 3절", at + "조건 적 기지", row.Outposts, Requires(def, RequirementKind.Counter, FrontlineService.IndexKey));
+                foreach (string g in new[] { "giant_1", "giant_2", "giant_3" })
+                    Same(d, "02 3절", at + "조건 " + g, g == row.Giant ? 1L : 0L, Requires(def, RequirementKind.Counter, ChapterKeys.ThreatWon(g)));
+                Same(d, "02 3절", at + "공사 시간(ms)", row.Ms, def.DurationMs);
+                Same(d, "02 3절", at + "건설 대기열(0=무제한)", row.Queue, def.BuildQueueSlots);
+            }
+
+            HqLevelDef lv1;
+            config.TryGetHqLevel(1, out lv1);
+            Same(d, "02 3절", "본부 Lv.1 건설 대기열(0=무제한)", 0, lv1.BuildQueueSlots);
+
+            HqLevelDef lv4, lv5;
+            config.TryGetHqLevel(4, out lv4);
+            config.TryGetHqLevel(5, out lv5);
+            Same(d, "02 3절", "본부 Lv.4 선행 병영 레벨", 1L, Requires(lv4, RequirementKind.BuildingLevel, "barracks"));
+            Same(d, "02 3절", "본부 Lv.5 선행 건설 작업장 레벨", 3L, Requires(lv5, RequirementKind.BuildingLevel, "mason_yard"));
+
+            var steps = new[] { new { Lv = 2, X = 1.5, Ms = 10000L }, new { Lv = 3, X = 3.0, Ms = 30000L },
+                                new { Lv = 4, X = 5.0, Ms = 60000L }, new { Lv = 5, X = 8.0, Ms = 120000L } };
+            foreach (var s in steps)
+            {
+                UpgradeStep step;
+                Assert.That(config.TryGetUpgradeStep(s.Lv, out step), Is.True, "upgradeSteps에 Lv." + s.Lv + "가 없다");
+                Same(d, "02 4절", "업그레이드 Lv." + s.Lv + " 배수", s.X, step.CostMultiplier);
+                Same(d, "02 4절", "업그레이드 Lv." + s.Lv + " 시간(ms)", s.Ms, step.DurationMs);
+            }
+
+            Same(d, "02 1절", "날개(가속) 줄이는 시간(ms)", "60000, 300000, 900000",
+                string.Join(", ", config.SpeedUps.Select(s => s.ReduceMs).OrderBy(x => x)));
+
+            foreach (BuildingDef b in Catalog().All.Where(b => b.Production != null))
+                Same(d, "02 5절", b.DefId + " 생산 보관(분)", 60L, b.Production.CapMinutes);
+
+            Same(d, "02 8절", "임무 수", 43, config.Quests.Count);
+
+            AssertNoDiffs(d);
+        }
+
+        [Test]
+        public void 설계서_03_300용사_부록표와_데이터가_같다()
+        {
+            ChapterConfig chapter = Chapter();
+            var d = new List<string>();
+
+            TrainingDef tr = chapter.Training;
+            Same(d, "03 3절", "용사 1명 식량", 3L, Amount(tr.CostPerUnit, ResourceKind.Food));
+            Same(d, "03 3절", "용사 1명 목재", 2L, Amount(tr.CostPerUnit, ResourceKind.Wood));
+            Same(d, "03 3절", "용사 1명 시간(ms)", 3000L, tr.MsPerUnit);
+            Same(d, "03 3절", "훈련 빨라짐 %/병영 레벨", 25.0, tr.SpeedPercentPerLevel);
+            Same(d, "03 3절", "한 번에 맡길 수 기본", 30, tr.BatchBase);
+            Same(d, "03 3절", "한 번에 맡길 수 병영 레벨당", 20, tr.BatchPerLevel);
+
+            var giants = new[]
+            {
+                new { Id = "giant_1", Hq = 2, Min = 25L },
+                new { Id = "giant_2", Hq = 3, Min = 30L },
+                new { Id = "giant_3", Hq = 4, Min = 35L },
+            };
+            foreach (var g in giants)
+            {
+                ThreatDef t = Threat(g.Id);
+                Same(d, "03 3절 · 04 4-3", g.Id + " 나타나는 본부 레벨", g.Hq, t.StartHqLevel);
+                Same(d, "03 3절 · 04 4-3", g.Id + " 도착까지(ms)", g.Min * 60000L, t.ApproachMs);
+                Same(d, "01 부록", g.Id + " 용사 목표", 300, t.GoalTroops);
+            }
+            Same(d, "03 3절", "giant_1 지면 다시 오기까지(ms)", 15L * 60000L, Threat("giant_1").RetryMs);
+
+            UnitDef chief = Unit("giant_chieftain");
+            Same(d, "03 3절", "족장 거인 체력", 9000L, chief.Hp);
+            Same(d, "03 3절", "족장 거인 공격", 400L, chief.Attack);
+            Same(d, "03 3절", "족장 거인 공격 간격(ms)", 1500L, chief.AttackIntervalMs);
+            Same(d, "03 3절", "족장 거인 휩쓸기(m)", 0.3f, chief.SplashRadius);
+            Same(d, "03 3절", "족장 거인 반지름", 1.6f, chief.Radius);
+
+            ThreatDef g1 = Threat("giant_1");
+            Same(d, "03 3절", "거인 1 보상 목재", 800L, Amount(g1.RewardResources, ResourceKind.Wood));
+            Same(d, "03 3절", "거인 1 보상 석재", 600L, Amount(g1.RewardResources, ResourceKind.Stone));
+            Same(d, "03 3절", "거인 1 보상 식량", 300L, Amount(g1.RewardResources, ResourceKind.Food));
+            Same(d, "03 3절", "거인 1 보상 날개 5분", 3L, Items(g1.RewardItems, "hermes_wing_5m"));
+
+            Same(d, "03 4-2", "적 기지 체력", "15000, 30000, 100000, 200000, 400000",
+                string.Join(", ", chapter.Frontline.Outposts.Select(o => o.Hp)));
+            Same(d, "03 4-2", "적 기지 버팀", "20, 50, 300, 400, 700",
+                string.Join(", ", chapter.Frontline.Outposts.Select(o => o.Resist)));
+            Same(d, "03 4-1", "전선 전리품 목재/피해 1000", 4L, Amount(chapter.Frontline.LootPerThousand, ResourceKind.Wood));
+            Same(d, "03 4-1", "전선 전리품 석재/피해 1000", 3L, Amount(chapter.Frontline.LootPerThousand, ResourceKind.Stone));
+
+            Same(d, "03 5절", "도적 습격 시작 본부 레벨(99 = 닫힘)", 99, chapter.Raids.StartHqLevel);
+
+            AssertNoDiffs(d);
+        }
+
+        [Test]
+        public void 설계서_04_영토_부록표와_데이터가_같다()
+        {
+            WallConfig walls = Load<WallFile>("walls.json").ToConfig();
+            var d = new List<string>();
+
+            // 영토 단계 신호 — 1 처음부터 · 2 도적 소굴(첫 적 기지) · 3~5 거인 1~3
+            var signal = new Dictionary<int, string>
+            {
+                { 1, "" },
+                { 2, "Counter " + FrontlineService.IndexKey + " 1" },
+                { 3, "Counter " + ChapterKeys.ThreatWon("giant_1") + " 1" },
+                { 4, "Counter " + ChapterKeys.ThreatWon("giant_2") + " 1" },
+                { 5, "Counter " + ChapterKeys.ThreatWon("giant_3") + " 1" },
+            };
+            Same(d, "04 3절", "영토 단계 수", signal.Count, walls.Tiers.Count);
+            foreach (WallTier tier in walls.Tiers)
+            {
+                string expected;
+                if (signal.TryGetValue(tier.HqLevel, out expected))
+                    Same(d, "04 3절 · 4-3", "영토 " + tier.HqLevel + " 신호", expected, string.Join(" · ", tier.Unlock.Select(r => r.ToString())));
+            }
+
+            Same(d, "04 4-3", "거인 2 적", "giant_chieftain×1(배수 1.3) + giant_brute×3(배수 1)", Enemies(Threat("giant_2")));
+            Same(d, "04 4-3", "거인 3 적", "giant_chieftain×1(배수 1.7) + giant_slinger×6(배수 1)", Enemies(Threat("giant_3")));
+
+            Same(d, "04 10-2", "성벽 여유(m)", 1.5f, walls.Clearance);
+            Same(d, "04 10-2", "성벽 조각 길이(m)", 4f, walls.Unit);
+            Same(d, "04 10-2", "기둥 사이 조각 수", 3, walls.PiecesPerSpan);
+
+            AssertNoDiffs(d);
+        }
+
+        [Test]
+        public void 설계서_05_전투_부록표와_데이터가_같다()
+        {
+            BattleConfig battle = Battle();
+            var d = new List<string>();
+
+            Same(d, "05 3절", "시뮬레이션 한 걸음(ms)", 50L, BattleSimulation.StepMs);
+            Same(d, "05 3절", "스테이지 제한 시간(ms)", 90000L, battle.TimeLimitMs);
+            Same(d, "05 3절", "거인 1 제한 시간(ms)", 150000L, Threat("giant_1").TimeLimitMs);
+            Same(d, "05 3절", "거인 2 제한 시간(ms)", 180000L, Threat("giant_2").TimeLimitMs);
+            Same(d, "05 3절", "거인 3 제한 시간(ms)", 180000L, Threat("giant_3").TimeLimitMs);
+
+            ArmySource barracks = battle.Sources.FirstOrDefault(s => s.DefId == "barracks");
+            Assert.That(barracks, Is.Not.Null, "battle.json army에 barracks가 없다");
+            Same(d, "05 2절", "병영 첫 병력 병종", "hoplite", barracks.UnitId);
+            Same(d, "05 2절", "병영 첫 병력", 4, barracks.FixedCount);
+            Same(d, "05 2절", "병영 레벨마다 병력", 2, barracks.CountPerLevel);
+
+            // 건물, 병종(빈칸 = 전부), 능력치, %/레벨
+            var buffs = new[]
+            {
+                new { Def = "main_hall",     Unit = "",        Stat = BattleStat.Attack, Pct = 5.0 },
+                new { Def = "ironworks",     Unit = "",        Stat = BattleStat.Attack, Pct = 8.0 },
+                new { Def = "arena",         Unit = "hoplite", Stat = BattleStat.Attack, Pct = 5.0 },
+                new { Def = "gatehouse",     Unit = "",        Stat = BattleStat.Hp,     Pct = 8.0 },
+                new { Def = "healing_house", Unit = "",        Stat = BattleStat.Hp,     Pct = 6.0 },
+            };
+            Same(d, "05 2절", "강화 줄 수", buffs.Length, battle.Buffs.Count);
+            foreach (var b in buffs)
+            {
+                ArmyBuff got = battle.Buffs.FirstOrDefault(x => x.DefId == b.Def && x.Stat == b.Stat);
+                if (got == null)
+                {
+                    d.Add("설계서 05 2절 부록 표와 다르다 — " + b.Def + " " + b.Stat + " 강화가 데이터에 없다");
+                    continue;
+                }
+                Same(d, "05 2절", b.Def + " " + b.Stat + " 병종", b.Unit, got.UnitId ?? "");
+                Same(d, "05 2절", b.Def + " " + b.Stat + " %/레벨", b.Pct, got.PercentPerLevel);
+            }
+
+            UnitDef hoplite = Unit("hoplite");
+            Same(d, "05 4절", "호플리테스 체력", 120L, hoplite.Hp);
+            Same(d, "05 4절", "호플리테스 공격", 12L, hoplite.Attack);
+            Same(d, "05 4절", "호플리테스 공격 간격(ms)", 1000L, hoplite.AttackIntervalMs);
+
+            UnitDef chief = Unit("giant_chieftain");
+            Same(d, "05 4절", "족장 거인 체력", 9000L, chief.Hp);
+            Same(d, "05 4절", "족장 거인 공격", 400L, chief.Attack);
+            Same(d, "05 4절", "족장 거인 공격 간격(ms)", 1500L, chief.AttackIntervalMs);
+            Same(d, "05 4절", "족장 거인 휩쓸기(m)", 0.3f, chief.SplashRadius);
+
+            AssertNoDiffs(d);
         }
 
         private static bool IsChapterKey(string defId) =>
