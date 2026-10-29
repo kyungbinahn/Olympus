@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Olympus.Core.Grid;
+using Olympus.Core.Progression;
+using Olympus.Core.State;
 using Olympus.Core.Territory;
 
 namespace Olympus.Core.Tests
@@ -121,6 +123,69 @@ namespace Olympus.Core.Tests
 
             config.Add(new WallTier(2, 8f));   // 레벨 순서가 어긋남
             Assert.That(config.Validate().Count, Is.EqualTo(1));
+        }
+
+        // 영토 단계 — 1 처음부터, 2 도적 소굴, 3 거인 1, 4 거인 2 (docs/village-growth.md).
+        private static WallConfig Territory()
+        {
+            WallConfig config = Config();
+            config.Add(new WallTier(1, 4f));
+            config.Add(new WallTier(2, 4f, new[] { Requirement.Counter("front.outpost", 1) }));
+            config.Add(new WallTier(3, 8f, new[] { Requirement.Counter("threat.giant_1.won", 1) }));
+            config.Add(new WallTier(4, 6f, new[] { Requirement.Counter("threat.giant_2.won", 1) }));
+            return config;
+        }
+
+        private static GameState StateWith(int hqLevel, params string[] counters)
+        {
+            var state = new GameState(new SquareGrid(1f), new GridRect(0, 0, 20, 20));
+            var store = new StateStore(state);
+            var delta = new StateDelta();
+            if (hqLevel > 0)
+                delta.WithBuilding(BuildingChange.Add(1, "main_hall", new GridPos(0, 0), GridFootprint.Square(2), BuildingPhase.Complete, hqLevel, 0L, 0L));
+            foreach (string c in counters)
+                delta.WithCounter(CountChange.Absolute(c, 1));
+            store.Apply(delta);
+            return state;
+        }
+
+        private static readonly ProgressionConfig Hq = new ProgressionConfig("main_hall");
+
+        [Test]
+        public void 영토는_적을_무찌른_순간_넓어지고_중간을_건너뛰지_않는다()
+        {
+            WallConfig config = Territory();
+
+            Assert.That(config.Current(StateWith(0, "front.outpost"), Hq), Is.Null, "본부가 폐허면 성벽도 없다");
+            Assert.That(config.Current(StateWith(1), Hq).HqLevel, Is.EqualTo(1));
+            Assert.That(config.Current(StateWith(1, "front.outpost"), Hq).HqLevel, Is.EqualTo(2), "본부 공사를 기다리지 않는다");
+            Assert.That(config.Current(StateWith(2, "front.outpost", "threat.giant_1.won"), Hq).HqLevel, Is.EqualTo(3));
+
+            // 거인 2만 이기고 도적 소굴을 안 부순 상태(디버그 등) — 2를 건너뛰고 4가 서지 않는다.
+            Assert.That(config.Current(StateWith(1, "threat.giant_2.won"), Hq).HqLevel, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void 조건이_생기기_전_세이브는_본부_레벨보다_좁아지지_않는다()
+        {
+            // 거인 없이 본부 Lv.4까지 올라간 옛 세이브 — 열린 건물이 성 밖에 서면 안 된다.
+            Assert.That(Territory().Current(StateWith(4, "front.outpost"), Hq).HqLevel, Is.EqualTo(4));
+        }
+
+        private static HqLevelDef Level(int level, Requirement requirement) =>
+            new HqLevelDef(level, new[] { requirement }, null, 0L, 0, null, null, null);
+
+        [Test]
+        public void 본부_조건에_영토_조건이_빠지면_알린다()
+        {
+            var progression = new ProgressionConfig("main_hall");
+            progression.AddHqLevel(Level(2, Requirement.Counter("front.outpost", 1)));
+            progression.AddHqLevel(Level(3, Requirement.Prosperity(11)));   // 거인 1이 빠짐
+            progression.AddHqLevel(Level(4, Requirement.Counter("threat.giant_2.won", 1)));
+
+            List<string> problems = Territory().CheckAgainst(progression);
+            Assert.That(problems.Count, Is.EqualTo(1), string.Join(" / ", problems));
+            StringAssert.Contains("본부 Lv.3", problems[0]);
         }
 
         private static float Area(List<WorldXZ> poly)

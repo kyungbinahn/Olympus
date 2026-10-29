@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Olympus.Core.Grid;
+using Olympus.Core.Progression;
+using Olympus.Core.State;
 
 namespace Olympus.Core.Territory
 {
@@ -32,16 +34,24 @@ namespace Olympus.Core.Territory
         }
     }
 
-    /// <summary>성벽 한 단계 — 이 본부 레벨부터 이 성벽이 선다. 성문 길이는 그 단계 아트 성문 모델의 길이(m).</summary>
+    /// <summary>
+    /// 성벽 한 단계(영토 단계). <see cref="HqLevel"/>은 이 성벽이 둘러쌀 마을 — 본부 Lv.N까지 열리는 건물이다.
+    /// 언제 서는지는 <see cref="Unlock"/>이 정한다(도적 소굴·거인 처치 — docs/village-growth.md).
+    /// 성문 길이는 그 단계 아트 성문 모델의 길이(m).
+    /// </summary>
     public sealed class WallTier
     {
         public int HqLevel { get; }
         public float GateLength { get; }
 
-        public WallTier(int hqLevel, float gateLength)
+        /// <summary>이 단계가 열리는 조건(본부 조건과 같은 꼴). 비어 있으면 본부 레벨만 본다.</summary>
+        public IReadOnlyList<Requirement> Unlock { get; }
+
+        public WallTier(int hqLevel, float gateLength, IReadOnlyList<Requirement> unlock = null)
         {
             HqLevel = hqLevel;
             GateLength = gateLength;
+            Unlock = unlock ?? Array.Empty<Requirement>();
         }
     }
 
@@ -90,6 +100,69 @@ namespace Olympus.Core.Territory
                     best = t;
             }
             return best;
+        }
+
+        /// <summary>
+        /// 지금 서 있을 성벽 — 앞에서부터 조건이 찬 단계까지(중간을 건너뛰지 않는다). 거인을 이긴 순간 넓어지고,
+        /// 본부 공사를 기다리지 않는다(형님 2026-10-28, docs/village-growth.md 4-1 B안).
+        ///
+        /// 본부 레벨로 정해지는 단계(<see cref="ForHq"/>)보다 작아지지는 않는다. 데이터가 맞으면(<see cref="CheckAgainst"/>)
+        /// 본부가 땅보다 앞설 일이 없지만, 조건이 생기기 전 세이브는 거인 없이 본부가 올라가 있다 — 그때 열린 건물이
+        /// 성 밖에 서면 안 된다. 본부가 없으면(폐허) 성벽도 없다.
+        /// </summary>
+        public WallTier Current(GameState state, ProgressionConfig progression)
+        {
+            WallTier floor = ForHq(ProgressionRules.HqLevel(state, progression));
+            if (floor == null)
+                return null;
+
+            WallTier best = floor;
+            foreach (WallTier t in _tiers)
+            {
+                if (!ProgressionRules.AllMet(t.Unlock, state, progression))
+                    break;
+                if (t.HqLevel > best.HqLevel)
+                    best = t;
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// 본부 Lv.N의 조건에 영토 N의 조건이 들어 있는지 본다. 빠지면 본부가 땅보다 앞서서
+        /// 새로 열린 건물이 성 밖에 서고, 지을 수 있는데 성 밖이라 안 되는 막힘이 생긴다.
+        /// </summary>
+        public List<string> CheckAgainst(ProgressionConfig progression)
+        {
+            var problems = new List<string>();
+            if (progression == null)
+                return problems;
+
+            foreach (WallTier t in _tiers)
+            {
+                if (t.Unlock.Count == 0)
+                    continue;
+
+                HqLevelDef hq;
+                if (!progression.TryGetHqLevel(t.HqLevel, out hq))
+                {
+                    problems.Add("영토 " + t.HqLevel + "에 조건이 있는데 본부 Lv." + t.HqLevel + "이 progression.json에 없다");
+                    continue;
+                }
+
+                foreach (Requirement u in t.Unlock)
+                {
+                    bool covered = false;
+                    foreach (Requirement r in hq.Requirements)
+                    {
+                        if (r.Kind == u.Kind && r.Target == u.Target && r.Amount >= u.Amount)
+                            covered = true;
+                    }
+                    if (!covered)
+                        problems.Add("본부 Lv." + t.HqLevel + " 조건에 영토 " + t.HqLevel + " 조건(" + u + ")이 없다 — " +
+                                     "본부가 땅보다 앞서면 새로 열린 건물이 성 밖에 선다");
+                }
+            }
+            return problems;
         }
 
         public List<string> Validate()
@@ -599,7 +672,15 @@ namespace Olympus.Core.Territory
             if (tiers != null)
             {
                 foreach (WallTierRecord r in tiers)
-                    config.Add(new WallTier(r.hqLevel, r.gateLength));
+                {
+                    var unlock = new List<Requirement>();
+                    if (r.unlock != null)
+                    {
+                        foreach (RequirementRecord u in r.unlock)
+                            unlock.Add(ProgressionFileMapper.ToRequirement(u, "walls.json 영토 " + r.hqLevel));
+                    }
+                    config.Add(new WallTier(r.hqLevel, r.gateLength, unlock));
+                }
             }
             return config;
         }
@@ -610,5 +691,6 @@ namespace Olympus.Core.Territory
     {
         public int hqLevel;
         public float gateLength = 8f;
+        public List<RequirementRecord> unlock = new List<RequirementRecord>();
     }
 }

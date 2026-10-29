@@ -188,7 +188,7 @@ namespace Olympus.Core.Progression
             return config;
         }
 
-        private static Requirement ToRequirement(RequirementRecord r, string where)
+        internal static Requirement ToRequirement(RequirementRecord r, string where)
         {
             if (r == null)
                 throw new InvalidOperationException(where + ": 조건이 비어 있다.");
