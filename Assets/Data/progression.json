@@ -1,0 +1,265 @@
+{
+    "_comment": "본부 Lv.1~5 진척 규칙. 근거와 설계 이유는 docs/progression-hq1-5.md. 탑포스 기지 Lv.1~5 흐름(첫 레벨업 즉시 -> 초 단위 -> Lv.3->4에서 첫 분 단위 타이머와 가속 튜토리얼 -> Lv.4 대기열 -> Lv.5에 월드맵과 새 자원)을 그리스-로마로 옮겼다. 레벨 1 줄의 requirements/costs/durationMs는 쓰지 않는다(본부 복구가 대신한다).",
+    "hqDefId": "main_hall",
+    "startingResources": [
+        {
+            "kind": "Wood",
+            "amount": 300
+        },
+        {
+            "kind": "Stone",
+            "amount": 200
+        }
+    ],
+    "startingItems": [],
+    "hqLevels": [
+        {
+            "level": 1,
+            "requirements": [],
+            "costs": [],
+            "durationMs": 0,
+            "buildQueueSlots": 0,
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                }
+            ],
+            "rewardItems": [],
+            "storyKey": "story.hq1"
+        },
+        {
+            "level": 2,
+            "requirements": [
+                {
+                    "kind": "Prosperity",
+                    "target": "",
+                    "amount": 3
+                },
+                {
+                    "kind": "Counter",
+                    "target": "front.outpost",
+                    "amount": 1
+                }
+            ],
+            "costs": [],
+            "durationMs": 0,
+            "buildQueueSlots": 0,
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 150
+                }
+            ],
+            "rewardItems": [],
+            "storyKey": "story.hq2"
+        },
+        {
+            "level": 3,
+            "requirements": [
+                {
+                    "kind": "Prosperity",
+                    "target": "",
+                    "amount": 11
+                },
+                {
+                    "kind": "Counter",
+                    "target": "front.outpost",
+                    "amount": 2
+                },
+                {
+                    "kind": "Counter",
+                    "target": "threat.giant_1.won",
+                    "amount": 1
+                }
+            ],
+            "costs": [
+                {
+                    "kind": "Wood",
+                    "amount": 600
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 400
+                }
+            ],
+            "durationMs": 5000,
+            "buildQueueSlots": 0,
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 200
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 200
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_1m",
+                    "amount": 5
+                },
+                {
+                    "itemId": "hermes_wing_5m",
+                    "amount": 3
+                }
+            ],
+            "storyKey": "story.hq3"
+        },
+        {
+            "level": 4,
+            "requirements": [
+                {
+                    "kind": "Prosperity",
+                    "target": "",
+                    "amount": 20
+                },
+                {
+                    "kind": "BuildingLevel",
+                    "target": "barracks",
+                    "amount": 1
+                },
+                {
+                    "kind": "Counter",
+                    "target": "threat.giant_2.won",
+                    "amount": 1
+                }
+            ],
+            "costs": [
+                {
+                    "kind": "Wood",
+                    "amount": 1500
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 1000
+                }
+            ],
+            "durationMs": 120000,
+            "buildQueueSlots": 2,
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 500
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 500
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_5m",
+                    "amount": 3
+                },
+                {
+                    "itemId": "hermes_wing_15m",
+                    "amount": 1
+                }
+            ],
+            "storyKey": "story.hq4"
+        },
+        {
+            "level": 5,
+            "requirements": [
+                {
+                    "kind": "Prosperity",
+                    "target": "",
+                    "amount": 30
+                },
+                {
+                    "kind": "BuildingLevel",
+                    "target": "mason_yard",
+                    "amount": 3
+                },
+                {
+                    "kind": "Counter",
+                    "target": "front.outpost",
+                    "amount": 3
+                },
+                {
+                    "kind": "Counter",
+                    "target": "threat.giant_3.won",
+                    "amount": 1
+                }
+            ],
+            "costs": [
+                {
+                    "kind": "Wood",
+                    "amount": 2500
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 1800
+                }
+            ],
+            "durationMs": 180000,
+            "buildQueueSlots": 2,
+            "rewardResources": [
+                {
+                    "kind": "Food",
+                    "amount": 300
+                },
+                {
+                    "kind": "Gold",
+                    "amount": 50
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_5m",
+                    "amount": 5
+                },
+                {
+                    "itemId": "hermes_wing_15m",
+                    "amount": 2
+                }
+            ],
+            "storyKey": "story.hq5"
+        }
+    ],
+    "upgradeSteps": [
+        {
+            "level": 2,
+            "costMultiplier": 1.5,
+            "durationMs": 10000
+        },
+        {
+            "level": 3,
+            "costMultiplier": 3.0,
+            "durationMs": 30000
+        },
+        {
+            "level": 4,
+            "costMultiplier": 5.0,
+            "durationMs": 60000
+        },
+        {
+            "level": 5,
+            "costMultiplier": 8.0,
+            "durationMs": 120000
+        }
+    ],
+    "speedUps": [
+        {
+            "itemId": "hermes_wing_1m",
+            "displayNameKey": "item.hermes_wing_1m",
+            "reduceMs": 60000
+        },
+        {
+            "itemId": "hermes_wing_5m",
+            "displayNameKey": "item.hermes_wing_5m",
+            "reduceMs": 300000
+        },
+        {
+            "itemId": "hermes_wing_15m",
+            "displayNameKey": "item.hermes_wing_15m",
+            "reduceMs": 900000
+        }
+    ]
+}

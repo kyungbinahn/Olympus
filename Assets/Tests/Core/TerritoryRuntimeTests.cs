@@ -168,6 +168,31 @@ namespace Olympus.Core.Tests
         }
 
         [Test]
+        public void 뷰가_떠났다_돌아와도_재계산이_살아_있다()
+        {
+            // 기지 → 월드 → 기지로 오갈 때의 모양이다. 화면은 자기 구독만 끊어야 하고
+            // 런타임을 Dispose하면 안 된다 — 그러면 런타임이 상태 통지에 걸어 둔 녹지
+            // 재계산까지 끊겨서, 돌아온 뒤로는 복구해도 녹지가 안 뜬다(2026-09-14).
+            System.Action<StateDelta> view = _ => { };
+
+            _rt.Store.Changed += view;
+            _rt.Construction.TryStartRepair(1);
+            Assert.That(_rt.Restoration.RestoredCellCount, Is.EqualTo(13));
+
+            // 화면을 떠난다 — 자기 구독만 끊는다(Dispose 아님).
+            _rt.Store.Changed -= view;
+
+            // 다시 들어와서 다른 자리를 복구한다.
+            _rt.Store.Changed += view;
+            _rt.Construction.TryStartRepair(2);
+            _clock.Advance(10_000L);
+            _rt.Tick();
+
+            Assert.That(_rt.Restoration.RestoredCellCount, Is.EqualTo(26),
+                "런타임이 살아 있으면 두 번째 복구도 녹지에 반영돼야 한다");
+        }
+
+        [Test]
         public void Dispose_후에는_통지를_받지_않는다()
         {
             _rt.Dispose();

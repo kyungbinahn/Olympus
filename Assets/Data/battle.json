@@ -1,0 +1,562 @@
+{
+    "_comment": "전선 스테이지(성문 밖 거인의 잔당). 근거는 docs/battle.md. 아군은 건물에서 나온다(army: 아니면 그 건물 레벨마다 countPerLevel명). buffs: 그 건물 레벨마다 능력치 %. stages는 1번부터 차례로, multiplier는 그 적의 체력·공격 배수. 스테이지는 한 번 깨면 끝(보상도 한 번). 막사(barracks)가 서야 군대가 생긴다 — 첫 4명 + 레벨마다 2명(2026-10-23 형님: 폐허 마을에 막사를 지어 거병).",
+    "timeLimitMs": 90000,
+    "units": [
+        {
+            "unitId": "hoplite",
+            "displayNameKey": "unit.hoplite",
+            "hp": 120,
+            "attack": 12,
+            "attackIntervalMs": 1000,
+            "range": 0.8,
+            "moveSpeed": 2.2,
+            "radius": 0.4
+        },
+        {
+            "unitId": "archer",
+            "displayNameKey": "unit.archer",
+            "hp": 60,
+            "attack": 9,
+            "attackIntervalMs": 1200,
+            "range": 6.5,
+            "moveSpeed": 2.0,
+            "radius": 0.35
+        },
+        {
+            "unitId": "giant_brute",
+            "displayNameKey": "unit.giant_brute",
+            "hp": 800,
+            "attack": 40,
+            "attackIntervalMs": 1400,
+            "range": 1.5,
+            "moveSpeed": 1.5,
+            "radius": 1.1
+        },
+        {
+            "unitId": "giant_slinger",
+            "displayNameKey": "unit.giant_slinger",
+            "hp": 260,
+            "attack": 22,
+            "attackIntervalMs": 1600,
+            "range": 6.0,
+            "moveSpeed": 1.5,
+            "radius": 0.8
+        },
+        {
+            "unitId": "cyclops",
+            "displayNameKey": "unit.cyclops",
+            "hp": 4000,
+            "attack": 90,
+            "attackIntervalMs": 1800,
+            "range": 2.0,
+            "moveSpeed": 1.2,
+            "radius": 1.6
+        },
+        {
+            "unitId": "giant_chieftain",
+            "displayNameKey": "unit.giant_chieftain",
+            "hp": 9000,
+            "attack": 400,
+            "attackIntervalMs": 1500,
+            "range": 1.8,
+            "moveSpeed": 1.3,
+            "radius": 1.6,
+            "splash": 0.3
+        },
+        {
+            "unitId": "bandit",
+            "displayNameKey": "unit.bandit",
+            "hp": 70,
+            "attack": 8,
+            "attackIntervalMs": 1100,
+            "range": 0.8,
+            "moveSpeed": 2.0,
+            "radius": 0.4
+        }
+    ],
+    "army": [
+        {
+            "defId": "barracks",
+            "unitId": "hoplite",
+            "fixedCount": 4,
+            "countPerLevel": 2
+        },
+        {
+            "defId": "arena",
+            "unitId": "hoplite",
+            "fixedCount": 0,
+            "countPerLevel": 1
+        },
+        {
+            "defId": "training_ground",
+            "unitId": "archer",
+            "fixedCount": 0,
+            "countPerLevel": 2
+        },
+        {
+            "defId": "council_hall",
+            "unitId": "archer",
+            "fixedCount": 0,
+            "countPerLevel": 1
+        }
+    ],
+    "buffs": [
+        {
+            "defId": "main_hall",
+            "unitId": "",
+            "stat": "Attack",
+            "percentPerLevel": 5
+        },
+        {
+            "defId": "ironworks",
+            "unitId": "",
+            "stat": "Attack",
+            "percentPerLevel": 8
+        },
+        {
+            "defId": "gatehouse",
+            "unitId": "",
+            "stat": "Hp",
+            "percentPerLevel": 8
+        },
+        {
+            "defId": "healing_house",
+            "unitId": "",
+            "stat": "Hp",
+            "percentPerLevel": 6
+        },
+        {
+            "defId": "arena",
+            "unitId": "hoplite",
+            "stat": "Attack",
+            "percentPerLevel": 5
+        }
+    ],
+    "stages": [
+        {
+            "stageId": 1,
+            "nameKey": "stage.s01",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 1,
+                    "multiplier": 0.4
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 30
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 23
+                }
+            ],
+            "rewardItems": []
+        },
+        {
+            "stageId": 2,
+            "nameKey": "stage.s02",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 1,
+                    "multiplier": 0.6
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 40
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 31
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_1m",
+                    "amount": 2
+                }
+            ]
+        },
+        {
+            "stageId": 3,
+            "nameKey": "stage.s03",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 1,
+                    "multiplier": 0.9
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 50
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 39
+                }
+            ],
+            "rewardItems": []
+        },
+        {
+            "stageId": 4,
+            "nameKey": "stage.s04",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 1,
+                    "multiplier": 1.0
+                },
+                {
+                    "unitId": "giant_slinger",
+                    "count": 1,
+                    "multiplier": 0.8
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 60
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 47
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_1m",
+                    "amount": 2
+                }
+            ]
+        },
+        {
+            "stageId": 5,
+            "nameKey": "stage.s05",
+            "enemies": [
+                {
+                    "unitId": "cyclops",
+                    "count": 1,
+                    "multiplier": 0.5
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 70
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 55
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_5m",
+                    "amount": 2
+                }
+            ]
+        },
+        {
+            "stageId": 6,
+            "nameKey": "stage.s06",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 2,
+                    "multiplier": 1.3
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 80
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 63
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_1m",
+                    "amount": 2
+                }
+            ]
+        },
+        {
+            "stageId": 7,
+            "nameKey": "stage.s07",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 2,
+                    "multiplier": 1.6
+                },
+                {
+                    "unitId": "giant_slinger",
+                    "count": 1,
+                    "multiplier": 1.4
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 90
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 71
+                }
+            ],
+            "rewardItems": []
+        },
+        {
+            "stageId": 8,
+            "nameKey": "stage.s08",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 2,
+                    "multiplier": 1.7
+                },
+                {
+                    "unitId": "giant_slinger",
+                    "count": 1,
+                    "multiplier": 1.6
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 100
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 79
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_1m",
+                    "amount": 2
+                }
+            ]
+        },
+        {
+            "stageId": 9,
+            "nameKey": "stage.s09",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 2,
+                    "multiplier": 1.8
+                },
+                {
+                    "unitId": "giant_slinger",
+                    "count": 2,
+                    "multiplier": 1.5
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 110
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 87
+                }
+            ],
+            "rewardItems": []
+        },
+        {
+            "stageId": 10,
+            "nameKey": "stage.s10",
+            "enemies": [
+                {
+                    "unitId": "cyclops",
+                    "count": 1,
+                    "multiplier": 1.3
+                },
+                {
+                    "unitId": "giant_brute",
+                    "count": 1,
+                    "multiplier": 1.6
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 120
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 95
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_5m",
+                    "amount": 2
+                }
+            ]
+        },
+        {
+            "stageId": 11,
+            "nameKey": "stage.s11",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 3,
+                    "multiplier": 2.0
+                },
+                {
+                    "unitId": "giant_slinger",
+                    "count": 2,
+                    "multiplier": 1.8
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 130
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 103
+                }
+            ],
+            "rewardItems": []
+        },
+        {
+            "stageId": 12,
+            "nameKey": "stage.s12",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 3,
+                    "multiplier": 2.3
+                },
+                {
+                    "unitId": "giant_slinger",
+                    "count": 2,
+                    "multiplier": 2.0
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 140
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 111
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_1m",
+                    "amount": 2
+                }
+            ]
+        },
+        {
+            "stageId": 13,
+            "nameKey": "stage.s13",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 3,
+                    "multiplier": 2.5
+                },
+                {
+                    "unitId": "giant_slinger",
+                    "count": 2,
+                    "multiplier": 2.2
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 150
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 119
+                }
+            ],
+            "rewardItems": []
+        },
+        {
+            "stageId": 14,
+            "nameKey": "stage.s14",
+            "enemies": [
+                {
+                    "unitId": "giant_brute",
+                    "count": 3,
+                    "multiplier": 2.7
+                },
+                {
+                    "unitId": "giant_slinger",
+                    "count": 3,
+                    "multiplier": 2.3
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 160
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 127
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_1m",
+                    "amount": 2
+                }
+            ]
+        },
+        {
+            "stageId": 15,
+            "nameKey": "stage.s15",
+            "enemies": [
+                {
+                    "unitId": "cyclops",
+                    "count": 1,
+                    "multiplier": 2.4
+                },
+                {
+                    "unitId": "giant_brute",
+                    "count": 2,
+                    "multiplier": 2.3
+                }
+            ],
+            "rewardResources": [
+                {
+                    "kind": "Wood",
+                    "amount": 170
+                },
+                {
+                    "kind": "Stone",
+                    "amount": 135
+                }
+            ],
+            "rewardItems": [
+                {
+                    "itemId": "hermes_wing_5m",
+                    "amount": 2
+                }
+            ]
+        }
+    ]
+}

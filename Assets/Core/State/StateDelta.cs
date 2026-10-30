@@ -36,6 +36,29 @@ namespace Olympus.Core.State
     }
 
     /// <summary>
+    /// 이름으로 세는 값 하나의 변경 — 아이템 개수와 누적 기록(카운터)이 같은 모양을 쓴다.
+    /// 자원(<see cref="ResourceChange"/>)과 따로 둔 이유는 <see cref="ResourceKind"/> 주석에 있다 —
+    /// 자원 축은 넷으로 고정하고, 늘어나는 것들은 문자열 키 공간에 둔다.
+    /// </summary>
+    public readonly struct CountChange
+    {
+        public readonly string Key;
+        public readonly long Value;
+        public readonly bool IsAbsolute;
+
+        private CountChange(string key, long value, bool isAbsolute)
+        {
+            Key = key;
+            Value = value;
+            IsAbsolute = isAbsolute;
+        }
+
+        public static CountChange Delta(string key, long delta) => new CountChange(key, delta, false);
+
+        public static CountChange Absolute(string key, long value) => new CountChange(key, value, true);
+    }
+
+    /// <summary>
     /// 건물 변경 한 줄. Add·Update는 가변 필드를 전부 실어 통째로 덮는다.
     /// 부분 갱신을 허용하면 "어느 필드가 유효한가"를 호출부마다 따져야 해서
     /// 조용히 어긋나는 사고가 난다.
@@ -50,6 +73,7 @@ namespace Olympus.Core.State
         public BuildingPhase Phase { get; private set; }
         public int Level { get; private set; }
         public long ConstructionEndsAtUnixMs { get; private set; }
+        public long ProductionAnchorUnixMs { get; private set; }
 
         private BuildingChange() { }
 
@@ -60,7 +84,8 @@ namespace Olympus.Core.State
             GridFootprint footprint,
             BuildingPhase phase,
             int level,
-            long constructionEndsAtUnixMs)
+            long constructionEndsAtUnixMs,
+            long productionAnchorUnixMs)
         {
             return new BuildingChange
             {
@@ -72,6 +97,7 @@ namespace Olympus.Core.State
                 Phase = phase,
                 Level = level,
                 ConstructionEndsAtUnixMs = constructionEndsAtUnixMs,
+                ProductionAnchorUnixMs = productionAnchorUnixMs,
             };
         }
 
@@ -80,7 +106,8 @@ namespace Olympus.Core.State
             GridPos anchor,
             BuildingPhase phase,
             int level,
-            long constructionEndsAtUnixMs)
+            long constructionEndsAtUnixMs,
+            long productionAnchorUnixMs)
         {
             return new BuildingChange
             {
@@ -90,6 +117,7 @@ namespace Olympus.Core.State
                 Phase = phase,
                 Level = level,
                 ConstructionEndsAtUnixMs = constructionEndsAtUnixMs,
+                ProductionAnchorUnixMs = productionAnchorUnixMs,
             };
         }
 
@@ -111,11 +139,27 @@ namespace Olympus.Core.State
     {
         public List<ResourceChange> Resources { get; private set; }
         public List<BuildingChange> Buildings { get; private set; }
+
+        /// <summary>아이템(헤르메스의 날개 등) 개수 변경.</summary>
+        public List<CountChange> Items { get; private set; }
+
+        /// <summary>
+        /// 누적 기록 변경("수확한 횟수" 같은 것). 상태만 보고는 알 수 없는 "해 봤는가"를
+        /// 임무 조건으로 쓰려고 둔다.
+        /// </summary>
+        public List<CountChange> Counters { get; private set; }
+
+        /// <summary>임무 체인에서 지금 몇 번째인가. null이면 변경 없음.</summary>
+        public int? QuestIndex { get; set; }
+
         public long? ServerTimeUnixMs { get; set; }
 
         public bool IsEmpty =>
             (Resources == null || Resources.Count == 0)
             && (Buildings == null || Buildings.Count == 0)
+            && (Items == null || Items.Count == 0)
+            && (Counters == null || Counters.Count == 0)
+            && !QuestIndex.HasValue
             && !ServerTimeUnixMs.HasValue;
 
         public StateDelta WithResource(ResourceChange change)
@@ -137,6 +181,37 @@ namespace Olympus.Core.State
                 WithResource(ResourceChange.Delta(costs[i].Kind, -costs[i].Amount));
             }
 
+            return this;
+        }
+
+        public StateDelta WithResources(IReadOnlyList<ResourceCost> gains)
+        {
+            if (gains == null)
+                return this;
+
+            for (int i = 0; i < gains.Count; i++)
+            {
+                WithResource(ResourceChange.Delta(gains[i].Kind, gains[i].Amount));
+            }
+
+            return this;
+        }
+
+        public StateDelta WithItem(CountChange change)
+        {
+            if (Items == null)
+                Items = new List<CountChange>(2);
+
+            Items.Add(change);
+            return this;
+        }
+
+        public StateDelta WithCounter(CountChange change)
+        {
+            if (Counters == null)
+                Counters = new List<CountChange>(2);
+
+            Counters.Add(change);
             return this;
         }
 

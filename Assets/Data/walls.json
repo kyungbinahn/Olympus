@@ -1,0 +1,16 @@
+{
+    "_comment": "본부 레벨별 성벽(영토). 모양은 숫자로 정하지 않는다 — 그 레벨까지 열리는 건물을 따라 둥글게 돈다(Core WallRing). unit: 직선 조각 길이(아트 키트 4m). piecesPerSpan: 기둥 사이 직선 수. margin: 건물~성벽 중심선 최소 거리(m, 모자라면 계산이 늘린다). blend: 건물 사이를 메우는 반경(m, 클수록 둥근 덩어리). smoothDegrees: 둘레를 각도로 흐리는 폭. clearance: 성벽이 건물에 남길 여유(m) — tools/DomainTests/RealData가 확인한다. tiers = 영토 단계. tiers.hqLevel: 이 성벽이 둘러쌀 마을(본부 Lv.N까지 열리는 건물). tiers.unlock: 이 단계가 서는 조건(본부 조건과 같은 꼴, 앞 단계부터 차례로) — 거인을 이긴 순간 넓어진다. 본부 Lv.N 조건에 영토 N 조건이 반드시 들어 있어야 한다(본부가 땅보다 앞서면 새 건물이 성 밖에 선다 — 시험·게임 시작 때 검사). 설계 docs/village-growth.md. tiers.gateLength: 그 단계 성문 모델 길이(m — 브리지 WallGateLengths로 잰다. L1·L2 4, L3 8. 성문 모델이 없는 L4·L5는 이 길이만큼 길만 연다). 성문은 전선 쪽(+X+Z). 설계 docs/hq1-5-frontline.md '영토·성벽 확장'.",
+    "unit": 4,
+    "piecesPerSpan": 3,
+    "margin": 2.5,
+    "blend": 3,
+    "smoothDegrees": 10,
+    "clearance": 1.5,
+    "tiers": [
+        { "hqLevel": 1, "gateLength": 4, "unlock": [] },
+        { "hqLevel": 2, "gateLength": 4, "unlock": [ { "kind": "Counter", "target": "front.outpost", "amount": 1 } ] },
+        { "hqLevel": 3, "gateLength": 8, "unlock": [ { "kind": "Counter", "target": "threat.giant_1.won", "amount": 1 } ] },
+        { "hqLevel": 4, "gateLength": 6, "unlock": [ { "kind": "Counter", "target": "threat.giant_2.won", "amount": 1 } ] },
+        { "hqLevel": 5, "gateLength": 6, "unlock": [ { "kind": "Counter", "target": "threat.giant_3.won", "amount": 1 } ] }
+    ]
+}

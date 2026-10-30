@@ -1,0 +1,492 @@
+{
+    "strings": [
+        {
+            "key": "building.main_hall",
+            "text": "본부"
+        },
+        {
+            "key": "building.timber_store",
+            "text": "목재 창고"
+        },
+        {
+            "key": "building.mason_yard",
+            "text": "건설 작업장"
+        },
+        {
+            "key": "building.gatehouse",
+            "text": "성문"
+        },
+        {
+            "key": "building.war_engine_yard",
+            "text": "목마 건조장"
+        },
+        {
+            "key": "building.ironworks",
+            "text": "제철소"
+        },
+        {
+            "key": "building.carpentry",
+            "text": "목공소"
+        },
+        {
+            "key": "building.mine",
+            "text": "광산"
+        },
+        {
+            "key": "building.quarry",
+            "text": "채석장"
+        },
+        {
+            "key": "building.arena",
+            "text": "투기장"
+        },
+        {
+            "key": "building.barracks",
+            "text": "병영"
+        },
+        {
+            "key": "building.farm",
+            "text": "농장"
+        },
+        {
+            "key": "building.fishing_hut",
+            "text": "어부의 오두막"
+        },
+        {
+            "key": "building.silver_mine",
+            "text": "은광"
+        },
+        {
+            "key": "building.council_hall",
+            "text": "회의당"
+        },
+        {
+            "key": "building.healing_house",
+            "text": "치유의 집"
+        },
+        {
+            "key": "building.notice_stele",
+            "text": "공고비"
+        },
+        {
+            "key": "building.training_ground",
+            "text": "훈련장"
+        },
+        {
+            "key": "building.shipyard",
+            "text": "조선소"
+        },
+        {
+            "key": "building.hidden_cove",
+            "text": "숨겨진 만"
+        },
+        {
+            "key": "building.warehouse",
+            "text": "창고"
+        },
+        {
+            "key": "story.hq1",
+            "text": "도적이 들끓는 어두운 세상, 약탈은 일상이 되었다. 막사에 모인 장정들과 함께 — 이 폐허 마을에서 거병한다."
+        },
+        {
+            "key": "story.hq2",
+            "text": "멀리 지평선에 거인이 나타났다! 마을로 걸어오고 있다 — 거인이 닿기 전에 용사 300명을 길러 협곡으로 보내자."
+        },
+        {
+            "key": "story.hq3",
+            "text": "헤르메스가 날개 달린 샌들을 보내왔다 — 공사를 앞당길 수 있다."
+        },
+        {
+            "key": "story.hq4",
+            "text": "거인 형제마저 쓰러뜨렸다! 이 승리로 폴리스로 인정받았다 — 이제부터 공사는 동시에 두 곳까지 맡길 수 있다."
+        },
+        {
+            "key": "story.hq5",
+            "text": "신전이 다시 섰다. 그러나 보급이 바닥나고 있다 — 성문 밖으로 나가 식량과 금을 찾자."
+        },
+        {
+            "key": "item.hermes_wing_1m",
+            "text": "헤르메스의 날개 1분"
+        },
+        {
+            "key": "item.hermes_wing_5m",
+            "text": "헤르메스의 날개 5분"
+        },
+        {
+            "key": "item.hermes_wing_15m",
+            "text": "헤르메스의 날개 15분"
+        },
+        {
+            "key": "feature.shop",
+            "text": "상점"
+        },
+        {
+            "key": "feature.heroes",
+            "text": "영웅"
+        },
+        {
+            "key": "feature.bag",
+            "text": "가방"
+        },
+        {
+            "key": "feature.explore",
+            "text": "탐색"
+        },
+        {
+            "key": "feature.world_map",
+            "text": "외출(월드맵)"
+        },
+        {
+            "key": "feature.alliance",
+            "text": "동맹"
+        },
+        {
+            "key": "quest.q01",
+            "text": "무너진 본부를 다시 세우자"
+        },
+        {
+            "key": "quest.q02",
+            "text": "공고비를 세워 흩어진 백성을 부르자"
+        },
+        {
+            "key": "quest.q03",
+            "text": "목공소를 복구하자"
+        },
+        {
+            "key": "quest.q04",
+            "text": "목공소에서 목재를 거두자"
+        },
+        {
+            "key": "quest.q05",
+            "text": "채석장을 복구하자"
+        },
+        {
+            "key": "quest.q06",
+            "text": "본부를 Lv.2로 올리자"
+        },
+        {
+            "key": "quest.q07",
+            "text": "농장을 되살려 식량을 모으자"
+        },
+        {
+            "key": "quest.q08",
+            "text": "목재 창고를 복구하자"
+        },
+        {
+            "key": "quest.q09",
+            "text": "광산을 복구하자"
+        },
+        {
+            "key": "quest.q10",
+            "text": "목공소를 Lv.2로 올리자"
+        },
+        {
+            "key": "quest.q11",
+            "text": "병영을 되살리자"
+        },
+        {
+            "key": "quest.q12",
+            "text": "건설 작업장을 복구하자"
+        },
+        {
+            "key": "quest.q13",
+            "text": "창고를 복구하자"
+        },
+        {
+            "key": "quest.q14",
+            "text": "번영도를 11까지 올리자"
+        },
+        {
+            "key": "quest.q15",
+            "text": "본부를 Lv.3으로 올리자"
+        },
+        {
+            "key": "quest.q16",
+            "text": "병영에서 용사 50명을 기르자"
+        },
+        {
+            "key": "quest.q17",
+            "text": "훈련장을 복구해 궁수를 키우자"
+        },
+        {
+            "key": "quest.q18",
+            "text": "용사를 150명까지 기르자"
+        },
+        {
+            "key": "quest.q19",
+            "text": "채석장을 Lv.3으로 올리자"
+        },
+        {
+            "key": "quest.q20",
+            "text": "성문을 세워 거인의 잔당을 막자"
+        },
+        {
+            "key": "quest.q21",
+            "text": "치유의 집을 복구하자"
+        },
+        {
+            "key": "quest.q22",
+            "text": "300 용사로 거인을 무찌르자"
+        },
+        {
+            "key": "quest.q23",
+            "text": "번영도를 20까지 올리자"
+        },
+        {
+            "key": "quest.q24",
+            "text": "헤르메스의 날개로 공사를 앞당기자"
+        },
+        {
+            "key": "quest.q25",
+            "text": "본부를 Lv.4로 올려 폴리스를 선포하자"
+        },
+        {
+            "key": "quest.q26",
+            "text": "회의당을 복구하자"
+        },
+        {
+            "key": "quest.q27",
+            "text": "제철소를 복구해 창끝을 벼리자"
+        },
+        {
+            "key": "quest.q28",
+            "text": "농장을 Lv.2로 올리자"
+        },
+        {
+            "key": "quest.q29",
+            "text": "건설 작업장을 Lv.3으로 올리자"
+        },
+        {
+            "key": "quest.q30",
+            "text": "투기장을 복구하자"
+        },
+        {
+            "key": "quest.q31",
+            "text": "조선소를 복구하자"
+        },
+        {
+            "key": "quest.q32",
+            "text": "병영을 Lv.3으로 올리자"
+        },
+        {
+            "key": "quest.q33",
+            "text": "번영도를 30까지 올리자"
+        },
+        {
+            "key": "quest.q34",
+            "text": "신전을 재건하자 — 본부 Lv.5"
+        },
+        {
+            "key": "quest.q35",
+            "text": "어부의 오두막을 되살리자"
+        },
+        {
+            "key": "quest.q36",
+            "text": "은광을 복구해 금을 캐자"
+        },
+        {
+            "key": "unit.hoplite",
+            "text": "호플리테스"
+        },
+        {
+            "key": "unit.archer",
+            "text": "궁수"
+        },
+        {
+            "key": "unit.giant_brute",
+            "text": "거인 졸개"
+        },
+        {
+            "key": "unit.giant_slinger",
+            "text": "돌팔매 거인"
+        },
+        {
+            "key": "unit.cyclops",
+            "text": "키클롭스"
+        },
+        {
+            "key": "feature.battle",
+            "text": "전선"
+        },
+        {
+            "key": "stage.s01",
+            "text": "성문 앞 정찰대"
+        },
+        {
+            "key": "stage.s02",
+            "text": "무너진 길목"
+        },
+        {
+            "key": "stage.s03",
+            "text": "올리브 숲의 매복"
+        },
+        {
+            "key": "stage.s04",
+            "text": "돌팔매의 언덕"
+        },
+        {
+            "key": "stage.s05",
+            "text": "키클롭스의 그림자"
+        },
+        {
+            "key": "stage.s06",
+            "text": "불탄 포도밭"
+        },
+        {
+            "key": "stage.s07",
+            "text": "마른 강바닥"
+        },
+        {
+            "key": "stage.s08",
+            "text": "거인의 야영지"
+        },
+        {
+            "key": "stage.s09",
+            "text": "청동 다리"
+        },
+        {
+            "key": "stage.s10",
+            "text": "우두머리 키클롭스"
+        },
+        {
+            "key": "stage.s11",
+            "text": "안개 낀 협곡"
+        },
+        {
+            "key": "stage.s12",
+            "text": "부서진 신전 터"
+        },
+        {
+            "key": "stage.s13",
+            "text": "검은 바위 고개"
+        },
+        {
+            "key": "stage.s14",
+            "text": "화산 기슭"
+        },
+        {
+            "key": "stage.s15",
+            "text": "티탄의 문지기"
+        },
+        {
+            "key": "unit.giant_chieftain",
+            "text": "거인"
+        },
+        {
+            "key": "feature.food",
+            "text": "식량"
+        },
+        {
+            "key": "feature.gold",
+            "text": "금"
+        },
+        {
+            "key": "story.giant_1.start",
+            "text": "거인이 마을을 향해 걸어온다. 좁은 협곡이라면 소수로도 막을 수 있다 — 용사 300명을 길러라!"
+        },
+        {
+            "key": "story.giant_1.win",
+            "text": "300 용사가 협곡에서 거인을 쓰러뜨렸다! 마을에 환호가 울려 퍼진다 — 거인이 짓밟던 땅을 되찾아 성벽을 넓힌다."
+        },
+        {
+            "key": "story.giant_1.lose",
+            "text": "용사들이 쓰러졌다… 거인이 물러났지만 곧 다시 온다. 더 많은 용사를 길러라."
+        },
+        {
+            "key": "unit.bandit",
+            "text": "도적"
+        },
+        {
+            "key": "quest.q03b",
+            "text": "성문 밖 도적 소굴을 무너뜨려라"
+        },
+        {
+            "key": "quest.q15b",
+            "text": "도적 요새를 무너뜨려라"
+        },
+        {
+            "key": "outpost.bandit_den",
+            "text": "도적 소굴"
+        },
+        {
+            "key": "outpost.bandit_fort",
+            "text": "도적 요새"
+        },
+        {
+            "key": "outpost.giant_camp",
+            "text": "거인 진영"
+        },
+        {
+            "key": "outpost.giant_fort",
+            "text": "거인 성채"
+        },
+        {
+            "key": "outpost.cyclops_lair",
+            "text": "키클롭스 소굴"
+        },
+        {
+            "key": "story.outpost.bandit_den",
+            "text": "도적 소굴이 무너졌다! 갇혀 있던 마을 사람들이 풀려나고, 도적이 차지했던 땅까지 성벽을 넓힌다. 하지만 북쪽 길목에 더 큰 도적 요새가 버티고 있다."
+        },
+        {
+            "key": "story.outpost.bandit_fort",
+            "text": "도적 요새를 함락했다! 그런데 무너진 성벽 너머로 땅이 울린다… 거인들의 진영이다."
+        },
+        {
+            "key": "story.outpost.giant_camp",
+            "text": "거인 진영을 무너뜨렸다. 거인들이 성채로 물러난다 — 더 강한 놈들이 기다린다."
+        },
+        {
+            "key": "story.outpost.giant_fort",
+            "text": "거인 성채를 함락했다! 산 너머 키클롭스의 울음이 들린다."
+        },
+        {
+            "key": "story.outpost.cyclops_lair",
+            "text": "키클롭스 소굴까지 정리했다. 이제 더 넓은 세상으로 나아갈 때다."
+        },
+        {
+            "key": "quest.q00",
+            "text": "폐허 마을에 막사를 세워 군사를 일으키자"
+        },
+        {
+            "key": "story.giant_2.start",
+            "text": "땅이 울린다 — 이번엔 거인 하나가 아니다. 거인 형제가 졸개를 이끌고 온다. 용사 300을 다시 모아라!"
+        },
+        {
+            "key": "story.giant_2.win",
+            "text": "거인 형제가 협곡에 쓰러졌다! 마을이 환호한다 — 되찾은 언덕까지 성벽을 넓힌다."
+        },
+        {
+            "key": "story.giant_2.lose",
+            "text": "용사들이 밀렸다… 거인 형제가 물러났지만 곧 다시 온다. 무장을 갖추고 다시 300을 모아라."
+        },
+        {
+            "key": "story.giant_3.start",
+            "text": "돌 던지는 거인 무리가 몰려온다. 멀리서 날아오는 바위를 견딜 용사 300이 필요하다!"
+        },
+        {
+            "key": "story.giant_3.win",
+            "text": "돌 던지는 무리를 몰아냈다! 마을이 환호한다 — 성벽이 다시 한 번 넓어진다."
+        },
+        {
+            "key": "story.giant_3.lose",
+            "text": "바위 세례에 용사들이 쓰러졌다… 거인들이 물러났지만 곧 다시 온다. 더 강해져서 맞서라."
+        },
+        {
+            "key": "quest.q22b",
+            "text": "거인 형제에 맞설 용사를 다시 모으자 (누적 450명)"
+        },
+        {
+            "key": "quest.q22c",
+            "text": "거인 형제를 무찔러 땅을 넓히자"
+        },
+        {
+            "key": "quest.q33b",
+            "text": "돌 던지는 무리에 맞설 용사를 다시 모으자 (누적 700명)"
+        },
+        {
+            "key": "quest.q33c",
+            "text": "돌 던지는 무리를 몰아내자"
+        }
+    ]
+}

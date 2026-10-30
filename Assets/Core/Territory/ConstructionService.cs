@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Olympus.Core.Progression;
 using Olympus.Core.State;
 using Olympus.Core.Time;
 
@@ -19,6 +20,21 @@ namespace Olympus.Core.Territory
         NotRuined,
 
         InsufficientResources,
+
+        /// <summary>본부 레벨이 모자라 아직 잠긴 건물이다(복구) / 본부 레벨이 상한이다(업그레이드).</summary>
+        HqLevelTooLow,
+
+        /// <summary>동시 공사 한도가 찼다. 다른 공사가 끝나거나 가속해야 한다.</summary>
+        QueueFull,
+
+        /// <summary>완성된 건물이 아니다 — 폐허는 복구부터, 공사 중은 끝나야 올린다.</summary>
+        NotComplete,
+
+        /// <summary>데이터에 다음 레벨이 없다.</summary>
+        MaxLevel,
+
+        /// <summary>본부 레벨업 조건(번영도·선행 건물)이 안 찼다.</summary>
+        RequirementsNotMet,
     }
 
     public readonly struct BuildResult
@@ -55,12 +71,15 @@ namespace Olympus.Core.Territory
         private readonly StateStore _store;
         private readonly BuildingCatalog _catalog;
         private readonly IClock _clock;
+        private readonly ProgressionConfig _progression;
 
-        public ConstructionService(StateStore store, BuildingCatalog catalog, IClock clock)
+        public ConstructionService(
+            StateStore store, BuildingCatalog catalog, IClock clock, ProgressionConfig progression = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+            _progression = progression ?? ProgressionConfig.Empty;
         }
 
         /// <summary>
@@ -70,25 +89,35 @@ namespace Olympus.Core.Territory
         /// 검증 없이 넘기면 스토어가 "놓을 수 없는 자리에 Add가 왔다"로 터지고 어느
         /// 자리가 문제인지 알기 어렵다. 여기서 잡으면 자리 번호와 상대를 이름 대고 말해준다.
         /// </summary>
-        public void InitializeFromLayout(BaseLayout layout)
+        /// <summary>
+        /// 레이아웃이 성립하는지 보고, 안 되면 어느 자리가 무엇과 부딪히는지 대며 터진다.
+        /// 세이브에서 세울 때도 같은 검증을 지나야 한다 — 검증을 건너뛰는 진입점이 하나라도
+        /// 있으면 그 경로로 들어온 데이터 실수만 조용히 통과한다.
+        /// </summary>
+        public void ValidateOrThrow(BaseLayout layout)
         {
             if (layout == null)
                 throw new ArgumentNullException(nameof(layout));
 
             IReadOnlyList<LayoutProblem> problems = layout.Validate(_catalog);
 
-            if (problems.Count > 0)
+            if (problems.Count == 0)
+                return;
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append("기지 레이아웃이 유효하지 않다 (").Append(problems.Count).Append("건):");
+
+            for (int i = 0; i < problems.Count; i++)
             {
-                var sb = new System.Text.StringBuilder();
-                sb.Append("기지 레이아웃이 유효하지 않다 (").Append(problems.Count).Append("건):");
-
-                for (int i = 0; i < problems.Count; i++)
-                {
-                    sb.Append("\n  - ").Append(problems[i]);
-                }
-
-                throw new InvalidOperationException(sb.ToString());
+                sb.Append("\n  - ").Append(problems[i]);
             }
+
+            throw new InvalidOperationException(sb.ToString());
+        }
+
+        public void InitializeFromLayout(BaseLayout layout)
+        {
+            ValidateOrThrow(layout);
 
             var delta = new StateDelta();
 
@@ -106,6 +135,7 @@ namespace Olympus.Core.Territory
                     def.Footprint,
                     BuildingPhase.Ruined,
                     0,
+                    0L,
                     0L));
             }
 
@@ -128,6 +158,14 @@ namespace Olympus.Core.Territory
             BuildingDef def;
             if (!_catalog.TryGet(building.DefId, out def))
                 return BuildResult.Fail(BuildRejection.UnknownDef);
+
+            // 순서가 곧 화면에 뜨는 이유의 우선순위다 — 잠긴 건물에 "자원 부족"을 띄우면
+            // 자원을 모아 와도 못 짓는다. 가장 근본적인 이유부터 말한다.
+            if (def.UnlockHqLevel > ProgressionRules.HqLevel(_store.State, _progression))
+                return BuildResult.Fail(BuildRejection.HqLevelTooLow);
+
+            if (ProgressionRules.IsQueueFull(_store.State, _progression, def.BuildDurationMs))
+                return BuildResult.Fail(BuildRejection.QueueFull);
 
             if (!_store.State.Resources.CanAfford(def.BuildCosts))
                 return BuildResult.Fail(BuildRejection.InsufficientResources);
@@ -154,17 +192,20 @@ namespace Olympus.Core.Territory
             _catalog.TryGet(building.DefId, out def);
 
             long now = _clock.NowUnixMs;
-            bool instant = def.BuildDurationMs <= 0L;
+            var delta = new StateDelta().WithResourceCosts(def.BuildCosts);
 
-            _store.Apply(new StateDelta()
-                .WithResourceCosts(def.BuildCosts)
-                .WithBuilding(BuildingChange.Update(
-                    slotId,
-                    building.Anchor,
-                    instant ? BuildingPhase.Complete : BuildingPhase.Constructing,
-                    instant ? 1 : 0,
-                    instant ? 0L : now + def.BuildDurationMs)));
+            if (def.BuildDurationMs <= 0L)
+            {
+                ProgressionRules.AppendCompletion(delta, building, 1, now, _progression);
+            }
+            else
+            {
+                delta.WithBuilding(BuildingChange.Update(
+                    slotId, building.Anchor, BuildingPhase.Constructing, 0,
+                    now + def.BuildDurationMs, building.ProductionAnchorUnixMs));
+            }
 
+            _store.Apply(delta);
             return BuildResult.Ok;
         }
 
@@ -178,31 +219,27 @@ namespace Olympus.Core.Territory
         public int CompleteFinished()
         {
             long now = _clock.NowUnixMs;
-            List<BuildingChange> finished = null;
+            StateDelta delta = null;
+            int count = 0;
 
+            // 델타를 다 모은 뒤에 한 번에 적용한다 — 순회 도중 적용하면 건물 목록이 바뀐다.
             foreach (BuildingInstance b in _store.State.Buildings)
             {
                 if (!b.IsConstructionFinished(now))
                     continue;
 
-                if (finished == null)
-                    finished = new List<BuildingChange>();
+                if (delta == null)
+                    delta = new StateDelta();
 
-                finished.Add(BuildingChange.Update(
-                    b.Id, b.Anchor, BuildingPhase.Complete, b.Level + 1, 0L));
+                ProgressionRules.AppendCompletion(delta, b, b.Level + 1, b.ConstructionEndsAtUnixMs, _progression);
+                count++;
             }
 
-            if (finished == null)
+            if (delta == null)
                 return 0;
 
-            var delta = new StateDelta();
-            for (int i = 0; i < finished.Count; i++)
-            {
-                delta.WithBuilding(finished[i]);
-            }
-
             _store.Apply(delta);
-            return finished.Count;
+            return count;
         }
     }
 }
